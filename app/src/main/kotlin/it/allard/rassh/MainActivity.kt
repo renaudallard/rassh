@@ -36,6 +36,10 @@ class MainActivity : Activity(), SessionService.Listener {
     private lateinit var vault: Vault
     private var declined = emptySet<String>()
     private var protecting = false
+
+    /* The vault questions are asked once per screen, see setUp(). */
+    private var settingUp = false
+    private var toldNoBiometric = false
     private lateinit var adapter: TwoLineAdapter
     private lateinit var quick: EditText
     private var hosts: List<Host> = emptyList()
@@ -85,7 +89,6 @@ class MainActivity : Activity(), SessionService.Listener {
 
         binding.bind()
         requestMissingPermissions()
-        setUpVault(vault) { if (hasWindowFocus()) protect() }
     }
 
     /*
@@ -118,6 +121,25 @@ class MainActivity : Activity(), SessionService.Listener {
      * Move keys left in clear into the vault, not asking twice for the
      * same ones, and point IdentityFile lines at the vault public keys.
      */
+    /*
+     * Set the vault up when the screen shows, so that a fingerprint
+     * enrolled since the app started is taken too. Each question is asked
+     * once, the one saying no fingerprint is enrolled included.
+     */
+    private fun setUp() {
+        if (settingUp) return
+        if (!vault.exists && !hasStrongBiometric()) {
+            if (toldNoBiometric) return
+            toldNoBiometric = true
+        } else {
+            settingUp = true
+        }
+        setUpVault(vault) {
+            settingUp = false
+            protect()
+        }
+    }
+
     private fun protect() {
         try {
             usePublicKeys(paths, vault.names())
@@ -126,7 +148,11 @@ class MainActivity : Activity(), SessionService.Listener {
         } catch (e: ErrnoException) {
             toast(getString(R.string.vault_error, e.message))
         }
-        if (protecting || !vault.isSetUp) return
+        if (!vault.isSetUp) {
+            setUp()
+            return
+        }
+        if (protecting) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
         protecting = true

@@ -2,6 +2,7 @@ package it.allard.rassh
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Context
 import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.CancellationSignal
@@ -95,13 +96,16 @@ private fun Activity.vaultInvalidated(vault: Vault) {
  * Create the Keystore key, asking first whether a new fingerprint
  * enrollment should destroy it. done is called once it exists.
  */
+/** A strong biometric is enrolled, the vault can be used. */
+fun Context.hasStrongBiometric(): Boolean =
+    getSystemService(BiometricManager::class.java).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
+        BiometricManager.BIOMETRIC_SUCCESS
+
 fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
     if (vault.isSetUp) return done()
     /* A new Keystore key could never read the keys left by the old one. */
     if (vault.exists) return vaultInvalidated(vault)
-    val manager = getSystemService(BiometricManager::class.java)
-    if (manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) !=
-        BiometricManager.BIOMETRIC_SUCCESS) {
+    if (!hasStrongBiometric()) {
         AlertDialog.Builder(this)
             .setTitle(R.string.vault_title)
             .setMessage(R.string.vault_no_biometric)
