@@ -53,8 +53,12 @@ class SshConfig private constructor(
             get() = keyword.equals("Host", ignoreCase = true) && Host.isValidName(value)
     }
 
+    /*
+     * One entry per name, from its first block: ssh takes the first value
+     * it finds, edits change that block and remove() takes them all.
+     */
     val hosts: List<Host>
-        get() = blocks.filter { it.isHost }.map { toHost(it) }
+        get() = blocks.filter { it.isHost }.distinctBy { it.value }.map { toHost(it) }
 
     fun find(name: String): Host? =
         blocks.find { it.isHost && it.value == name }?.let { toHost(it) }

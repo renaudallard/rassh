@@ -91,6 +91,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun duplicateNamesListedOnce() {
+        val config = SshConfig.parse("Host a\n    User x\n\nHost a\n    LocalForward 8080 x:80\n")
+        assertEquals(listOf("a" to "x"), config.hosts.map { it.name to it.user })
+        config.remove("a")
+        assertEquals(0, config.hosts.size)
+    }
+
+    @Test
     fun commentsStayAboveTheirBlock() {
         val text = "Host a\n    HostName a.example\n\n# Work servers\nHost b\n    HostName b.example\n" +
             "\n# Defaults for every host\nHost *\n    User me\n"
