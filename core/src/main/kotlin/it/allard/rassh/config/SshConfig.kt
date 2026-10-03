@@ -119,10 +119,10 @@ class SshConfig private constructor(
         for (line in block.lines) {
             val (key, value) = keyword(line) ?: Pair("", "")
             when {
-                key.equals("HostName", true) && hostName == null -> hostName = unquote(value)
-                key.equals("User", true) && user == null -> user = unquote(value)
-                key.equals("Port", true) && port == null -> port = unquote(value)
-                key.equals("IdentityFile", true) && identity == null -> identity = unquote(value)
+                key.equals("HostName", true) && hostName == null -> hostName = first(value)
+                key.equals("User", true) && user == null -> user = first(value)
+                key.equals("Port", true) && port == null -> port = first(value)
+                key.equals("IdentityFile", true) && identity == null -> identity = first(value)
                 key.equals("LocalForward", true) -> local.add(value)
                 key.equals("RemoteForward", true) -> remote.add(value)
                 key.equals("DynamicForward", true) -> dynamic.add(value)
@@ -138,9 +138,9 @@ class SshConfig private constructor(
         fun add(key: String, value: String) {
             if (value.isNotEmpty()) lines.add("$INDENT$key $value")
         }
-        add("HostName", host.hostName)
-        add("User", host.user)
-        add("Port", host.port)
+        add("HostName", quote(host.hostName))
+        add("User", quote(host.user))
+        add("Port", quote(host.port))
         add("IdentityFile", quote(host.identityFile))
         host.localForwards.forEach { add("LocalForward", it) }
         host.remoteForwards.forEach { add("RemoteForward", it) }
@@ -191,7 +191,7 @@ class SshConfig private constructor(
             if (text.isEmpty()) return text
             val lines = text.removeSuffix("\n").split('\n').map { line ->
                 val kv = keyword(line)
-                val to = kv?.let { paths[unquote(it.second)] }
+                val to = kv?.let { paths[first(it.second)] }
                 if (kv == null || to == null || !kv.first.equals("IdentityFile", true)) {
                     line
                 } else {
@@ -240,10 +240,50 @@ class SshConfig private constructor(
 
         private const val WHITESPACE = " \t\r\n"
 
-        private fun unquote(s: String): String =
-            if (s.length >= 2 && s.startsWith("\"") && s.endsWith("\"")) s.substring(1, s.length - 1) else s
+        /**
+         * The arguments of a line after its keyword, as argv_split() in
+         * misc.c takes them: quotes, backslash escapes and a comment from
+         * a # starting an argument. Null at an unmatched quote, which ssh
+         * refuses.
+         */
+        fun arguments(s: String): List<String>? {
+            val args = mutableListOf<String>()
+            var i = 0
+            while (i < s.length) {
+                if (s[i] == ' ' || s[i] == '\t') {
+                    i++
+                    continue
+                }
+                if (s[i] == '#') break
+                val arg = StringBuilder()
+                var quote: Char? = null
+                while (i < s.length) {
+                    val c = s[i]
+                    val next = s.getOrNull(i + 1)
+                    when {
+                        c == '\\' && next != null && (next in "'\"\\" || quote == null && next == ' ') -> {
+                            arg.append(next)
+                            i++
+                        }
+                        quote == null && (c == ' ' || c == '\t') -> break
+                        quote == null && (c == '"' || c == '\'') -> quote = c
+                        quote != null && c == quote -> quote = null
+                        else -> arg.append(c)
+                    }
+                    i++
+                }
+                if (quote != null) return null
+                args.add(arg.toString())
+            }
+            return args
+        }
 
+        /* The first argument, or the text as is when ssh would refuse it. */
+        private fun first(s: String): String = arguments(s)?.let { it.firstOrNull().orEmpty() } ?: s
+
+        /* s written so that arguments() reads it back as one argument. */
         private fun quote(s: String): String =
-            if (s.any { it.isWhitespace() }) "\"" + s + "\"" else s
+            if (s.none { it.isWhitespace() || it in "\"'\\#" }) s
+            else "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
     }
 }

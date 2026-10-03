@@ -222,4 +222,48 @@ class SshConfigTest {
         assertEquals("y", config.find("b")?.user)
         assertEquals("x", config.find("a")?.user)
     }
+
+    @Test
+    fun readsArgumentsLikeSsh() {
+        assertEquals(listOf("~/.ssh/id"), SshConfig.arguments("~/.ssh/id # work key"))
+        assertEquals(listOf("~/.ssh/my key"), SshConfig.arguments("'~/.ssh/my key'"))
+        assertEquals(listOf("~/.ssh/my key"), SshConfig.arguments("~/.ssh/my\\ key"))
+        assertEquals(listOf("a#b", "c"), SshConfig.arguments("a#b c"))
+        assertEquals(listOf("a\"b"), SshConfig.arguments("\"a\\\"b\""))
+        assertEquals(null, SshConfig.arguments("\"open"))
+    }
+
+    @Test
+    fun keepsValuesWhenSaving() {
+        val config = SshConfig.parse("""
+            |Host a
+            |    HostName h # the box
+            |    IdentityFile ~/.ssh/id # work key
+            |Host b
+            |    IdentityFile '~/.ssh/my key'
+            |""".trimMargin())
+        assertEquals("h", config.find("a")?.hostName)
+        assertEquals("~/.ssh/id", config.find("a")?.identityFile)
+        assertEquals("~/.ssh/my key", config.find("b")?.identityFile)
+        config.put("a", config.find("a")!!)
+        config.put("b", config.find("b")!!)
+        val text = config.toString()
+        assertTrue(text.contains("    HostName h\n    IdentityFile ~/.ssh/id\n"))
+        assertTrue(text.contains("    IdentityFile \"~/.ssh/my key\"\n"))
+        assertEquals("~/.ssh/my key", SshConfig.parse(text).find("b")?.identityFile)
+    }
+
+    @Test
+    fun quotesWhatNeedsIt() {
+        val config = SshConfig.parse("")
+        config.put(null, Host("q", identityFile = "~/.ssh/a \"b\" \\c"))
+        assertEquals("~/.ssh/a \"b\" \\c", SshConfig.parse(config.toString()).find("q")?.identityFile)
+    }
+
+    @Test
+    fun replacesCommentedIdentities() {
+        val text = "Host a\n    IdentityFile ~/.ssh/k # old\n"
+        assertEquals("Host a\n    IdentityFile ~/.ssh/k.pub\n",
+            SshConfig.replaceIdentities(text, mapOf("~/.ssh/k" to "~/.ssh/k.pub")))
+    }
 }
