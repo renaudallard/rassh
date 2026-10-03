@@ -25,6 +25,8 @@ class Session(
     argv: List<String>,
     env: List<String>,
     cwd: String,
+    columns: Int,
+    rows: Int,
     private val exitMessage: (Int) -> String,
     private val exited: (Session) -> Unit,
 ) : TerminalClient {
@@ -34,7 +36,7 @@ class Session(
         fun onTitleChanged()
     }
 
-    val terminal = Terminal(COLUMNS, ROWS, this)
+    val terminal = Terminal(columns, rows, this)
     var listener: Listener? = null
     var title = name
         private set
@@ -52,7 +54,7 @@ class Session(
     private val updatePending = AtomicBoolean()
 
     init {
-        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, ROWS, COLUMNS)
+        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, rows, columns)
         pty = ParcelFileDescriptor.adoptFd(r[0])
         pid = r[1]
         output = FileOutputStream(pty.fileDescriptor)
@@ -150,8 +152,6 @@ class Session(
     }
 
     companion object {
-        private const val COLUMNS = 80
-        private const val ROWS = 24
         private const val BUFFER_SIZE = 8192
         private const val SIGHUP = 1
     }

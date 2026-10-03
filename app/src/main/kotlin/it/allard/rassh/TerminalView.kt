@@ -257,6 +257,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val columns = maxOf(1, (width / cellWidth).toInt())
         val rows = maxOf(1, height / cellHeight)
         session?.resize(columns, rows)
+        /* New sessions start at this size, see SessionService. */
+        if (prefs.getInt(PREF_COLUMNS, 0) != columns || prefs.getInt(PREF_ROWS, 0) != rows)
+            prefs.edit().putInt(PREF_COLUMNS, columns).putInt(PREF_ROWS, rows).apply()
     }
 
     private fun cellAt(e: MotionEvent): Pair<Int, Int> {
@@ -494,7 +497,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     }
 
     companion object {
-        private const val PREFS = "terminal"
+        const val PREFS = "terminal"
+        const val PREF_COLUMNS = "columns"
+        const val PREF_ROWS = "rows"
         private const val PREF_FONT_SIZE = "font_size"
         private const val DEFAULT_FONT_SIZE = 12f
         private const val MIN_FONT_SIZE = 6f

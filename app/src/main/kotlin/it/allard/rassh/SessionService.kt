@@ -100,7 +100,9 @@ class SessionService : Service() {
             e.rethrowAsIOException()
         }
         agent.start()
+        val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
         val session = Session(nextId++, name, path, argv, paths.env, cwd,
+            prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
             { getString(R.string.session_exited, it) }, { changed() })
         _sessions.add(session)
         if (!foreground)
@@ -145,5 +147,7 @@ class SessionService : Service() {
     companion object {
         private const val CHANNEL = "sessions"
         private const val NOTIFICATION = 1
+        private const val COLUMNS = 80
+        private const val ROWS = 24
     }
 }
