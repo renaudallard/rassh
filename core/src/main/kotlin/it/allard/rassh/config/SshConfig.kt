@@ -281,9 +281,12 @@ class SshConfig private constructor(
         /* The first argument, or the text as is when ssh would refuse it. */
         private fun first(s: String): String = arguments(s)?.let { it.firstOrNull().orEmpty() } ?: s
 
-        /* s written so that arguments() reads it back as one argument. */
+        /*
+         * s written so that arguments() reads it back as one argument. A
+         * leading = would be taken for the separator after the keyword.
+         */
         private fun quote(s: String): String =
-            if (s.none { it.isWhitespace() || it in "\"'\\#" }) s
+            if (!s.startsWith("=") && s.none { it.isWhitespace() || it in "\"'\\#" }) s
             else "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
     }
 }

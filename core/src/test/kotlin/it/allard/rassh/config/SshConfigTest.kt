@@ -266,4 +266,11 @@ class SshConfigTest {
         assertEquals("Host a\n    IdentityFile ~/.ssh/k.pub\n",
             SshConfig.replaceIdentities(text, mapOf("~/.ssh/k" to "~/.ssh/k.pub")))
     }
+
+    @Test
+    fun quotesLeadingEquals() {
+        val config = SshConfig.parse("")
+        config.put(null, Host("e", user = "=x"))
+        assertEquals("=x", SshConfig.parse(config.toString()).find("e")?.user)
+    }
 }
