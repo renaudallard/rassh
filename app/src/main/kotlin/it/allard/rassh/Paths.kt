@@ -59,10 +59,15 @@ class Paths(context: Context) {
      */
     @Throws(IOException::class)
     fun writePrivate(file: File, text: String) {
+        writePrivate(file, text.toByteArray())
+    }
+
+    @Throws(IOException::class)
+    fun writePrivate(file: File, data: ByteArray) {
         val tmp = File(file.path + ".tmp")
         try {
             FileOutputStream(tmp).use {
-                it.write(text.toByteArray())
+                it.write(data)
                 it.fd.sync()
             }
             Os.chmod(tmp.path, "600".toInt(8))

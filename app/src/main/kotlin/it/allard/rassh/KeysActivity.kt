@@ -220,14 +220,17 @@ class KeysActivity : Activity() {
             }
             dialog.dismiss()
             try {
-                val text = contentResolver.openInputStream(uri)?.use { input ->
-                    val bytes = input.readNBytes(MAX_KEY_SIZE + 1)
-                    if (bytes.size > MAX_KEY_SIZE) throw IOException("file too large")
-                    String(bytes, Charsets.UTF_8)
-                } ?: throw IOException("cannot open $uri")
-                if (!text.startsWith("-----BEGIN ")) throw IOException("not a private key")
-                paths.ensureSshDir()
-                paths.writePrivate(File(paths.sshDir, n), text)
+                /* Kept in a byte array, zeroed after use, never in a String. */
+                val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(MAX_KEY_SIZE + 1) }
+                    ?: throw IOException("cannot open $uri")
+                try {
+                    if (key.size > MAX_KEY_SIZE) throw IOException("file too large")
+                    if (!key.startsWith(PEM_START)) throw IOException("not a private key")
+                    paths.ensureSshDir()
+                    paths.writePrivate(File(paths.sshDir, n), key)
+                } finally {
+                    key.fill(0)
+                }
             } catch (e: IOException) {
                 toast(getString(R.string.import_failed, e.message))
                 return@setOnClickListener
@@ -404,6 +407,10 @@ class KeysActivity : Activity() {
         private const val MENU_UNLOCK = 5
         private const val REQUEST_IMPORT = 1
         private const val MAX_KEY_SIZE = 65536
+        private val PEM_START = "-----BEGIN ".toByteArray()
+
+        private fun ByteArray.startsWith(prefix: ByteArray): Boolean =
+            size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
         private val KEY_TYPES = listOf("ed25519", "ecdsa", "rsa", "mldsa44-ed25519")
     }
 }
