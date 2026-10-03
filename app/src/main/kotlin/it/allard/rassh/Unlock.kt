@@ -7,7 +7,6 @@ import android.hardware.biometrics.BiometricPrompt
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.security.keystore.KeyPermanentlyInvalidatedException
-import android.system.ErrnoException
 import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
@@ -133,7 +132,8 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
 /*
  * Move the private keys left in clear in ~/.ssh into the vault, which
  * must be set up, those with a public key next to them. done is called
- * when it finished, with false if the fingerprint was refused.
+ * when it finished, with false if the fingerprint was refused or the
+ * keys could not be moved.
  */
 fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
     val pending = Keys.plaintext(paths.sshDir).filter { Keys.publicKey(paths.sshDir, it) != null }
@@ -152,9 +152,9 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
             }
             usePublicKeys(paths, pending)
         } catch (e: IOException) {
+            /* Like a refusal, not to ask again at once for the same keys. */
             toast(getString(R.string.vault_error, e.message))
-        } catch (e: ErrnoException) {
-            toast(getString(R.string.vault_error, e.message))
+            return@withVaultKey done(false)
         }
         done(true)
     }
