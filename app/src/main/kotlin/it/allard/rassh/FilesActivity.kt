@@ -91,6 +91,15 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         outState.putString(STATE_UPLOAD, uploading)
     }
 
+    /* The terminal screen may have taken the session on the way. */
+    override fun onResume() {
+        super.onResume()
+        session?.let {
+            it.listener = this
+            terminal.invalidate()
+        }
+    }
+
     override fun onDestroy() {
         progressDialog?.dismiss()
         session?.let {
