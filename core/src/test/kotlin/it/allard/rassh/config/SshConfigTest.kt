@@ -91,6 +91,29 @@ class SshConfigTest {
     }
 
     @Test
+    fun publicIdentities() {
+        val text = """
+            |IdentityFile ~/.ssh/id_rsa
+            |Host a
+            |    IdentityFile ~/.ssh/id_ed25519
+            |    identityfile="/home/u/.ssh/work key"
+            |    IdentityFile ~/.ssh/other
+            |# IdentityFile ~/.ssh/id_ed25519
+            |""".trimMargin()
+        val keys = setOf("~/.ssh/id_ed25519", "/home/u/.ssh/work key", "~/.ssh/id_rsa")
+        assertEquals("""
+            |IdentityFile ~/.ssh/id_rsa.pub
+            |Host a
+            |    IdentityFile ~/.ssh/id_ed25519.pub
+            |    identityfile "/home/u/.ssh/work key.pub"
+            |    IdentityFile ~/.ssh/other
+            |# IdentityFile ~/.ssh/id_ed25519
+            |""".trimMargin(), SshConfig.publicIdentities(text, keys))
+        assertEquals("", SshConfig.publicIdentities("", keys))
+        assertEquals("Host b", SshConfig.publicIdentities("Host b", keys))
+    }
+
+    @Test
     fun validation() {
         assertTrue(Host.isValidName("my-host.example"))
         assertFalse(Host.isValidName(""))

@@ -153,6 +153,25 @@ class SshConfig private constructor(
             return SshConfig(header, blocks)
         }
 
+        /**
+         * Point the IdentityFile lines naming one of keys, given as the
+         * paths written in the file, to the public key next to it, for
+         * private keys only kept in the agent.
+         */
+        fun publicIdentities(text: String, keys: Set<String>): String {
+            if (text.isEmpty()) return text
+            val lines = text.removeSuffix("\n").split('\n').map { line ->
+                val kv = split(line)
+                if (kv == null || !kv.first.equals("IdentityFile", true) || unquote(kv.second) !in keys) {
+                    line
+                } else {
+                    val indent = line.takeWhile { it.isWhitespace() }
+                    indent + kv.first + " " + quote(unquote(kv.second) + ".pub")
+                }
+            }
+            return lines.joinToString("\n") + if (text.endsWith("\n")) "\n" else ""
+        }
+
         /** Split a line in keyword and arguments, null for comments and blank lines. */
         private fun split(line: String): Pair<String, String>? {
             val s = line.trim()
