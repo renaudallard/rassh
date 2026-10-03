@@ -66,7 +66,7 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
         v.gravity = Gravity.CENTER
         v.typeface = Typeface.MONOSPACE
         v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        v.setTextColor(context.getColor(R.color.key_text))
+        v.setTextColor(context.themeColor(android.R.attr.textColorPrimary))
         v.setBackgroundResource(R.drawable.key_background)
         v.isClickable = true
         v.contentDescription = label
@@ -119,7 +119,7 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
 
     private fun refresh() {
         for ((mask, v) in modifierViews) {
-            if (modifiers and mask != 0) v.setBackgroundColor(context.getColor(R.color.key_active))
+            if (modifiers and mask != 0) v.setBackgroundColor(context.themeColor(android.R.attr.colorAccent))
             else v.setBackgroundResource(R.drawable.key_background)
         }
     }

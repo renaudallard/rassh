@@ -27,10 +27,9 @@
 
         <activity
             android:name=".TerminalActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density"
             android:exported="false"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.Rassh.Terminal"
             android:windowSoftInputMode="adjustResize|stateVisible" />
 
         <activity

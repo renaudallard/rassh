@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="terminal_background">#ff000000</color>
-    <color name="terminal_foreground">#ffd0d0d0</color>
-    <color name="key_background">#ff1c1c1c</color>
-    <color name="key_active">#ff3d5a80</color>
-    <color name="key_text">#ffe0e0e0</color>
-    <color name="selection">#664a90d9</color>
     <color name="launcher_background">#ff1c2833</color>
 </resources>

@@ -59,9 +59,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private val runChars = CharArray(256)
     private val oneChar = CharArray(2)
 
-    private val foreground = context.getColor(R.color.terminal_foreground)
-    private val background = context.getColor(R.color.terminal_background)
-    private val selectionColor = context.getColor(R.color.selection)
+    /* The default colors follow the phone theme, the palette does not. */
+    private val foreground = context.themeColor(android.R.attr.textColorPrimary)
+    private val background = context.themeColor(android.R.attr.colorBackground)
+    private val selectionColor = context.themeColor(android.R.attr.colorAccent) and 0xffffff or SELECTION_ALPHA
 
     /* Lines scrolled back into the history. */
     private var scrollOffset = 0
@@ -505,6 +506,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         private const val MIN_FONT_SIZE = 6f
         private const val MAX_FONT_SIZE = 40f
         private const val DIM_ALPHA = 0x99
+        private const val SELECTION_ALPHA = 0x66 shl 24
         private const val ITALIC_SKEW = -0.25f
         private const val MENU_COPY = 1
         private const val MENU_PASTE = 2

@@ -64,6 +64,8 @@ encrypted and unlocked with your fingerprint.
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, pinch to zoom, long press to select and copy
+- **Theme** - light or dark like the phone, with its accent color, the
+  terminal included
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
   system monospace font for a proportional one
 - **Hardware keyboards** - arrows, Home, End, Page Up and Down, Insert,

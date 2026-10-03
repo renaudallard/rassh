@@ -28,6 +28,16 @@ fun View.padForInsets() {
     }
 }
 
+/** A color of the current theme, light or dark like the phone. */
+fun Context.themeColor(attr: Int): Int {
+    val a = obtainStyledAttributes(intArrayOf(attr))
+    try {
+        return a.getColor(0, 0)
+    } finally {
+        a.recycle()
+    }
+}
+
 fun Context.toast(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 }
