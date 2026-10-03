@@ -125,16 +125,22 @@ class Terminal(
         stringEscape = false
     }
 
+    private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {
+        val s = buffer.saved ?: return
+        buffer.saved = SavedCursor(minOf(s.x, columns - 1), y.coerceIn(0, rows - 1), s.style,
+            s.originMode, s.g0Graphics, s.g1Graphics, s.useG1)
+    }
+
     fun resize(columns: Int, rows: Int) {
         if (columns < 1 || rows < 1 || columns == this.columns && rows == this.rows)
             return
         val other = if (screen === main) alt else main
+        val oldY = cursorY
         cursorY = screen.resize(columns, rows, cursorY)
-        val saved = other.saved
-        val y = other.resize(columns, rows, saved?.y ?: 0)
-        if (saved != null)
-            other.saved = SavedCursor(minOf(saved.x, columns - 1), y, saved.style,
-                saved.originMode, saved.g0Graphics, saved.g1Graphics, saved.useG1)
+        /* The saved cursor stays on its line, which moved with the cursor's. */
+        screen.saved?.let { moveSaved(screen, it.y + cursorY - oldY, columns, rows) }
+        val y = other.resize(columns, rows, other.saved?.y ?: 0)
+        if (other.saved != null) moveSaved(other, y, columns, rows)
         val tabs = defaultTabs(columns)
         tabStops.copyInto(tabs, 0, 0, minOf(this.columns, columns))
         tabStops = tabs

@@ -346,4 +346,15 @@ class TerminalTest {
         t.put("\u001b[2I")
         assertEquals(16, t.cursorX)
     }
+
+    @Test
+    fun restoresCursorAfterResize() {
+        val t = term(columns = 20, rows = 24)
+        t.put("\u001b[21;1HS\u001b[1D\u001b7\u001b[24;1H")
+        t.resize(20, 12)
+        t.put("\u001b8R")
+        val lines = (0 until t.rows).map { t.line(it) }
+        assertTrue(lines.none { 'S' in it })
+        assertTrue(lines.any { it.startsWith("R") })
+    }
 }
