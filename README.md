@@ -109,11 +109,13 @@ There is no PIN fallback.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them.
-- Connecting, `sftp` and `scp` ask for the fingerprint when the agent
-  lacks a vault key, then `ssh-add -t 3600` loads them into the agent
-  through pipes: the decrypted keys never touch the disk and leave the
-  agent after one hour, or as soon as the screen turns off. Cancelling
-  connects without them, for password logins.
+- Connecting, `sftp` and `scp` ask for the fingerprint, then `ssh-add`
+  loads the keys into the agent through pipes, so the decrypted keys
+  never touch the disk. `ssh` removes them from the agent as soon as it
+  is logged in, through `LocalCommand`. Otherwise, with `scp`, `sftp` or
+  a failed login, they leave the agent after 60 seconds, or when the
+  screen turns off. Cancelling connects without them, for password
+  logins.
 - The keys screen can unlock them on demand, list the agent keys and
   remove them from the agent.
 

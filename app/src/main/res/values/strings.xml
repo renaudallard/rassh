@@ -82,7 +82,7 @@
 
     <!-- Key storage -->
     <string name="unlock_title">Unlock SSH keys</string>
-    <string name="unlock_reason">Load your keys into the agent for one hour</string>
+    <string name="unlock_reason">Load your keys to log in</string>
     <string name="protect_reason">Encrypt the private keys found in ~/.ssh</string>
     <string name="vault_title">Protect SSH keys</string>
     <string name="vault_question">Private keys are encrypted with a key kept in the phone\'s secure hardware, and your fingerprint unlocks them.\n\nShould adding a fingerprint to the phone later destroy them? Someone who learns your PIN then cannot enroll a finger to use your keys, but every stored key is lost.</string>

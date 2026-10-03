@@ -230,7 +230,7 @@ class MainActivity : Activity(), SessionService.Listener {
                 /* ssh-add from the pipes, then the program, found in PATH. */
                 val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
                     "; exec \"\$0\" \"\$@\""
-                start(service, title, SHELL, listOf("sh", "-c", script) + argv, cwd, pipes)
+                start(service, title, SHELL, listOf("sh", "-c", script) + clearAfterLogin(argv), cwd, pipes)
             } finally {
                 pipes.forEach { it.close() }
             }

@@ -12,8 +12,8 @@ import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
 
-/* How long keys stay in the agent once unlocked, in seconds. */
-const val KEY_LIFETIME = 3600
+/* The longest keys stay in the agent once loaded, in seconds. */
+const val KEY_LIFETIME = 60
 
 /* Descriptors a program can be given, see MAX_FDS in native/pty.c. */
 private const val MAX_KEYS = 64
@@ -233,6 +233,16 @@ fun missingKeys(paths: Paths, names: List<String>): List<String> {
     val held = listed.lines().mapNotNull { it.split(' ').getOrNull(1) }.toSet()
     return names.filter { Keys.publicKey(paths.sshDir, it)?.split(' ')?.getOrNull(1) !in held }
 }
+
+/*
+ * ssh options removing the keys from the agent once logged in: ssh runs
+ * LocalCommand right after authentication. Options given here win over
+ * the config. scp and sftp refuse LocalCommand, KEY_LIFETIME covers them
+ * and failed logins.
+ */
+fun clearAfterLogin(argv: List<String>): List<String> =
+    if (argv.firstOrNull() != "ssh") argv
+    else listOf("ssh", "-o", "PermitLocalCommand=yes", "-o", "LocalCommand=ssh-add -D >/dev/null 2>&1") + argv.drop(1)
 
 /** ssh-add arguments loading the keys of keyPipes() for KEY_LIFETIME. */
 fun addArgs(count: Int): List<String> =
