@@ -14,9 +14,14 @@ data class Host(
     val other: List<String> = emptyList(),
 ) {
     companion object {
-        /** A name usable as a single Host pattern without wildcards. */
+        /**
+         * A name usable as a single Host pattern without wildcards, and by
+         * ssh as a destination: ssh_valid_hostname() in readconf.c refuses
+         * a leading - and these characters, a - would also make an option.
+         */
         fun isValidName(name: String): Boolean =
-            name.isNotEmpty() && name.none { it.isWhitespace() || it in "*?!,\"'#=" }
+            name.isNotEmpty() && !name.startsWith("-") &&
+                name.none { it.isWhitespace() || it.isISOControl() || it in "*?!,\"'#=`$\\;&<>|(){}" }
 
         /** A single word usable as a HostName or User value. */
         fun isValidWord(value: String): Boolean =

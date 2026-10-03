@@ -273,4 +273,11 @@ class SshConfigTest {
         config.put(null, Host("e", user = "=x"))
         assertEquals("=x", SshConfig.parse(config.toString()).find("e")?.user)
     }
+
+    @Test
+    fun namesSshAccepts() {
+        assertTrue(Host.isValidName("web-1.example.org"))
+        for (bad in listOf("-v", "a;b", "a\$b", "a`b", "a|b", "a(b", "a{b", "a\\b", "a b", "a\tb"))
+            assertFalse(Host.isValidName(bad), bad)
+    }
 }

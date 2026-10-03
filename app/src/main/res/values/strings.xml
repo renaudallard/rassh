@@ -82,7 +82,7 @@
     <string name="other_label">Other ssh_config options</string>
     <string name="other_hint">One per line, e.g. Compression yes</string>
     <string name="save">Save</string>
-    <string name="error_name">Name is required and must not contain spaces or wildcards</string>
+    <string name="error_name">Name is required, must not start with - nor contain spaces, wildcards or shell characters like ; $ | ( )</string>
     <string name="error_name_used">This name is already used</string>
     <string name="error_word">Must not contain spaces or quotes</string>
     <string name="error_port">Port must be between 1 and 65535</string>
