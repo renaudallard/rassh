@@ -167,4 +167,30 @@ class SshConfigTest {
         assertTrue(Host.isValidWord("user@example"))
         assertFalse(Host.isValidWord("a b"))
     }
+
+    @Test
+    fun addsMissingHosts() {
+        val config = SshConfig.parse(sample)
+        val other = SshConfig.parse("""
+            |ServerAliveInterval 5
+            |
+            |# the pi
+            |Host pi
+            |    HostName 10.0.0.2
+            |
+            |Host web
+            |    HostName elsewhere.org
+            |
+            |Host *
+            |    User nobody
+            |""".trimMargin())
+        assertEquals(listOf("pi"), config.addMissing(other))
+        assertEquals(listOf("web", "pi"), config.hosts.map { it.name })
+        assertEquals("example.org", config.find("web")?.hostName)
+        val text = config.toString()
+        assertTrue(text.contains("# the pi\nHost pi\n    HostName 10.0.0.2\n"))
+        assertTrue(text.indexOf("Host pi") < text.indexOf("Host *.lan"))
+        assertFalse(text.contains("ServerAliveInterval 5"))
+        assertFalse(text.contains("nobody"))
+    }
 }

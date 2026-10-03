@@ -104,6 +104,24 @@
 
     <!-- Notification -->
     <string name="channel_sessions">Sessions</string>
+    <!-- Export and import -->
+    <string name="export">Export</string>
+    <string name="export_reason">Read your keys to export them</string>
+    <string name="export_failed">Cannot export: %1$s</string>
+    <string name="exported">Hosts, keys and settings exported</string>
+    <string name="passphrase">Passphrase</string>
+    <string name="passphrase_again">Passphrase again</string>
+    <string name="passphrase_short">At least %1$d characters</string>
+    <string name="passphrase_mismatch">The passphrases differ</string>
+    <string name="import_question">Append adds the hosts and keys whose names are not used yet. Replace removes your hosts, keys and settings first.</string>
+    <string name="import_append">Append</string>
+    <string name="import_replace">Replace</string>
+    <string name="import_reason">Store the imported keys</string>
+    <string name="restore_failed">Cannot import: %1$s</string>
+    <string name="restore_no_vault">keys need a fingerprint set up in the phone settings</string>
+    <string name="wrong_passphrase">wrong passphrase or damaged file</string>
+    <string name="imported">Hosts imported: %1$d, keys imported: %2$d</string>
+
     <plurals name="sessions_open">
         <item quantity="one">%1$d session open</item>
         <item quantity="other">%1$d sessions open</item>

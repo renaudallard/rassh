@@ -28,6 +28,7 @@ import it.allard.rassh.config.Args
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
 import java.io.IOException
+import java.time.LocalDate
 import kotlin.concurrent.thread
 
 class MainActivity : Activity(), SessionService.Listener {
@@ -395,7 +396,9 @@ class MainActivity : Activity(), SessionService.Listener {
         menu.add(Menu.NONE, MENU_KEYS, 2, R.string.keys)
             .setIcon(R.drawable.ic_key)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        menu.add(Menu.NONE, MENU_ABOUT, 3, R.string.about)
+        menu.add(Menu.NONE, MENU_EXPORT, 3, R.string.export)
+        menu.add(Menu.NONE, MENU_IMPORT, 4, R.string.import_)
+        menu.add(Menu.NONE, MENU_ABOUT, 5, R.string.about)
         return true
     }
 
@@ -404,10 +407,28 @@ class MainActivity : Activity(), SessionService.Listener {
             MENU_ADD -> startActivity(Intent(this, HostActivity::class.java))
             MENU_SESSIONS -> startActivity(Intent(this, TerminalActivity::class.java))
             MENU_KEYS -> startActivity(Intent(this, KeysActivity::class.java))
+            MENU_EXPORT -> startActivityForResult(
+                Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("application/octet-stream")
+                    .putExtra(Intent.EXTRA_TITLE, "rassh-${LocalDate.now()}.rassh"),
+                REQUEST_EXPORT)
+            MENU_IMPORT -> startActivityForResult(
+                Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
+                REQUEST_IMPORT)
             MENU_ABOUT -> about()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) return
+        when (requestCode) {
+            REQUEST_EXPORT -> exportTo(uri, paths, vault)
+            REQUEST_IMPORT -> importFrom(uri, paths, vault) { if (!isDestroyed) loadHosts() }
+        }
     }
 
     companion object {
@@ -419,5 +440,9 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_DELETE = 6
         private const val MENU_SFTP = 7
         private const val MENU_SCP = 8
+        private const val MENU_EXPORT = 9
+        private const val MENU_IMPORT = 10
+        private const val REQUEST_EXPORT = 1
+        private const val REQUEST_IMPORT = 2
     }
 }

@@ -60,6 +60,8 @@ encrypted and unlocked with your fingerprint.
   keys, import private keys, rename keys, show, copy or share public keys
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
+- **Export and import** - hosts, keys and settings in one file sealed with
+  a passphrase, see [Moving to another phone](#moving-to-another-phone)
 - **Sessions** - several at once, kept alive by a foreground service.
   Opening a second one to the same server asks first
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
@@ -124,6 +126,26 @@ Public keys stay in clear next to the vault. Since `ssh` skips an
 `IdentityFile` whose private key is gone, but takes a public key and finds
 the private one in the agent, `IdentityFile` lines naming a vault key are
 pointed at its `.pub`, and the host editor offers them that way.
+
+## Moving to another phone
+
+Export, in the menu, writes the hosts of `~/.ssh/config`, `known_hosts`,
+the keys and the settings to a file sealed with a passphrase of at least
+8 characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
+with 600,000 iterations. Reading the keys takes a fingerprint. Android
+backup stays off, since the vault cannot leave the phone that made it.
+
+Import reads the file on the other phone and asks whether to append or
+replace:
+
+- Append adds the `Host` blocks and keys whose names are not used yet,
+  the missing `known_hosts` lines and the settings not set yet. Global
+  options, wildcard `Host` and `Match` blocks of the file are left out,
+  as they could change the hosts already there.
+- Replace removes the hosts, keys and settings first, and empties the
+  agent.
+
+Storing the keys takes a fingerprint.
 
 ## How it works
 

@@ -532,10 +532,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         const val PREFS = "terminal"
         const val PREF_COLUMNS = "columns"
         const val PREF_ROWS = "rows"
-        private const val PREF_FONT_SIZE = "font_size"
+        const val PREF_FONT_SIZE = "font_size"
         private const val DEFAULT_FONT_SIZE = 12f
-        private const val MIN_FONT_SIZE = 6f
-        private const val MAX_FONT_SIZE = 40f
+        const val MIN_FONT_SIZE = 6f
+        const val MAX_FONT_SIZE = 40f
         private const val DIM_ALPHA = 0x99
         private const val SELECTION_ALPHA = 0x66 shl 24
         private const val ITALIC_SKEW = -0.25f

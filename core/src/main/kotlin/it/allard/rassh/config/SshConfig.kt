@@ -83,6 +83,20 @@ class SshConfig private constructor(
         blocks.removeAll { it.isHost && it.value == name }
     }
 
+    /**
+     * Add the Host blocks of other whose names are not used here, as they
+     * are written, like put() does. Its other lines and blocks are left
+     * out, they could change the hosts already here. Returns the names
+     * added.
+     */
+    fun addMissing(other: SshConfig): List<String> {
+        val names = blocks.filter { it.isHost }.map { it.value }.toSet()
+        val added = other.blocks.filter { it.isHost && it.value !in names }
+        val at = blocks.indexOfFirst { !it.isHost }
+        blocks.addAll(if (at < 0) blocks.size else at, added)
+        return added.map { it.value }.distinct()
+    }
+
     override fun toString(): String {
         val sb = StringBuilder()
         for (line in header) sb.append(line).append('\n')
