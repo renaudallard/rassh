@@ -256,6 +256,19 @@ class TerminalTest {
     }
 
     @Test
+    fun resetParserDropsPartialInput() {
+        val t = term()
+        t.put("\u001b]0;title without end")
+        t.resetParser()
+        t.put("x")
+        assertEquals("x", t.line(0))
+        t.feed(byteArrayOf(0xe2.toByte()))
+        t.resetParser()
+        t.put("y")
+        assertEquals("xy", t.line(0))
+    }
+
+    @Test
     fun repeatIsBoundedByTheScreen() {
         val t = term(columns = 4, rows = 2)
         t.put("x\r\n\u001b[1;1Ha\u001b[65535b")

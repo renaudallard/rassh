@@ -118,6 +118,13 @@ class Terminal(
         }
     }
 
+    /** Forget a partly received sequence or character, to write text of our own. */
+    fun resetParser() {
+        state = GROUND
+        utf8Remaining = 0
+        stringEscape = false
+    }
+
     fun resize(columns: Int, rows: Int) {
         if (columns < 1 || rows < 1 || columns == this.columns && rows == this.rows)
             return

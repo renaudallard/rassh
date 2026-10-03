@@ -8,8 +8,10 @@ import it.allard.rassh.terminal.TerminalClient
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -53,6 +55,7 @@ class Session(
     private var closed = false
     private val handler = Handler(Looper.getMainLooper())
     private val updatePending = AtomicBoolean()
+    private val readerDone = CountDownLatch(1)
 
     init {
         val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, rows, columns)
@@ -66,7 +69,18 @@ class Session(
             } catch (_: IOException) {
                 -1
             }
-            handler.post { finished(status) }
+            /*
+             * Let the reader take what the program wrote last, then end
+             * any sequence it left unfinished before writing ours. A
+             * process left with the terminal open keeps the reader going.
+             */
+            readerDone.await(DRAIN_MILLIS, TimeUnit.MILLISECONDS)
+            val message = "\r\n" + exitMessage(status) + "\r\n"
+            synchronized(terminal) {
+                terminal.resetParser()
+                terminal.feed(message.toByteArray())
+            }
+            handler.post { finished() }
         }
     }
 
@@ -118,6 +132,7 @@ class Session(
         } catch (_: IOException) {
             /* EIO once the program and its children closed the terminal. */
         }
+        readerDone.countDown()
         submit {
             closed = true
             try {
@@ -144,16 +159,15 @@ class Session(
         }
     }
 
-    private fun finished(status: Int) {
+    private fun finished() {
         isRunning = false
-        val message = "\r\n" + exitMessage(status) + "\r\n"
-        synchronized(terminal) { terminal.feed(message.toByteArray()) }
         listener?.onUpdate()
         exited(this)
     }
 
     companion object {
         private const val BUFFER_SIZE = 8192
+        private const val DRAIN_MILLIS = 500L
         private const val SIGHUP = 1
     }
 }
