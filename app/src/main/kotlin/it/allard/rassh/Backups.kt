@@ -249,13 +249,6 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         if (name !in files) File(dir, name).delete()
     if (items.none { it.type == Backup.SETTING && it.name == TerminalView.PREF_FONT_SIZE })
         getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE).edit().remove(TerminalView.PREF_FONT_SIZE).apply()
-    /* The removed keys may still be in the agent. */
-    thread(name = "agent-clear") {
-        try {
-            runProgram(SHELL, addCommand(listOf("-D")), paths.env, paths.home.path)
-        } catch (_: IOException) {
-        }
-    }
     return Pair(hostCount(paths), keys.size)
 }
 

@@ -13,7 +13,7 @@ import java.io.IOException
 import java.security.GeneralSecurityException
 
 /* The longest keys stay in the agent once loaded, in seconds. */
-const val KEY_LIFETIME = 60
+private const val KEY_LIFETIME = 60
 
 /* Descriptors a program can be given, see MAX_FDS in native/pty.c. */
 private const val MAX_KEYS = 64
@@ -212,27 +212,48 @@ fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<Parcel
     return pipes
 }
 
-/* Shell code giving the agent 100 short waits to create its socket, it may have just started. */
-const val AGENT_WAIT = "i=0; while [ ! -S \"\$SSH_AUTH_SOCK\" ] && [ \$i -lt 100 ]; do sleep 0.01; i=\$((i + 1)); done; "
+/* Shell code giving the agent 100 short waits to create its socket, it has just started. */
+private const val AGENT_WAIT = "i=0; while [ ! -S \"\$SSH_AUTH_SOCK\" ] && [ \$i -lt 100 ]; do sleep 0.01; i=\$((i + 1)); done; "
 
-/** Arguments for SHELL running ssh-add with args once the agent is up. */
-fun addCommand(args: List<String>): List<String> =
-    listOf("sh", "-c", AGENT_WAIT + "exec ssh-add \"\$@\"", "sh") + args
+/* Agents of a connection, see withAgent(), named by the pid of their shell. */
+private val AGENT_SOCKET = Regex("""agent\.\d+""")
 
-/*
- * The named vault keys the agent does not hold, asked to the agent
- * itself: ssh-add may have failed, the agent restarted or keys expired.
- * Blocks, not to be called on the main thread.
+/**
+ * Run argv with an ssh-agent of its own holding the keys of keyPipes()
+ * for KEY_LIFETIME, gone when the program exits. Connections do not
+ * share an agent, as the LocalCommand of one emptying it would leave
+ * another without keys in the middle of its login. ProxyJump and
+ * LocalCommand reach it through SSH_AUTH_SOCK.
  */
-fun missingKeys(paths: Paths, names: List<String>): List<String> {
-    val listed = try {
-        runProgram(SHELL, addCommand(listOf("-L")), paths.env, paths.home.path)
-    } catch (_: IOException) {
-        ""
-    }
-    val held = listed.lines().mapNotNull { it.split(' ').getOrNull(1) }.toSet()
-    return names.filter { Keys.publicKey(paths.sshDir, it)?.split(' ')?.getOrNull(1) !in held }
+fun withAgent(argv: List<String>, keys: Int): List<String> {
+    val files = (0 until keys).joinToString(" ") { "/dev/fd/${3 + it}" }
+    /*
+     * The agent writes its variables to stdout, which the file browser
+     * reads, and ssh-add writes there on some errors. The shell cannot
+     * close descriptors above 9 and scp and sftp keep them, so what
+     * ssh-add left unread in the pipes is drained.
+     */
+    val script = "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
+        "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
+        AGENT_WAIT +
+        "ssh-add -t $KEY_LIFETIME $files >&2; cat $files >/dev/null 2>&1; " +
+        "\"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
+    return listOf("sh", "-c", script) + argv
 }
+
+/** Empty the agents of the connections, the screen is off. Blocks. */
+fun clearAgents(paths: Paths) {
+    for (socket in agentSockets(paths)) {
+        try {
+            runProgram(SHELL, listOf("sh", "-c", "exec ssh-add -D"), paths.env + "SSH_AUTH_SOCK=$socket", paths.home.path)
+        } catch (_: IOException) {
+        }
+    }
+}
+
+/** The sockets of the agents of the connections, left over ones included. */
+fun agentSockets(paths: Paths): List<File> =
+    paths.tmp.listFiles().orEmpty().filter { AGENT_SOCKET.matches(it.name) }
 
 /*
  * ssh options removing the keys from the agent once logged in: ssh runs
@@ -243,9 +264,3 @@ fun missingKeys(paths: Paths, names: List<String>): List<String> {
 fun clearAfterLogin(argv: List<String>): List<String> =
     if (argv.firstOrNull() != "ssh") argv
     else listOf("ssh", "-o", "PermitLocalCommand=yes", "-o", "LocalCommand=ssh-add -D >/dev/null 2>&1") + argv.drop(1)
-
-/** The paths of the pipes of keyPipes() in the program they are given to. */
-fun keyFiles(count: Int): List<String> = (0 until count).map { "/dev/fd/${3 + it}" }
-
-/** ssh-add arguments loading the keys of keyPipes() for KEY_LIFETIME. */
-fun addArgs(count: Int): List<String> = listOf("-t", KEY_LIFETIME.toString()) + keyFiles(count)

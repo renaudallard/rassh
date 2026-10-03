@@ -13,12 +13,12 @@ class Paths(context: Context) {
     val home: File = context.filesDir
     val sshDir = File(home, ".ssh")
     val config = File(sshDir, "config")
-    val agentSocket = File(context.cacheDir, "agent.sock")
+    /* $TMPDIR, private to the app, the agents of connections put their sockets there. */
+    val tmp: File = context.cacheDir
     private val bin = File(home, "bin")
     private val lib = context.applicationInfo.nativeLibraryDir
     val ssh = program("ssh")
     val keygen = program("ssh-keygen")
-    val agent = program("ssh-agent")
     val scp = program("scp")
     val sftp = program("sftp")
     val env = listOf(
@@ -26,8 +26,7 @@ class Paths(context: Context) {
         "PATH=$bin:/system/bin",
         "TERM=xterm-256color",
         "LANG=C.UTF-8",
-        "TMPDIR=${context.cacheDir}",
-        "SSH_AUTH_SOCK=$agentSocket",
+        "TMPDIR=$tmp",
     )
 
     private fun program(name: String) = "$lib/lib$name.so"

@@ -207,9 +207,10 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     /*
-     * Start argv[0] on a terminal. When the agent lacks vault keys, ask
-     * for a fingerprint and have ssh-add load them first. Without it the
-     * program runs anyway, for password logins.
+     * Start argv[0] on a terminal. With keys in the vault, ask for a
+     * fingerprint and give the program an agent of its own holding them,
+     * see withAgent(). Without it the program runs anyway, for password
+     * logins.
      */
     private fun open(service: SessionService, l: Launch) {
         val names = try {
@@ -218,25 +219,10 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.vault_error, e.message))
             emptyList()
         }
-        if (names.isEmpty()) {
+        if (names.isEmpty())
             start(service, l, l.path, l.argv, emptyList())
-            return
-        }
-        try {
-            service.startAgent()
-        } catch (e: IOException) {
-            toast(getString(R.string.start_failed, "ssh-agent", e.message))
-        }
-        thread {
-            val missing = missingKeys(paths, names)
-            runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
-                if (missing.isEmpty())
-                    start(service, l, l.path, l.argv, emptyList())
-                else
-                    unlockAndStart(service, names, l)
-            }
-        }
+        else
+            unlockAndStart(service, names, l)
     }
 
     private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
@@ -251,17 +237,7 @@ class MainActivity : Activity(), SessionService.Listener {
                 return@withVaultKey
             }
             try {
-                /*
-                 * ssh-add from the pipes, then the program, found in PATH.
-                 * The shell cannot close descriptors above 9 and scp and
-                 * sftp keep them, so what ssh-add left unread is drained.
-                 * The file browser reads the standard output, ssh-add
-                 * writes to the terminal only.
-                 */
-                val files = keyFiles(names.size).joinToString(" ")
-                val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
-                    " >&2; cat " + files + " >/dev/null 2>&1; exec \"\$0\" \"\$@\""
-                start(service, l, SHELL, listOf("sh", "-c", script) + clearAfterLogin(l.argv), pipes)
+                start(service, l, SHELL, withAgent(clearAfterLogin(l.argv), names.size), pipes)
             } finally {
                 pipes.forEach { it.close() }
             }

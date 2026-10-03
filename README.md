@@ -55,11 +55,12 @@ encrypted and unlocked with your fingerprint.
   or `-J jump host`
 - **Encrypted keys** - private keys live in a vault sealed by the Android
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
-- **Agent** - one `ssh-agent` holds the unlocked keys while logging in,
-  so `ssh`, `scp`, `sftp` and `ProxyJump` hosts use them without writing
-  them to disk. The keys leave it once logged in. Agent forwarding is off,
-  as the server could use the keys while they are loaded, unless asked
-  with `-A`
+- **Agent** - each connection gets an `ssh-agent` of its own holding the
+  unlocked keys while it logs in, so `ssh`, `scp`, `sftp` and `ProxyJump`
+  hosts use them without writing them to disk, and one login emptying
+  its agent cannot leave another without keys. The keys leave it once
+  logged in. Agent forwarding is off, as the server could use the keys
+  while they are loaded, unless asked with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import private keys, rename keys, show, copy or share public keys
 - **File browser** - from the menu of a saved host: browse, download,
@@ -125,14 +126,12 @@ There is no PIN fallback.
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them.
 - Connecting, `sftp` and `scp` ask for the fingerprint, then `ssh-add`
-  loads the keys into the agent through pipes, so the decrypted keys
-  never touch the disk. `ssh` removes them from the agent as soon as it
-  is logged in, through `LocalCommand`. Otherwise, with `scp`, `sftp` or
-  a failed login, they leave the agent after 60 seconds, or when the
-  screen turns off. Cancelling connects without them, for password
-  logins.
-- The keys screen can unlock them on demand, for 60 seconds at most,
-  list the agent keys and remove them from the agent.
+  loads the keys through pipes into an agent started for that connection
+  alone, so the decrypted keys never touch the disk. `ssh` removes them
+  from it as soon as it is logged in, through `LocalCommand`. Otherwise,
+  with `scp`, `sftp` or a failed login, they leave it after 60 seconds,
+  or when the screen turns off, and the agent ends with the connection.
+  Cancelling connects without them, for password logins.
 
 Public keys stay in clear next to the vault. Since `ssh` skips an
 `IdentityFile` whose private key is gone, but takes a public key and finds
@@ -154,8 +153,7 @@ replace:
   the missing `known_hosts` lines and the settings not set yet. Global
   options, wildcard `Host` and `Match` blocks of the file are left out,
   as they could change the hosts already there.
-- Replace removes the hosts, keys and settings first, and empties the
-  agent.
+- Replace removes the hosts, keys and settings first.
 
 Storing the keys takes a fingerprint. Only import files you made: the
 hosts of an export can run commands through `ProxyCommand` or

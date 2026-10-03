@@ -105,10 +105,6 @@
     <string name="error_key_exists">A key or file with this name already exists</string>
     <string name="import_failed">Cannot import key: %1$s</string>
     <string name="delete_key">Delete key %1$s?</string>
-    <string name="add_to_agent">Add to agent</string>
-    <string name="agent_keys">Agent keys</string>
-    <string name="agent_clear">Remove keys from agent</string>
-    <string name="unlock_keys">Unlock keys</string>
     <string name="rename">Rename</string>
     <string name="rename_key">Rename key</string>
     <string name="rename_reason">Rename the stored key</string>

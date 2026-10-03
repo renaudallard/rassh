@@ -22,7 +22,6 @@ import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
-import kotlin.concurrent.thread
 
 /** Private keys, generated and converted by ssh-keygen, kept in the vault. */
 class KeysActivity : Activity() {
@@ -126,24 +125,6 @@ class KeysActivity : Activity() {
         }
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
         return true
-    }
-
-    /* Load vault keys into the agent for KEY_LIFETIME, after a fingerprint. */
-    private fun unlock(title: String, names: List<String>) {
-        if (names.isEmpty()) return
-        withVaultKey(vault, getString(R.string.unlock_reason)) { key ->
-            val pipes = try {
-                keyPipes(vault, key, names)
-            } catch (e: IOException) {
-                toast(getString(R.string.vault_error, e.message))
-                return@withVaultKey
-            }
-            try {
-                run(title, SHELL, addCommand(addArgs(names.size)), pipes)
-            } finally {
-                pipes.forEach { it.close() }
-            }
-        }
     }
 
     /* A vault key may have no file left, its name is taken all the same. */
@@ -263,12 +244,6 @@ class KeysActivity : Activity() {
                 startActivity(Intent.createChooser(send, name))
             })
         }
-        actions.add(R.string.add_to_agent to {
-            if (name in vaultNames())
-                unlock(name, listOf(name))
-            else
-                run(name, SHELL, addCommand(listOf("-t", KEY_LIFETIME.toString(), File(paths.sshDir, name).path)))
-        })
         actions.add(R.string.rename to { renameKey(name) })
         actions.add(R.string.delete to { deleteKey(name) })
         AlertDialog.Builder(this)
@@ -358,18 +333,7 @@ class KeysActivity : Activity() {
     private fun deleteKey(name: String) {
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.delete_key, name))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                /* Out of the agent first, the public key names it there. */
-                val pub = File(paths.sshDir, "$name.pub")
-                val id = if (pub.isFile) pub else File(paths.sshDir, name)
-                thread(name = "agent-delete") {
-                    try {
-                        runProgram(SHELL, addCommand(listOf("-d", id.path)), paths.env, paths.home.path)
-                    } catch (_: IOException) {
-                    }
-                    runOnUiThread { removeKey(name) }
-                }
-            }
+            .setPositiveButton(R.string.delete) { _, _ -> removeKey(name) }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
@@ -389,9 +353,6 @@ class KeysActivity : Activity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_GENERATE, 0, R.string.generate_key)
         menu.add(Menu.NONE, MENU_IMPORT, 1, R.string.import_key)
-        menu.add(Menu.NONE, MENU_UNLOCK, 2, R.string.unlock_keys)
-        menu.add(Menu.NONE, MENU_AGENT_LIST, 3, R.string.agent_keys)
-        menu.add(Menu.NONE, MENU_AGENT_CLEAR, 4, R.string.agent_clear)
         return true
     }
 
@@ -401,9 +362,6 @@ class KeysActivity : Activity() {
             MENU_IMPORT -> startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
-            MENU_UNLOCK -> unlock(getString(R.string.unlock_keys), vaultNames())
-            MENU_AGENT_LIST -> run(getString(R.string.agent_keys), SHELL, addCommand(listOf("-l")))
-            MENU_AGENT_CLEAR -> run(getString(R.string.agent_clear), SHELL, addCommand(listOf("-D")))
             android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)
         }
@@ -413,9 +371,6 @@ class KeysActivity : Activity() {
     companion object {
         private const val MENU_GENERATE = 1
         private const val MENU_IMPORT = 2
-        private const val MENU_AGENT_LIST = 3
-        private const val MENU_AGENT_CLEAR = 4
-        private const val MENU_UNLOCK = 5
         private const val REQUEST_IMPORT = 1
         private val PEM_START = "-----BEGIN ".toByteArray()
 

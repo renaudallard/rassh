@@ -37,17 +37,11 @@ class SessionService : Service() {
     private var nextId = 1
     private var foreground = false
     private lateinit var paths: Paths
-    private lateinit var agent: Agent
 
     /* Keys unlocked by fingerprint must not stay usable on a locked phone. */
     private val screenOff = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            thread(name = "agent-clear") {
-                try {
-                    runProgram(SHELL, addCommand(listOf("-D")), paths.env, paths.home.path)
-                } catch (_: IOException) {
-                }
-            }
+            thread(name = "agent-clear") { clearAgents(paths) }
         }
     }
 
@@ -57,19 +51,14 @@ class SessionService : Service() {
     override fun onCreate() {
         super.onCreate()
         paths = Paths(this)
-        agent = Agent(paths)
         /* ssh-add is run through PATH before any session, the links must be current. */
         try {
             paths.linkPrograms()
         } catch (_: ErrnoException) {
             /* Tried again by start(). */
         }
-        /* Early, so that the agent is ready when the first session starts. */
-        try {
-            agent.start()
-        } catch (_: IOException) {
-            /* Tried again by start(). */
-        }
+        /* No session runs yet, sockets of agents are left by a killed app. */
+        for (socket in agentSockets(paths)) socket.delete()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
             NotificationManager.IMPORTANCE_LOW)
@@ -101,7 +90,6 @@ class SessionService : Service() {
         unregisterReceiver(screenOff)
         for (s in _sessions) s.close()
         _sessions.clear()
-        agent.stop()
         super.onDestroy()
     }
 
@@ -132,7 +120,6 @@ class SessionService : Service() {
         } catch (e: ErrnoException) {
             e.rethrowAsIOException()
         }
-        agent.start()
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
         val session = Session(nextId++, name, server, target, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
@@ -142,12 +129,6 @@ class SessionService : Service() {
             startForegroundService(Intent(this, SessionService::class.java))
         changed()
         return session
-    }
-
-    /** Start the agent if it is not running, before asking it something. */
-    @Throws(IOException::class)
-    fun startAgent() {
-        agent.start()
     }
 
     /** Forget a session, hanging it up if it still runs. */
