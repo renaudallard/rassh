@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import android.util.Base64
@@ -32,6 +33,10 @@ class Vault(private val paths: Paths) {
     /** The Keystore key exists. */
     val isSetUp: Boolean
         get() = keyStore().containsAlias(ALIAS)
+
+    /** Keys were stored, whether or not they can still be read. */
+    val exists: Boolean
+        get() = file.isFile
 
     @Throws(IOException::class)
     fun names(): List<String> = load()?.second?.map { it.name } ?: emptyList()
@@ -78,7 +83,8 @@ class Vault(private val paths: Paths) {
      */
     @Throws(IOException::class)
     fun cipher(): Cipher {
-        val key = keyStore().getKey(ALIAS, null) as SecretKey
+        /* A Keystore key gone with the vault still there is as good as invalidated. */
+        val key = keyStore().getKey(ALIAS, null) as? SecretKey ?: throw KeyPermanentlyInvalidatedException()
         val cipher = Cipher.getInstance(TRANSFORMATION)
         val sealed = load()?.first
         if (sealed == null)

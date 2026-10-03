@@ -100,6 +100,8 @@ private fun Activity.vaultInvalidated(vault: Vault) {
  */
 fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
     if (vault.isSetUp) return done()
+    /* A new Keystore key could never read the keys left by the old one. */
+    if (vault.exists) return vaultInvalidated(vault)
     val manager = getSystemService(BiometricManager::class.java)
     if (manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) !=
         BiometricManager.BIOMETRIC_SUCCESS) {
