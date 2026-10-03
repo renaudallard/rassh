@@ -34,14 +34,18 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     return KnownHost(name, files)
 }
 
-/* The numbers, from 1, of the lines of file holding a key of name, hashed or not. */
+/*
+ * The numbers, from 1, of the lines of file holding a key of name, hashed
+ * or not. @cert-authority and @revoked lines are listed with CA or REVOKED
+ * after the number, they are kept, as ssh-keygen -R does.
+ */
 @Throws(IOException::class)
 private fun keyLines(paths: Paths, name: String, file: File): List<Int> {
     val out = runProgram(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
     return FOUND.findAll(out).map { it.groupValues[1].toInt() }.toList()
 }
 
-private val FOUND = Regex("""^# Host .* found: line (\d+)""", RegexOption.MULTILINE)
+private val FOUND = Regex("""^# Host .* found: line (\d+)[ \t]*$""", RegexOption.MULTILINE)
 
 /*
  * Remove the lines of file, numbered from 1. ssh-keygen -R cannot, it
