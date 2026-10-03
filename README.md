@@ -149,7 +149,9 @@ replace:
 - Replace removes the hosts, keys and settings first, and empties the
   agent.
 
-Storing the keys takes a fingerprint.
+Storing the keys takes a fingerprint. Only import files you made: the
+hosts of an export can run commands through `ProxyCommand` or
+`LocalCommand`, and its `known_hosts` decides which servers are trusted.
 
 ## How it works
 
