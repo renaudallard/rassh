@@ -32,8 +32,18 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         binding.service?.let { attach(it) }
     }
 
+    /* Another terminal screen may have taken the listener of this session. */
+    override fun onResume() {
+        super.onResume()
+        session?.let {
+            it.listener = this
+            actionBar?.title = it.title
+            terminal.invalidate()
+        }
+    }
+
     override fun onDestroy() {
-        session?.listener = null
+        releaseSession()
         binding.service?.removeListener(this)
         binding.unbind()
         super.onDestroy()
@@ -47,7 +57,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun show(s: Session?) {
         if (s != null && s === session) return
-        session?.listener = null
+        releaseSession()
         session = s
         terminal.session = s
         if (s == null) {
@@ -57,6 +67,10 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         s.listener = this
         actionBar?.title = s.title
         terminal.showKeyboard()
+    }
+
+    private fun releaseSession() {
+        session?.let { if (it.listener === this) it.listener = null }
     }
 
     override fun onUpdate() {
