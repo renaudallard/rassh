@@ -43,10 +43,10 @@
             android:name=".KeysActivity"
             android:exported="false" />
 
-        <!-- Not recreated, a second one would start SFTP again on the same pipes. -->
+        <!-- Not recreated, which would leave a running transfer without its screen. -->
         <activity
             android:name=".FilesActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
