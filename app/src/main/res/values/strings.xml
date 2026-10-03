@@ -102,9 +102,9 @@
 
     <!-- Notification -->
     <string name="channel_sessions">Sessions</string>
-    <plurals name="sessions_running">
-        <item quantity="one">%1$d session running</item>
-        <item quantity="other">%1$d sessions running</item>
+    <plurals name="sessions_open">
+        <item quantity="one">%1$d session open</item>
+        <item quantity="other">%1$d sessions open</item>
     </plurals>
 
     <!-- About -->

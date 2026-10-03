@@ -168,7 +168,7 @@ class SessionService : Service() {
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(resources.getQuantityString(R.plurals.sessions_running, n, n))
+            .setContentText(resources.getQuantityString(R.plurals.sessions_open, n, n))
             .setContentIntent(intent)
             .setOngoing(true)
             .build()
