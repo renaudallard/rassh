@@ -74,6 +74,20 @@
     <string name="add_to_agent">Add to agent</string>
     <string name="agent_keys">Agent keys</string>
     <string name="agent_clear">Remove keys from agent</string>
+    <string name="unlock_keys">Unlock keys</string>
+
+    <!-- Key storage -->
+    <string name="unlock_title">Unlock SSH keys</string>
+    <string name="unlock_reason">Load your keys into the agent for one hour</string>
+    <string name="protect_reason">Encrypt the private keys found in ~/.ssh</string>
+    <string name="vault_title">Protect SSH keys</string>
+    <string name="vault_question">Private keys are encrypted with a key kept in the phone\'s secure hardware, and your fingerprint unlocks them.\n\nShould adding a fingerprint to the phone later destroy them? Someone who learns your PIN then cannot enroll a finger to use your keys, but every stored key is lost.</string>
+    <string name="vault_invalidate">Destroy on new fingerprint</string>
+    <string name="vault_keep">Keep keys</string>
+    <string name="vault_no_biometric">Set up a fingerprint in the phone settings to protect SSH keys. Until then they stay unencrypted.</string>
+    <string name="vault_invalidated">The fingerprints or the screen lock changed, so the stored keys cannot be decrypted anymore and are lost. Reset the key storage to protect new keys.</string>
+    <string name="vault_reset">Reset</string>
+    <string name="vault_error">Key storage error: %1$s</string>
 
     <!-- Terminal -->
     <string name="paste">Paste</string>

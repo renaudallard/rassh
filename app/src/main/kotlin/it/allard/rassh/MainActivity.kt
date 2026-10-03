@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.net.Uri
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.Settings
@@ -33,6 +34,9 @@ import kotlin.concurrent.thread
 
 class MainActivity : Activity(), SessionService.Listener {
     private lateinit var paths: Paths
+    private lateinit var vault: Vault
+    private var declined = emptySet<String>()
+    private var protecting = false
     private lateinit var adapter: TwoLineAdapter
     private lateinit var quick: EditText
     private var hosts: List<Host> = emptyList()
@@ -47,6 +51,7 @@ class MainActivity : Activity(), SessionService.Listener {
         findViewById<View>(R.id.root).padForInsets()
         setActionBar(findViewById(R.id.toolbar))
         paths = Paths(this)
+        vault = Vault(paths)
         try {
             paths.ensureSshDir()
         } catch (e: ErrnoException) {
@@ -80,6 +85,7 @@ class MainActivity : Activity(), SessionService.Listener {
 
         binding.bind()
         requestMissingPermissions()
+        setUpVault(vault) { if (hasWindowFocus()) protect() }
     }
 
     /*
@@ -97,6 +103,37 @@ class MainActivity : Activity(), SessionService.Listener {
     override fun onResume() {
         super.onResume()
         loadHosts()
+    }
+
+    /*
+     * Not from onResume(): a biometric prompt shown while the activity
+     * is still starting is cancelled by the system.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) protect()
+    }
+
+    /*
+     * Move keys left in clear into the vault, not asking twice for the
+     * same ones, and point IdentityFile lines at the vault public keys.
+     */
+    private fun protect() {
+        try {
+            usePublicKeys(paths, vault.names())
+        } catch (e: IOException) {
+            toast(getString(R.string.vault_error, e.message))
+        } catch (e: ErrnoException) {
+            toast(getString(R.string.vault_error, e.message))
+        }
+        if (protecting || !vault.isSetUp) return
+        val pending = Keys.plaintext(paths.sshDir).toSet()
+        if (pending.isEmpty() || pending == declined) return
+        protecting = true
+        protectKeys(paths, vault) { moved ->
+            protecting = false
+            if (!moved) declined = pending
+        }
     }
 
     override fun onDestroy() {
@@ -139,15 +176,58 @@ class MainActivity : Activity(), SessionService.Listener {
         launch(text, paths.ssh, listOf("ssh") + args)
     }
 
+    /*
+     * Start argv[0] on a terminal. When the vault keys are locked, ask for
+     * a fingerprint and have ssh-add load them first. Without it the
+     * program runs anyway, for password logins.
+     */
     private fun launch(title: String, path: String, argv: List<String>, cwd: String = paths.home.path) {
         val service = binding.service ?: return
-        val session = try {
-            service.start(title, path, argv, cwd)
+        val names = try {
+            vault.names()
         } catch (e: IOException) {
-            toast(getString(R.string.start_failed, argv[0], e.message))
+            toast(getString(R.string.vault_error, e.message))
+            emptyList()
+        }
+        if (names.isEmpty() || !service.keysLocked) {
+            start(service, title, path, argv, cwd, emptyList())
             return
         }
+        withVaultKey(vault, getString(R.string.unlock_reason),
+            { start(service, title, path, argv, cwd, emptyList()) }) { key ->
+            val pipes = try {
+                keyPipes(vault, key, names)
+            } catch (e: IOException) {
+                toast(getString(R.string.vault_error, e.message))
+                return@withVaultKey
+            }
+            try {
+                /* ssh-add from the pipes, then the program, found in PATH. */
+                val script = "ssh-add " + addArgs(names.size).joinToString(" ") + "; exec \"\$0\" \"\$@\""
+                if (start(service, title, SHELL, listOf("sh", "-c", script) + argv, cwd, pipes))
+                    service.keysUnlocked()
+            } finally {
+                pipes.forEach { it.close() }
+            }
+        }
+    }
+
+    private fun start(
+        service: SessionService,
+        title: String,
+        path: String,
+        argv: List<String>,
+        cwd: String,
+        pipes: List<ParcelFileDescriptor>,
+    ): Boolean {
+        val session = try {
+            service.start(title, path, argv, cwd, pipes.map { it.fd }.toIntArray())
+        } catch (e: IOException) {
+            toast(getString(R.string.start_failed, argv[0], e.message))
+            return false
+        }
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
+        return true
     }
 
     /*

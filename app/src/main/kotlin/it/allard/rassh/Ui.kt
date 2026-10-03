@@ -16,6 +16,7 @@ import android.widget.Toast
 
 const val EXTRA_SESSION = "it.allard.rassh.SESSION"
 const val EXTRA_HOST = "it.allard.rassh.HOST"
+const val SHELL = "/system/bin/sh"
 
 /** Pad a root view for the system bars, the display cutout and the keyboard. */
 fun View.padForInsets() {

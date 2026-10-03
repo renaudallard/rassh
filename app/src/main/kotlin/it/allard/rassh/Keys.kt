@@ -3,11 +3,15 @@ package it.allard.rassh
 import java.io.File
 import java.io.IOException
 
-/** Private keys found in ~/.ssh. */
+/** Private keys, in the vault or in clear in ~/.ssh until moved there. */
 object Keys {
-    private val RESERVED = setOf("config", "known_hosts", "known_hosts2", "authorized_keys")
+    private val RESERVED = setOf("config", "known_hosts", "known_hosts2", "authorized_keys", Vault.FILE)
 
-    fun list(dir: File): List<String> =
+    @Throws(IOException::class)
+    fun list(dir: File, vault: Vault): List<String> = (vault.names() + plaintext(dir)).distinct().sorted()
+
+    /** Private keys in clear in dir. */
+    fun plaintext(dir: File): List<String> =
         dir.listFiles().orEmpty()
             .filter { it.isFile && isValidName(it.name) && isPrivateKey(it) }
             .map { it.name }

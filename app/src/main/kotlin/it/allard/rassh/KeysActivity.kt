@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.system.ErrnoException
 import android.view.Menu
@@ -23,9 +24,12 @@ import android.widget.TextView
 import java.io.File
 import java.io.IOException
 
-/** Private keys in ~/.ssh, generated and converted by ssh-keygen. */
+/** Private keys, generated and converted by ssh-keygen, kept in the vault. */
 class KeysActivity : Activity() {
     private lateinit var paths: Paths
+    private lateinit var vault: Vault
+    private var declined = emptySet<String>()
+    private var protecting = false
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
     private val binding = ServiceBinding(this) {}
@@ -38,6 +42,7 @@ class KeysActivity : Activity() {
         actionBar?.setDisplayHomeAsUpEnabled(true)
         actionBar?.setTitle(R.string.keys)
         paths = Paths(this)
+        vault = Vault(paths)
 
         adapter = TwoLineAdapter(this)
         val list = findViewById<ListView>(R.id.keys)
@@ -52,13 +57,45 @@ class KeysActivity : Activity() {
         load()
     }
 
+    /* Not from onResume(), see MainActivity. */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) protect()
+    }
+
+    /* Move new keys into the vault, not asking twice for the same ones. */
+    private fun protect() {
+        if (protecting || !vault.isSetUp) return
+        val pending = Keys.plaintext(paths.sshDir).toSet()
+        if (pending.isEmpty() || pending == declined) return
+        protecting = true
+        protectKeys(paths, vault) { moved ->
+            protecting = false
+            if (!moved) declined = pending
+            load()
+        }
+    }
+
+    private fun vaultNames(): List<String> =
+        try {
+            vault.names()
+        } catch (e: IOException) {
+            toast(getString(R.string.vault_error, e.message))
+            emptyList()
+        }
+
     override fun onDestroy() {
         binding.unbind()
         super.onDestroy()
     }
 
     private fun load() {
-        keys = Keys.list(paths.sshDir)
+        keys = try {
+            Keys.list(paths.sshDir, vault)
+        } catch (e: IOException) {
+            toast(getString(R.string.vault_error, e.message))
+            Keys.plaintext(paths.sshDir)
+        }
         adapter.items = keys.map { name ->
             val pub = Keys.publicKey(paths.sshDir, name)
             name to (pub?.split(' ')?.let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }?.trim()
@@ -66,20 +103,48 @@ class KeysActivity : Activity() {
         }
     }
 
-    /* Run argv in a terminal, for programs that may ask a passphrase. */
-    private fun run(name: String, path: String, argv: List<String>) {
-        val service = binding.service ?: return
+    /*
+     * Run argv in a terminal, for programs that may ask a passphrase,
+     * pipes become /dev/fd/3 and up. Returns false if it did not start.
+     */
+    private fun run(
+        name: String,
+        path: String,
+        argv: List<String>,
+        pipes: List<ParcelFileDescriptor> = emptyList(),
+    ): Boolean {
+        val service = binding.service ?: return false
         val session = try {
             paths.ensureSshDir()
-            service.start(name, path, argv)
+            service.start(name, path, argv, fds = pipes.map { it.fd }.toIntArray())
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
-            return
+            return false
         } catch (e: ErrnoException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
-            return
+            return false
         }
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
+        return true
+    }
+
+    /* Load vault keys into the agent for KEY_LIFETIME, after a fingerprint. */
+    private fun unlock(title: String, names: List<String>, all: Boolean) {
+        if (names.isEmpty()) return
+        withVaultKey(vault, getString(R.string.unlock_reason)) { key ->
+            val pipes = try {
+                keyPipes(vault, key, names)
+            } catch (e: IOException) {
+                toast(getString(R.string.vault_error, e.message))
+                return@withVaultKey
+            }
+            try {
+                if (run(title, paths.add, listOf("ssh-add") + addArgs(names.size), pipes) && all)
+                    binding.service?.keysUnlocked()
+            } finally {
+                pipes.forEach { it.close() }
+            }
+        }
     }
 
     private fun checkName(name: String): String? = when {
@@ -210,7 +275,10 @@ class KeysActivity : Activity() {
             })
         }
         actions.add(R.string.add_to_agent to {
-            run(name, paths.add, listOf("ssh-add", File(paths.sshDir, name).path))
+            if (name in vaultNames())
+                unlock(name, listOf(name), false)
+            else
+                run(name, paths.add, listOf("ssh-add", File(paths.sshDir, name).path))
         })
         actions.add(R.string.delete to { deleteKey(name) })
         AlertDialog.Builder(this)
@@ -223,6 +291,12 @@ class KeysActivity : Activity() {
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.delete_key, name))
             .setPositiveButton(R.string.delete) { _, _ ->
+                try {
+                    vault.remove(name)
+                } catch (e: IOException) {
+                    toast(getString(R.string.vault_error, e.message))
+                    return@setPositiveButton
+                }
                 File(paths.sshDir, name).delete()
                 File(paths.sshDir, "$name.pub").delete()
                 load()
@@ -234,8 +308,9 @@ class KeysActivity : Activity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_GENERATE, 0, R.string.generate_key)
         menu.add(Menu.NONE, MENU_IMPORT, 1, R.string.import_key)
-        menu.add(Menu.NONE, MENU_AGENT_LIST, 2, R.string.agent_keys)
-        menu.add(Menu.NONE, MENU_AGENT_CLEAR, 3, R.string.agent_clear)
+        menu.add(Menu.NONE, MENU_UNLOCK, 2, R.string.unlock_keys)
+        menu.add(Menu.NONE, MENU_AGENT_LIST, 3, R.string.agent_keys)
+        menu.add(Menu.NONE, MENU_AGENT_CLEAR, 4, R.string.agent_clear)
         return true
     }
 
@@ -245,8 +320,12 @@ class KeysActivity : Activity() {
             MENU_IMPORT -> startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
+            MENU_UNLOCK -> unlock(getString(R.string.unlock_keys), vaultNames(), true)
             MENU_AGENT_LIST -> run(getString(R.string.agent_keys), paths.add, listOf("ssh-add", "-l"))
-            MENU_AGENT_CLEAR -> run(getString(R.string.agent_clear), paths.add, listOf("ssh-add", "-D"))
+            MENU_AGENT_CLEAR -> {
+                binding.service?.lockKeys()
+                run(getString(R.string.agent_clear), paths.add, listOf("ssh-add", "-D"))
+            }
             android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)
         }
@@ -258,9 +337,9 @@ class KeysActivity : Activity() {
         private const val MENU_IMPORT = 2
         private const val MENU_AGENT_LIST = 3
         private const val MENU_AGENT_CLEAR = 4
+        private const val MENU_UNLOCK = 5
         private const val REQUEST_IMPORT = 1
         private const val MAX_KEY_SIZE = 65536
-        private const val SHELL = "/system/bin/sh"
         private val KEY_TYPES = listOf("ed25519", "ecdsa", "rsa", "mldsa44-ed25519")
     }
 }
