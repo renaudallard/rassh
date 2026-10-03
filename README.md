@@ -56,8 +56,9 @@ encrypted and unlocked with your fingerprint.
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
 - **Agent** - one `ssh-agent` holds the unlocked keys while logging in,
   so `ssh`, `scp`, `sftp` and `ProxyJump` hosts use them without writing
-  them to disk. The keys leave it once logged in, so a forwarded agent is
-  empty
+  them to disk. The keys leave it once logged in. Agent forwarding is off,
+  as the server could use the keys while they are loaded, unless asked
+  with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import private keys, rename keys, show, copy or share public keys
 - **sftp and scp** - from the menu of a saved host, working from shared

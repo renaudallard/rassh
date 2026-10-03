@@ -75,7 +75,7 @@ class MainActivity : Activity(), SessionService.Listener {
         list.emptyView = findViewById(R.id.empty)
         list.setOnItemClickListener { _, _, position, _ ->
             val name = hosts[position].name
-            launch(Launch(name, paths.ssh, listOf("ssh", name), paths.home.path, name))
+            launch(Launch(name, paths.ssh, SSH + name, paths.home.path, name))
         }
         list.setOnItemLongClickListener { _, view, position, _ ->
             hostMenu(view, hosts[position].name)
@@ -172,7 +172,7 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.invalid_arguments))
             return
         }
-        launch(Launch(text, paths.ssh, listOf("ssh") + args, paths.home.path, text))
+        launch(Launch(text, paths.ssh, SSH + args, paths.home.path, text))
     }
 
     /* What to start: title, program, arguments, directory and the server it reaches. */
@@ -432,6 +432,12 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     companion object {
+        /*
+         * The agent holds the keys while logging in, a server reached with
+         * agent forwarding could use them then. A -o from the command line
+         * wins over the config, -A typed in quick connect still wins.
+         */
+        private val SSH = listOf("ssh", "-o", "ForwardAgent=no")
         private const val MENU_ADD = 1
         private const val MENU_SESSIONS = 2
         private const val MENU_KEYS = 3
