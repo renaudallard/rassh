@@ -42,7 +42,13 @@ class SshConfig private constructor(
     private val header: List<String>,
     private val blocks: MutableList<Block>,
 ) {
-    private class Block(val keyword: String, val value: String, val lines: List<String>) {
+    /* leading holds the comment lines right above the Host or Match line. */
+    private class Block(
+        val leading: List<String>,
+        val keyword: String,
+        val value: String,
+        val lines: List<String>,
+    ) {
         val isHost: Boolean
             get() = keyword.equals("Host", ignoreCase = true) && Host.isValidName(value)
     }
@@ -59,13 +65,12 @@ class SshConfig private constructor(
      * options take precedence.
      */
     fun put(old: String?, host: Host) {
-        val block = Block("Host", host.name, render(host))
         val i = if (old == null) -1 else blocks.indexOfFirst { it.isHost && it.value == old }
         if (i >= 0) {
-            blocks[i] = block
+            blocks[i] = Block(blocks[i].leading, "Host", host.name, render(host))
         } else {
             val at = blocks.indexOfFirst { !it.isHost }
-            blocks.add(if (at < 0) blocks.size else at, block)
+            blocks.add(if (at < 0) blocks.size else at, Block(emptyList(), "Host", host.name, render(host)))
         }
     }
 
@@ -77,6 +82,7 @@ class SshConfig private constructor(
         val sb = StringBuilder()
         for (line in header) sb.append(line).append('\n')
         for (block in blocks) {
+            for (line in block.leading) sb.append(line).append('\n')
             sb.append(block.keyword).append(' ').append(block.value).append('\n')
             for (line in block.lines) sb.append(line).append('\n')
         }
@@ -132,6 +138,7 @@ class SshConfig private constructor(
         fun parse(text: String): SshConfig {
             val header = mutableListOf<String>()
             val blocks = mutableListOf<Block>()
+            var leading = emptyList<String>()
             var keyword: String? = null
             var value = ""
             var lines = mutableListOf<String>()
@@ -139,7 +146,12 @@ class SshConfig private constructor(
             for (line in all) {
                 val kv = split(line)
                 if (kv != null && (kv.first.equals("Host", true) || kv.first.equals("Match", true))) {
-                    if (keyword != null) blocks.add(Block(keyword, value, lines))
+                    /* Comments right above a block describe it, not the one before. */
+                    val above = if (keyword == null) header else lines
+                    val comments = above.takeLastWhile { it.trim().startsWith("#") }
+                    repeat(comments.size) { above.removeAt(above.size - 1) }
+                    if (keyword != null) blocks.add(Block(leading, keyword, value, lines))
+                    leading = comments
                     keyword = kv.first
                     value = kv.second
                     lines = mutableListOf()
@@ -149,7 +161,7 @@ class SshConfig private constructor(
                     lines.add(line)
                 }
             }
-            if (keyword != null) blocks.add(Block(keyword, value, lines))
+            if (keyword != null) blocks.add(Block(leading, keyword, value, lines))
             return SshConfig(header, blocks)
         }
 

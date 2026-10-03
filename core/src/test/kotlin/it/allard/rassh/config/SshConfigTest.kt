@@ -91,6 +91,23 @@ class SshConfigTest {
     }
 
     @Test
+    fun commentsStayAboveTheirBlock() {
+        val text = "Host a\n    HostName a.example\n\n# Work servers\nHost b\n    HostName b.example\n" +
+            "\n# Defaults for every host\nHost *\n    User me\n"
+        val removed = SshConfig.parse(text)
+        removed.remove("a")
+        assertEquals("# Work servers\nHost b\n    HostName b.example\n\n# Defaults for every host\nHost *\n    User me\n",
+            removed.toString())
+        val added = SshConfig.parse(text)
+        added.put(null, Host("c", user = "x"))
+        assertTrue(added.toString().contains("Host c\n    User x\n\n# Defaults for every host\nHost *\n"))
+        val edited = SshConfig.parse(text)
+        edited.put("b", edited.find("b")!!.copy(user = "y"))
+        assertTrue(edited.toString().contains("# Work servers\nHost b\n    HostName b.example\n    User y\n"))
+        assertEquals(text, SshConfig.parse(text).toString())
+    }
+
+    @Test
     fun replaceIdentities() {
         val text = """
             |IdentityFile ~/.ssh/id_rsa
