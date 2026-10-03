@@ -207,7 +207,7 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         }
         done()
     }
-    if (items.none { it.type == Backup.KEY && (replace || it.name !in present) })
+    if (items.none { it.type == Backup.KEY && (replace || it.name !in present) && hasPublicKey(items, it.name) })
         return write(null)
     if (!vault.isSetUp) {
         zero()
@@ -231,19 +231,25 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            Backup.KEY -> vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
+            Backup.KEY -> storeKey(paths, vault, key, items, item)
             Backup.SETTING -> putSetting(item)
         }
     }
-    usePublicKeys(paths, keys.map { it.name })
-    val imported = keys.map { it.name }.toSet()
+    val sealed = keys.map { it.name }.filter { hasPublicKey(items, it) }.toSet()
+    val clear = keys.map { it.name }.toSet() - sealed
+    usePublicKeys(paths, sealed.toList())
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
     for (name in present) {
-        /* A key in clear of the same name now is in the vault. */
-        File(dir, name).delete()
-        if (name in imported) continue
-        vault.remove(name)
-        File(dir, "$name.pub").delete()
+        when (name) {
+            /* The imported copy replaces the one of the same name. */
+            in sealed -> File(dir, name).delete()
+            in clear -> vault.remove(name)
+            else -> {
+                vault.remove(name)
+                File(dir, name).delete()
+                File(dir, "$name.pub").delete()
+            }
+        }
     }
     for (name in listOf(CONFIG, KNOWN_HOSTS))
         if (name !in files) File(dir, name).delete()
@@ -260,7 +266,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     paths.ensureSshDir()
     val keys = items.filter { it.type == Backup.KEY && it.name !in present }
     for (item in keys) {
-        vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
+        storeKey(paths, vault, key, items, item)
         items.find { it.type == Backup.FILE && it.name == "${item.name}.pub" }?.let {
             paths.writePrivate(File(dir, it.name), it.data)
         }
@@ -285,8 +291,24 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)
-    usePublicKeys(paths, keys.map { it.name })
+    usePublicKeys(paths, keys.map { it.name }.filter { hasPublicKey(items, it) })
     return Pair(hosts, keys.size)
+}
+
+private fun hasPublicKey(items: List<Backup.Item>, name: String): Boolean =
+    items.any { it.type == Backup.FILE && it.name == "$name.pub" }
+
+/*
+ * A key goes into the vault with its public key, which ssh needs to use
+ * it from the agent. One exported without stays in clear, as it was, to
+ * be moved into the vault once its public key is made.
+ */
+@Throws(IOException::class)
+private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item) {
+    if (hasPublicKey(items, item.name))
+        vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
+    else
+        paths.writePrivate(File(paths.sshDir, item.name), item.data)
 }
 
 /* Settings out of range or unknown are skipped. */
