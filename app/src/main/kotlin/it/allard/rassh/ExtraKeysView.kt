@@ -79,17 +79,17 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     press(action)
                 }
-                MotionEvent.ACTION_UP -> {
-                    view.isPressed = false
-                    stopRepeat()
-                    view.performClick()
-                }
-                MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     view.isPressed = false
                     stopRepeat()
                 }
             }
             true
+        }
+        /* Touches never reach this, accessibility services click instead. */
+        v.setOnClickListener {
+            press(action)
+            stopRepeat()
         }
         return v
     }
