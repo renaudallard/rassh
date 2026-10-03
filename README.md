@@ -201,9 +201,33 @@ Release APKs are signed with the key held in the repository secrets
 `RASSH_KEY_ALIAS` and `RASSH_KEY_PASSWORD`. Android only installs an
 update signed with the same key, so keep a copy of the keystore.
 
+## Compared with other clients
+
+As of October 2026, from each project's own pages and sources.
+
+| | rassh | Termux + openssh | ConnectBot | Termius | Haven |
+| --- | --- | --- | --- | --- | --- |
+| SSH code | OpenSSH 10.5p1 | OpenSSH 10.5p1 | sshlib | proprietary | JSch |
+| License | ISC | GPLv3 | Apache-2.0 | proprietary | AGPL-3.0 |
+| Hosts in `~/.ssh/config` | yes | yes | no | no | no |
+| Jump hosts | yes | yes | yes | yes | yes |
+| Private keys | vault sealed by the Keystore, fingerprint on every use | files | encrypted, or kept in the Keystore | app vault, or kept in the Keystore | encrypted |
+| FIDO security keys | no | no | no | yes | yes |
+| mosh | no | yes | not released | yes | yes |
+| SFTP | command line | command line | no | file browser | file browser |
+
+rassh is the only one running OpenSSH behind an SSH interface, so
+`~/.ssh/config` works as on a desktop, `ProxyCommand` and `Match`
+included, and new algorithms such as `mldsa44-ed25519` keys come with
+OpenSSH. Termux has the same programs, as a general shell with keys in
+plain files. ConnectBot and Termius can keep keys in the Keystore that
+never leave it, while rassh decrypts them into the agent during the
+login. JuiceSSH is no longer on Google Play.
+
 ## Limitations
 
 - No FIDO security keys and no PKCS#11
+- No mosh and no graphical file browser
 - No mouse reporting
 - Combining characters are not rendered
 - At most 64 keys can be unlocked at once
