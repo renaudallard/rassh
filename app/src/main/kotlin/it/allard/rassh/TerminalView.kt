@@ -358,8 +358,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (clip.itemCount == 0) return
         var s = clip.getItemAt(0).coerceToText(context).toString()
             .replace("\r\n", "\r").replace('\n', '\r')
+        /* Without ESC the text cannot end the paste early, nor hold any sequence. */
         if (synchronized(t) { t.bracketedPaste })
-            s = "\u001b[200~" + s.replace("\u001b[201~", "") + "\u001b[201~"
+            s = "\u001b[200~" + s.replace("\u001b", "") + "\u001b[201~"
         send(s)
     }
 
