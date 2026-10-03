@@ -3,6 +3,7 @@ package it.allard.rassh
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
+import it.allard.rassh.sftp.SftpClient
 import it.allard.rassh.terminal.Terminal
 import it.allard.rassh.terminal.TerminalClient
 import java.io.FileInputStream
@@ -72,6 +73,9 @@ class Session(
      */
     val dataInput: InputStream?
     val dataOutput: OutputStream?
+
+    /** The file browser speaking SFTP over the pipes, kept across its screens. */
+    var sftp: SftpClient? = null
 
     init {
         var toProgram: Array<ParcelFileDescriptor>? = null

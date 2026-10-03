@@ -31,6 +31,27 @@
     <string name="open_session">Open</string>
     <string name="session_label">%1$s (%2$s)</string>
 
+    <!-- File browser -->
+    <string name="files">Files</string>
+    <string name="files_title">files %1$s</string>
+    <string name="files_connecting">Connecting</string>
+    <string name="files_empty">Empty folder</string>
+    <string name="files_not_connected">Not connected</string>
+    <string name="files_failed">Failed: %1$s</string>
+    <string name="download">Download</string>
+    <string name="downloading">Downloading %1$s</string>
+    <string name="downloaded">%1$s downloaded</string>
+    <string name="upload">Upload</string>
+    <string name="uploading">Uploading %1$s</string>
+    <string name="replace_files">Some files exist already on the server. Replace them?</string>
+    <string name="replace">Replace</string>
+    <string name="new_folder">New folder</string>
+    <string name="create">Create</string>
+    <string name="refresh">Refresh</string>
+    <string name="show_terminal">Terminal</string>
+    <string name="delete_file">Delete %1$s?</string>
+    <string name="error_file_name">Not a valid file name</string>
+
     <!-- Host editor -->
     <string name="new_host">New host</string>
     <string name="edit_host">Edit host</string>

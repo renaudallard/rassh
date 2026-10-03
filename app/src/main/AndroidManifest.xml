@@ -41,6 +41,14 @@
             android:name=".KeysActivity"
             android:exported="false" />
 
+        <!-- Not recreated, a second one would start SFTP again on the same pipes. -->
+        <activity
+            android:name=".FilesActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".SessionService"
             android:exported="false"

@@ -61,6 +61,9 @@ encrypted and unlocked with your fingerprint.
   with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import private keys, rename keys, show, copy or share public keys
+- **File browser** - from the menu of a saved host: browse, download,
+  upload, rename, delete and create folders over SFTP, through `ssh`, so
+  the host's options, jump hosts and keys apply
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with
@@ -167,6 +170,7 @@ app/      Android application
 | **Home** | `$HOME` is the app files directory, so `~/.ssh` is private and excluded from backups and device transfers |
 | **PATH** | `~/bin` holds links named after the programs and comes first in `PATH`: `ssh` finds itself there for `ProxyJump`, as do `scp`, `sftp` and `ProxyCommand ssh -W` lines |
 | **getpwuid** | Bionic reports `/data` as the home of app users. The programs are linked with `-Wl,--wrap=getpwuid` and `native/homedir.c` answers `$HOME` |
+| **Files** | The browser runs `ssh -s host sftp` with pipes as its standard input and output and speaks SFTP version 3 to it. ssh keeps the terminal for its messages and questions, shown while connecting |
 | **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, initialises the SSHFP resolver without the state bionic keeps private, and skips the setgid calls the Android seccomp filter kills |
 
 ## Building
@@ -215,7 +219,7 @@ As of October 2026, from each project's own pages and sources.
 | Keys that never leave the Keystore | none | none | RSA, ECDSA P-256, P-384, P-521 | ECDSA P-256 (reported by users, not documented) | none |
 | FIDO security keys | no | no | no | yes | yes |
 | mosh | no | yes | not released | yes | yes |
-| SFTP | command line | command line | no | file browser | file browser |
+| SFTP | file browser, command line | command line | no | file browser | file browser |
 
 rassh is the only one running OpenSSH behind an SSH interface, so
 `~/.ssh/config` works as on a desktop, `ProxyCommand` and `Match`
@@ -229,7 +233,7 @@ vault and decrypts them into the agent during the login. JuiceSSH is no longer o
 ## Limitations
 
 - No FIDO security keys and no PKCS#11
-- No mosh and no graphical file browser
+- No mosh
 - No mouse reporting
 - Combining characters are not rendered
 - At most 64 keys can be unlocked at once

@@ -176,19 +176,26 @@ class MainActivity : Activity(), SessionService.Listener {
         launch(Launch(text, paths.ssh, SSH + args, paths.home.path, text))
     }
 
-    /* What to start: title, program, arguments, directory and the server it reaches. */
+    /*
+     * What to start: title, program, arguments, directory and the server
+     * it reaches, null for the file browser, which talks to the program
+     * through pipes rather than a terminal.
+     */
     private class Launch(
         val title: String,
         val path: String,
         val argv: List<String>,
         val cwd: String,
-        val server: String,
-    )
+        val server: String?,
+    ) {
+        val browse: Boolean
+            get() = server == null
+    }
 
     /* Start l, asking first when a session to the same server runs already. */
     private fun launch(l: Launch) {
         val service = binding.service ?: return
-        if (service.sessions.none { it.isRunning && it.server == l.server }) {
+        if (l.browse || service.sessions.none { it.isRunning && it.server == l.server }) {
             open(service, l)
             return
         }
@@ -248,10 +255,12 @@ class MainActivity : Activity(), SessionService.Listener {
                  * ssh-add from the pipes, then the program, found in PATH.
                  * The shell cannot close descriptors above 9 and scp and
                  * sftp keep them, so what ssh-add left unread is drained.
+                 * The file browser reads the standard output, ssh-add
+                 * writes to the terminal only.
                  */
                 val files = keyFiles(names.size).joinToString(" ")
                 val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
-                    "; cat " + files + " >/dev/null 2>&1; exec \"\$0\" \"\$@\""
+                    " >&2; cat " + files + " >/dev/null 2>&1; exec \"\$0\" \"\$@\""
                 start(service, l, SHELL, listOf("sh", "-c", script) + clearAfterLogin(l.argv), pipes)
             } finally {
                 pipes.forEach { it.close() }
@@ -267,12 +276,13 @@ class MainActivity : Activity(), SessionService.Listener {
         pipes: List<ParcelFileDescriptor>,
     ): Boolean {
         val session = try {
-            service.start(l.title, path, argv, l.cwd, pipes.map { it.fd }.toIntArray(), l.server)
+            service.start(l.title, path, argv, l.cwd, pipes.map { it.fd }.toIntArray(), l.server, l.browse)
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
             return false
         }
-        startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
+        val screen = if (l.browse) FilesActivity::class.java else TerminalActivity::class.java
+        startActivity(Intent(this, screen).putExtra(EXTRA_SESSION, session.id))
         return true
     }
 
@@ -332,12 +342,15 @@ class MainActivity : Activity(), SessionService.Listener {
 
     private fun hostMenu(anchor: View, name: String) {
         val menu = PopupMenu(this, anchor)
-        menu.menu.add(Menu.NONE, MENU_SFTP, 0, R.string.sftp)
-        menu.menu.add(Menu.NONE, MENU_SCP, 1, R.string.scp)
-        menu.menu.add(Menu.NONE, MENU_EDIT, 2, R.string.edit)
-        menu.menu.add(Menu.NONE, MENU_DELETE, 3, R.string.delete)
+        menu.menu.add(Menu.NONE, MENU_FILES, 0, R.string.files)
+        menu.menu.add(Menu.NONE, MENU_SFTP, 1, R.string.sftp)
+        menu.menu.add(Menu.NONE, MENU_SCP, 2, R.string.scp)
+        menu.menu.add(Menu.NONE, MENU_EDIT, 3, R.string.edit)
+        menu.menu.add(Menu.NONE, MENU_DELETE, 4, R.string.delete)
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                MENU_FILES -> launch(Launch(getString(R.string.files_title, name), paths.ssh,
+                    SSH + listOf("-s", name, "sftp"), paths.home.path, null))
                 MENU_SFTP -> sftp(name)
                 MENU_SCP -> scp(name)
                 MENU_EDIT -> startActivity(Intent(this, HostActivity::class.java).putExtra(EXTRA_HOST, name))
@@ -454,6 +467,7 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_SCP = 8
         private const val MENU_EXPORT = 9
         private const val MENU_IMPORT = 10
+        private const val MENU_FILES = 11
         private const val REQUEST_EXPORT = 1
         private const val REQUEST_IMPORT = 2
     }
