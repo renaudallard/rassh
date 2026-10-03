@@ -234,7 +234,13 @@ fun withAgent(argv: List<String>, keys: Int): List<String> {
      * close descriptors above 9 and scp and sftp keep them, so what
      * ssh-add left unread in the pipes is drained.
      */
-    val script = "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
+    /*
+     * The shell outlives the program here, a Ctrl-C the program handles,
+     * as sftp does, must not end the shell with it: a trap catching
+     * SIGINT is reset to the default in the program.
+     */
+    val script = "trap : INT; " +
+        "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
         "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "ssh-add -t $KEY_LIFETIME $files >&2; cat $files >/dev/null 2>&1; " +
