@@ -146,10 +146,11 @@ class KeysActivity : Activity() {
         }
     }
 
+    /* A vault key may have no file left, its name is taken all the same. */
     private fun checkName(name: String): String? = when {
         !Keys.isValidName(name) -> getString(R.string.error_key_name)
-        File(paths.sshDir, name).exists() || File(paths.sshDir, "$name.pub").exists() ->
-            getString(R.string.error_key_exists)
+        File(paths.sshDir, name).exists() || File(paths.sshDir, "$name.pub").exists() ||
+            name in vaultNames() -> getString(R.string.error_key_exists)
         else -> null
     }
 
