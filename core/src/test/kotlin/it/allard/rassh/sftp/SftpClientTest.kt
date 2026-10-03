@@ -105,6 +105,38 @@ class SftpClientTest {
         assertFailsWith<SftpCancelledException> {
             sftp.upload(ByteArrayInputStream(ByteArray(2_000_000)), "$dir/up") { it < 100_000 }
         }
-        assertEquals(setOf("big", "up"), sftp.list(dir.path).map { it.name }.toSet())
+        /* Nothing of the stopped upload is left. */
+        assertEquals(setOf("big"), sftp.list(dir.path).map { it.name }.toSet())
+    }
+
+    @Test
+    fun stoppedReplaceKeepsOriginal() {
+        File(dir, "f").writeText("original")
+        assertFailsWith<SftpCancelledException> {
+            sftp.upload(ByteArrayInputStream(ByteArray(2_000_000)), "$dir/f") { it < 100_000 }
+        }
+        assertEquals("original", File(dir, "f").readText())
+        assertEquals(listOf("f"), sftp.list(dir.path).map { it.name })
+    }
+
+    @Test
+    fun replaceKeepsPermissions() {
+        val f = File(dir, "run.sh")
+        f.writeText("old")
+        f.setExecutable(true, true)
+        val before = sftp.stat(f.path).permissions
+        sftp.upload(ByteArrayInputStream("new".toByteArray()), f.path)
+        assertEquals("new", f.readText())
+        assertEquals(before, sftp.stat(f.path).permissions)
+        assertEquals(listOf("run.sh"), sftp.list(dir.path).map { it.name })
+    }
+
+    @Test
+    fun uploadThroughLink() {
+        File(dir, "target").writeText("old")
+        java.nio.file.Files.createSymbolicLink(File(dir, "link").toPath(), File(dir, "target").toPath())
+        sftp.upload(ByteArrayInputStream("new".toByteArray()), "$dir/link")
+        assertEquals("new", File(dir, "target").readText())
+        assertTrue(sftp.lstat("$dir/link").isLink)
     }
 }

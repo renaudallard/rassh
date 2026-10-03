@@ -64,6 +64,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
     private class Reply(val type: Int, val body: Reader)
 
+    /* The names of the extensions the server announced. */
+    private val extensions = HashSet<String>()
+
     init {
         output.write(Writer(FXP_INIT).u32(VERSION).packet())
         output.flush()
@@ -71,6 +74,10 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         if (r.type != FXP_VERSION) throw IOException("not an SFTP server")
         val version = r.body.u32()
         if (version < VERSION) throw IOException("SFTP version $version is not supported")
+        while (r.body.hasMore()) {
+            extensions.add(r.body.text())
+            r.body.bytes()
+        }
     }
 
     /** The absolute, canonical form of path. */
@@ -176,12 +183,62 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     }
 
     /**
-     * Copy input to the file path, created or truncated. progress works
-     * as in download().
+     * Copy input to the file path. It is written under a temporary name
+     * next to it, then renamed over path with the permissions of the file
+     * it replaces, so that a stopped transfer leaves path as it was. A
+     * link is written through in place, to update the file it leads to.
+     * progress works as in download().
      */
     @Synchronized
     @Throws(IOException::class)
     fun upload(input: InputStream, path: String, progress: (Long) -> Boolean = { true }) {
+        val old = try {
+            lstat(path)
+        } catch (e: SftpException) {
+            if (e.status != SftpException.NO_SUCH_FILE) throw e
+            null
+        }
+        if (old != null && old.isLink) {
+            write(input, path, progress)
+            return
+        }
+        val slash = path.lastIndexOf('/')
+        val temp = path.substring(0, slash + 1) + "." + path.substring(slash + 1) + ".part"
+        var done = false
+        try {
+            write(input, temp, progress)
+            old?.permissions?.let { ok(request(Writer(FXP_SETSTAT).string(temp).u32(ATTR_PERMISSIONS).u32(it and 0xfff))) }
+            replace(temp, path)
+            done = true
+        } finally {
+            if (!done) {
+                try {
+                    request(Writer(FXP_REMOVE).string(temp))
+                } catch (_: IOException) {
+                }
+            }
+        }
+    }
+
+    /*
+     * Rename from over to. Plain SFTP renames refuse an existing target,
+     * OpenSSH's extension replaces it at once.
+     */
+    private fun replace(from: String, to: String) {
+        if (POSIX_RENAME in extensions) {
+            ok(request(Writer(FXP_EXTENDED).string(POSIX_RENAME).string(from).string(to)))
+            return
+        }
+        try {
+            ok(request(Writer(FXP_REMOVE).string(to)))
+        } catch (e: SftpException) {
+            if (e.status != SftpException.NO_SUCH_FILE) throw e
+        }
+        ok(request(Writer(FXP_RENAME).string(from).string(to)))
+    }
+
+    /* Copy input to the file path, created or truncated. */
+    private fun write(input: InputStream, path: String, progress: (Long) -> Boolean) {
         val flags = FXF_WRITE or FXF_CREAT or FXF_TRUNC
         val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(flags).u32(0)))
         val pending = ArrayDeque<Int>()
@@ -346,6 +403,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
         fun text(): String = String(bytes(), Charsets.UTF_8)
 
+        fun hasMore(): Boolean = pos < b.size
+
         fun attrs(): SftpAttrs {
             val flags = u32()
             val size = if (flags and ATTR_SIZE != 0) u64() else null
@@ -401,6 +460,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val FXP_REALPATH = 16
         private const val FXP_STAT = 17
         private const val FXP_RENAME = 18
+        private const val FXP_SETSTAT = 9
+        private const val FXP_EXTENDED = 200
         private const val FXP_STATUS = 101
         private const val FXP_HANDLE = 102
         private const val FXP_DATA = 103
@@ -408,6 +469,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val FXP_ATTRS = 105
 
         private const val FX_OK = 0
+        private const val POSIX_RENAME = "posix-rename@openssh.com"
 
         private const val FXF_READ = 1
         private const val FXF_WRITE = 2

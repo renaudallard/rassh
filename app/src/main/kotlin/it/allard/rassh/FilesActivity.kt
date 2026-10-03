@@ -308,11 +308,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String) {
         val c = client() ?: return
         transfer(getString(R.string.uploading, names.joinToString(", ")), { progress ->
-            for ((uri, name) in uris.zip(names)) {
-                val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
-                input.use { c.upload(it, path(dir, name), progress) }
+            try {
+                for ((uri, name) in uris.zip(names)) {
+                    val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
+                    input.use { c.upload(it, path(dir, name), progress) }
+                }
+            } finally {
+                /* Some files may be there even when a later one failed. */
+                runOnUiThread { if (!isDestroyed) load(dir) }
             }
-        }) { load(dir) }
+        }) {}
     }
 
     private fun rename(e: SftpEntry, dir: String) {
