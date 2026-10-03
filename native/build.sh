@@ -134,3 +134,4 @@ done
 mkdir -p "$assets"
 cp "$work/$1/openssh/LICENCE" "$assets/openssh.txt"
 cp "$work/$1/libressl/COPYING" "$assets/libressl.txt"
+cp "$top/LICENSE" "$assets/rassh.txt"

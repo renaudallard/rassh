@@ -82,3 +82,8 @@ publishes the debug and unsigned release APKs as artifacts.
 - No FIDO security keys and no PKCS#11
 - No mouse reporting
 - Combining characters are not rendered
+
+## License
+
+ISC, see `LICENSE`. OpenSSH and LibreSSL keep their own licenses, which
+the About dialog shows.
