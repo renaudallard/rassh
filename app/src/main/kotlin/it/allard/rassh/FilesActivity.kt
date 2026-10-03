@@ -450,6 +450,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             entries = emptyList()
             adapter.items = emptyList()
             showTerminal(true)
+            offerNewHostKey(Paths(this), s)
         }
     }
 

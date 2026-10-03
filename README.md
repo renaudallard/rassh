@@ -69,6 +69,10 @@ encrypted and unlocked with your fingerprint.
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with
   a passphrase, see [Moving to another phone](#moving-to-another-phone)
+- **Changed host keys** - when ssh refuses a server whose key changed,
+  a warning offers to remove the old key, then connecting again shows the
+  fingerprint of the new one to confirm. The host is resolved from the
+  local configuration with `ssh -G`, so only its own keys are removed
 - **Sessions** - several at once, kept alive by a foreground service.
   Opening a second one to the same server asks first, and sessions to the
   same server show when they were opened

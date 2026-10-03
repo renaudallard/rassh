@@ -31,6 +31,14 @@
     <string name="open_session">Open</string>
     <string name="session_label">%1$s (%2$s)</string>
 
+    <!-- Host keys -->
+    <string name="host_key_changed">Host key changed</string>
+    <string name="host_key_changed_text">The key %1$s presents is not the one known. Someone may be intercepting the connection, or the server was reinstalled or got new keys: check with its administrator first.\n\nRemove the old key? Connecting again then shows the fingerprint of the new key to confirm.</string>
+    <string name="host_key_remove">Remove old key</string>
+    <string name="host_key_keep">Keep</string>
+    <string name="host_key_removed">Old key removed, connect again to check the new one</string>
+    <string name="host_key_failed">Cannot check the host key: %1$s</string>
+
     <!-- File browser -->
     <string name="files">Files</string>
     <string name="files_title">files %1$s</string>

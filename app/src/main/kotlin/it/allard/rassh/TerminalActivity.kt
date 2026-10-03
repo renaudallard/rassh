@@ -79,6 +79,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         wanted = s.id
         actionBar?.title = label(s)
         terminal.showKeyboard()
+        if (!s.isRunning) offerNewHostKey(Paths(this), s)
     }
 
     private fun releaseSession() {
@@ -87,6 +88,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     override fun onUpdate() {
         terminal.invalidate()
+        session?.let { if (!it.isRunning) offerNewHostKey(Paths(this), it) }
     }
 
     override fun onTitleChanged() {

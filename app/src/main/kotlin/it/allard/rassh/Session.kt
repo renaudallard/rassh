@@ -29,6 +29,8 @@ class Session(
     val name: String,
     /** The server the session reaches, null for local programs. */
     val server: String?,
+    /** The ssh arguments naming the destination, for ssh -G, or null. */
+    val target: List<String>?,
     path: String,
     argv: List<String>,
     env: List<String>,
@@ -76,6 +78,17 @@ class Session(
 
     /** The file browser speaking SFTP over the pipes, kept across its screens. */
     var sftp: SftpClient? = null
+
+    /* The end of the output, to tell why the program exited. */
+    private val tail = ByteArray(TAIL_SIZE)
+    private var tailLength = 0
+
+    /** ssh refused to connect as the host key is not the one known. */
+    var hostKeyChanged = false
+        private set
+
+    /** The user was offered to replace the key, once is enough. */
+    var hostKeyOffered = false
 
     init {
         var toProgram: Array<ParcelFileDescriptor>? = null
@@ -184,7 +197,10 @@ class Session(
             while (true) {
                 val n = input.read(buf)
                 if (n < 0) break
-                synchronized(terminal) { terminal.feed(buf, 0, n) }
+                synchronized(terminal) {
+                    terminal.feed(buf, 0, n)
+                    keepTail(buf, n)
+                }
                 update()
             }
         } catch (_: IOException) {
@@ -217,8 +233,19 @@ class Session(
         }
     }
 
+    /* Called with the terminal locked. */
+    private fun keepTail(buf: ByteArray, n: Int) {
+        val keep = minOf(n, TAIL_SIZE)
+        val drop = maxOf(0, tailLength + keep - TAIL_SIZE)
+        System.arraycopy(tail, drop, tail, 0, tailLength - drop)
+        tailLength -= drop
+        System.arraycopy(buf, n - keep, tail, tailLength, keep)
+        tailLength += keep
+    }
+
     private fun finished() {
         isRunning = false
+        hostKeyChanged = synchronized(terminal) { String(tail, 0, tailLength).contains(HOST_KEY_CHANGED) }
         try {
             dataOutput?.close()
             dataInput?.close()
@@ -230,6 +257,9 @@ class Session(
 
     companion object {
         private const val BUFFER_SIZE = 8192
+        private const val TAIL_SIZE = 4096
+        /* ssh's warning, before it gives up with "Host key verification failed". */
+        private const val HOST_KEY_CHANGED = "REMOTE HOST IDENTIFICATION HAS CHANGED"
         private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
         private const val CLOSE_MILLIS = 2000L

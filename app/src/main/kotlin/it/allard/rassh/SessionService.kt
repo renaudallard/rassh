@@ -125,6 +125,7 @@ class SessionService : Service() {
         fds: IntArray = IntArray(0),
         server: String? = null,
         pipes: Boolean = false,
+        target: List<String>? = null,
     ): Session {
         try {
             paths.linkPrograms()
@@ -133,7 +134,7 @@ class SessionService : Service() {
         }
         agent.start()
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
-        val session = Session(nextId++, name, server, path, argv, paths.env, cwd, fds,
+        val session = Session(nextId++, name, server, target, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
             { getString(R.string.session_exited, it) }, { changed() }, pipes)
         _sessions.add(session)
