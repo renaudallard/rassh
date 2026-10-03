@@ -76,8 +76,15 @@ class Session(
     val dataInput: InputStream?
     val dataOutput: OutputStream?
 
-    /** The file browser speaking SFTP over the pipes, kept across its screens. */
+    /**
+     * The file browser speaking SFTP over the pipes, kept across its
+     * screens. Only one starts it, the version exchange must happen once,
+     * the others wait for sftpReady.
+     */
+    @Volatile
     var sftp: SftpClient? = null
+    var sftpStarted = false
+    val sftpReady = CountDownLatch(1)
 
     /* The end of the output, to tell why the program exited. */
     private val tail = ByteArray(TAIL_SIZE)

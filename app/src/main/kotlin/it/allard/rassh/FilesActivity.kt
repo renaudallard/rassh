@@ -129,10 +129,20 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         showTerminal(true)
         val input = s.dataInput ?: return
         val output = s.dataOutput ?: return
-        /* Kept by the session at once, whatever becomes of this screen. */
+        /* Kept by the session, whatever becomes of this screen. */
+        val first = !s.sftpStarted
+        s.sftpStarted = true
         run({
-            val client = SftpClient(input, output)
-            s.sftp = client
+            val client = if (first) {
+                try {
+                    SftpClient(input, output).also { s.sftp = it }
+                } finally {
+                    s.sftpReady.countDown()
+                }
+            } else {
+                s.sftpReady.await()
+                s.sftp ?: throw IOException(getString(R.string.files_not_connected))
+            }
             client.realpath(".")
         }) { start ->
             home = start
