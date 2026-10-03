@@ -99,6 +99,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
+            <CheckBox
+                android:id="@+id/tmux"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/tmux_label" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -68,6 +68,8 @@
     <string name="dynamic_forwards_label">Dynamic forwards</string>
     <string name="forwards_hint">One per line, e.g. 8080 localhost:80</string>
     <string name="dynamic_hint">One port per line, e.g. 1080</string>
+    <string name="tmux_label">Attach to tmux, or start it</string>
+    <string name="error_tmux">Remove RemoteCommand and RequestTTY to use tmux</string>
     <string name="other_label">Other ssh_config options</string>
     <string name="other_hint">One per line, e.g. Compression yes</string>
     <string name="save">Save</string>

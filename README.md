@@ -49,7 +49,8 @@ encrypted and unlocked with your fingerprint.
 - **Saved hosts** - kept as `Host` blocks of `~/.ssh/config`: host name,
   user, port, identity file, local, remote and dynamic forwards, plus any
   other `ssh_config(5)` option. Comments, `Host *` and `Match` blocks are
-  left untouched
+  left untouched. A checkbox attaches to the last tmux session or starts
+  one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Encrypted keys** - private keys live in a vault sealed by the Android

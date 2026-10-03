@@ -7,6 +7,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Spinner
 import it.allard.rassh.config.Host
@@ -28,6 +29,7 @@ class HostActivity : Activity() {
     private lateinit var remote: EditText
     private lateinit var dynamic: EditText
     private lateinit var other: EditText
+    private lateinit var tmux: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +47,7 @@ class HostActivity : Activity() {
         remote = findViewById(R.id.remote)
         dynamic = findViewById(R.id.dynamic)
         other = findViewById(R.id.other)
+        tmux = findViewById(R.id.tmux)
 
         paths = Paths(this)
         val config = try {
@@ -78,7 +81,11 @@ class HostActivity : Activity() {
             local.setText(host.localForwards.joinToString("\n"))
             remote.setText(host.remoteForwards.joinToString("\n"))
             dynamic.setText(host.dynamicForwards.joinToString("\n"))
-            other.setText(host.other.joinToString("\n"))
+            /* The tmux lines belong to the checkbox, not to the other options. */
+            val attach = host.other.any { isTmuxLine(it) }
+            tmux.isChecked = attach
+            val rest = if (attach) host.other.filterNot { isTmuxLine(it) || isTtyLine(it) } else host.other
+            other.setText(rest.joinToString("\n"))
         }
     }
 
@@ -122,6 +129,9 @@ class HostActivity : Activity() {
         if (!lines(other).all { Host.isValidOption(it) }) {
             other.error = getString(R.string.error_option)
             ok = false
+        } else if (tmux.isChecked && lines(other).any { keyword(it) in TMUX_KEYWORDS }) {
+            other.error = getString(R.string.error_tmux)
+            ok = false
         }
         if (!ok) return
 
@@ -135,7 +145,7 @@ class HostActivity : Activity() {
             localForwards = lines(local),
             remoteForwards = lines(remote),
             dynamicForwards = lines(dynamic),
-            other = lines(other),
+            other = lines(other) + if (tmux.isChecked) TMUX_LINES else emptyList(),
         )
         try {
             config.put(original, host)
@@ -169,5 +179,21 @@ class HostActivity : Activity() {
 
     companion object {
         private const val MENU_SAVE = 1
+
+        /*
+         * Attach to the last tmux session or start one, with plain
+         * ssh_config lines, so that any OpenSSH does the same.
+         */
+        private const val TMUX_COMMAND = "tmux a || tmux"
+        private val TMUX_LINES = listOf("RemoteCommand $TMUX_COMMAND", "RequestTTY yes")
+        private val TMUX_KEYWORDS = setOf("remotecommand", "requesttty")
+
+        private fun keyword(line: String): String? = SshConfig.keyword(line)?.first?.lowercase()
+
+        private fun isTmuxLine(line: String): Boolean =
+            SshConfig.keyword(line)?.let { it.first.equals("RemoteCommand", true) && it.second == TMUX_COMMAND } == true
+
+        private fun isTtyLine(line: String): Boolean =
+            SshConfig.keyword(line)?.let { it.first.equals("RequestTTY", true) && it.second.equals("yes", true) } == true
     }
 }
