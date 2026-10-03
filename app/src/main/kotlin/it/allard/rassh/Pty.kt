@@ -9,16 +9,17 @@ object Pty {
     }
 
     /**
-     * Start path with argv and envp in cwd, fds become 3, 4, ... in the
-     * program. stdio is empty, or the standard input and output, which
-     * otherwise are the terminal. Returns the master fd and the pid.
+     * Start path with argv and envp, from cStrings(), in cwd, fds become
+     * 3, 4, ... in the program. stdio is empty, or the standard input and
+     * output, which otherwise are the terminal. Returns the master fd and
+     * the pid.
      */
     @JvmStatic
     @Throws(IOException::class)
     external fun start(
         path: String,
-        argv: Array<String>,
-        envp: Array<String>,
+        argv: Array<ByteArray>,
+        envp: Array<ByteArray>,
         cwd: String,
         fds: IntArray,
         stdio: IntArray,
@@ -85,7 +86,7 @@ class Child(private val pid: Int) {
 /** Run a program to completion and return what it printed. */
 @Throws(IOException::class)
 fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String): String {
-    val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, IntArray(0), IntArray(0), 24, 80)
+    val r = Pty.start(path, cStrings(argv), cStrings(env), cwd, IntArray(0), IntArray(0), 24, 80)
     val out = java.io.ByteArrayOutputStream()
     android.os.ParcelFileDescriptor.adoptFd(r[0]).use { pty ->
         val input = java.io.FileInputStream(pty.fileDescriptor)
@@ -102,4 +103,11 @@ fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String)
     }
     Child(r[1]).waitFor()
     return out.toString(Charsets.UTF_8).replace("\r\n", "\n").trim()
+}
+
+/* Strings for C, in UTF-8. A NUL would end one early without a word. */
+@Throws(IOException::class)
+fun cStrings(list: List<String>): Array<ByteArray> = Array(list.size) {
+    if ('\u0000' in list[it]) throw IOException("NUL in argument")
+    list[it].toByteArray(Charsets.UTF_8)
 }

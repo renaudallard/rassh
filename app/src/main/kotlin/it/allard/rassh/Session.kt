@@ -107,7 +107,7 @@ class Session(
                 val from = ParcelFileDescriptor.createPipe().also { fromProgram = it }
                 stdio = intArrayOf(to[0].fd, from[1].fd)
             }
-            Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, stdio, rows, columns)
+            Pty.start(path, cStrings(argv), cStrings(env), cwd, fds, stdio, rows, columns)
         } catch (e: IOException) {
             toProgram?.get(1)?.close()
             fromProgram?.get(0)?.close()

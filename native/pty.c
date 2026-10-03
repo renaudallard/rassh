@@ -46,27 +46,30 @@ free_strings(char **v)
 	free(v);
 }
 
-/* Convert a String[] to a NULL terminated array of C strings. */
+/*
+ * Convert a byte[][] to a NULL terminated array of C strings. The bytes
+ * are UTF-8 from the caller: JNI strings are modified UTF-8, which writes
+ * characters beyond U+FFFF in a way programs do not read.
+ */
 static char **
 to_strings(JNIEnv *env, jobjectArray array)
 {
 	char		**v;
-	const char	 *utf;
-	jstring		  s;
-	jsize		  i, n;
+	jbyteArray	  b;
+	jsize		  i, n, len;
 
 	n = (*env)->GetArrayLength(env, array);
 	if ((v = calloc((size_t)n + 1, sizeof(*v))) == NULL)
 		return NULL;
 	for (i = 0; i < n; i++) {
-		if ((s = (*env)->GetObjectArrayElement(env, array, i)) == NULL)
+		if ((b = (*env)->GetObjectArrayElement(env, array, i)) == NULL)
 			goto fail;
-		utf = (*env)->GetStringUTFChars(env, s, NULL);
-		if (utf != NULL) {
-			v[i] = strdup(utf);
-			(*env)->ReleaseStringUTFChars(env, s, utf);
+		len = (*env)->GetArrayLength(env, b);
+		if ((v[i] = malloc((size_t)len + 1)) != NULL) {
+			(*env)->GetByteArrayRegion(env, b, 0, len, (jbyte *)v[i]);
+			v[i][len] = '\0';
 		}
-		(*env)->DeleteLocalRef(env, s);
+		(*env)->DeleteLocalRef(env, b);
 		if (v[i] == NULL)
 			goto fail;
 	}
