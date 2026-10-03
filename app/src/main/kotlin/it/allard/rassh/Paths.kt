@@ -66,10 +66,7 @@ class Paths(context: Context) {
                 it.fd.sync()
             }
             Os.chmod(tmp.path, "600".toInt(8))
-            if (!tmp.renameTo(file)) {
-                tmp.delete()
-                throw IOException("rename ${tmp.path}")
-            }
+            if (!tmp.renameTo(file)) throw IOException("rename ${tmp.path}")
             val dir = Os.open(file.parent, OsConstants.O_RDONLY, 0)
             try {
                 Os.fsync(dir)
@@ -77,7 +74,12 @@ class Paths(context: Context) {
                 Os.close(dir)
             }
         } catch (e: ErrnoException) {
+            /* The temporary file may hold a private key. */
+            tmp.delete()
             throw e.rethrowAsIOException()
+        } catch (e: IOException) {
+            tmp.delete()
+            throw e
         }
     }
 
