@@ -641,9 +641,10 @@ class Terminal(
         wrapPending = false
     }
 
+    /* Beyond the width every tab lands at the edge, n is up to 65535. */
     private fun tabForward(n: Int) {
         wrapPending = false
-        repeat(n) {
+        repeat(minOf(n, columns)) {
             var x = cursorX + 1
             while (x < columns - 1 && !tabStops[x]) x++
             cursorX = minOf(x, columns - 1)
@@ -652,7 +653,7 @@ class Terminal(
 
     private fun tabBackward(n: Int) {
         wrapPending = false
-        repeat(n) {
+        repeat(minOf(n, columns)) {
             var x = cursorX - 1
             while (x > 0 && !tabStops[x]) x--
             cursorX = maxOf(x, 0)

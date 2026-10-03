@@ -335,4 +335,15 @@ class TerminalTest {
         assertEquals(9, t.cursorX)
         assertEquals(3, t.cursorY)
     }
+
+    @Test
+    fun hugeTabCounts() {
+        val t = term(columns = 20)
+        t.put("\u001b[65535I")
+        assertEquals(19, t.cursorX)
+        t.put("\u001b[65535Z")
+        assertEquals(0, t.cursorX)
+        t.put("\u001b[2I")
+        assertEquals(16, t.cursorX)
+    }
 }
