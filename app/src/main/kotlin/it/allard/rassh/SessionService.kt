@@ -124,6 +124,7 @@ class SessionService : Service() {
         cwd: String = paths.home.path,
         fds: IntArray = IntArray(0),
         server: String? = null,
+        pipes: Boolean = false,
     ): Session {
         try {
             paths.linkPrograms()
@@ -134,7 +135,7 @@ class SessionService : Service() {
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
         val session = Session(nextId++, name, server, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
-            { getString(R.string.session_exited, it) }, { changed() })
+            { getString(R.string.session_exited, it) }, { changed() }, pipes)
         _sessions.add(session)
         if (!foreground)
             startForegroundService(Intent(this, SessionService::class.java))

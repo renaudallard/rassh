@@ -8,6 +8,8 @@ import it.allard.rassh.terminal.TerminalClient
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
@@ -35,6 +37,7 @@ class Session(
     rows: Int,
     private val exitMessage: (Int) -> String,
     private val exited: (Session) -> Unit,
+    pipes: Boolean = false,
 ) : TerminalClient {
     interface Listener {
         fun onUpdate()
@@ -63,8 +66,35 @@ class Session(
     private val pending = AtomicInteger()
     private val readerDone = CountDownLatch(1)
 
+    /*
+     * With pipes, the standard input and output of the program, the
+     * terminal only showing its messages and taking what it asks for.
+     */
+    val dataInput: InputStream?
+    val dataOutput: OutputStream?
+
     init {
-        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, rows, columns)
+        var toProgram: Array<ParcelFileDescriptor>? = null
+        var fromProgram: Array<ParcelFileDescriptor>? = null
+        val r = try {
+            var stdio = IntArray(0)
+            if (pipes) {
+                val to = ParcelFileDescriptor.createPipe().also { toProgram = it }
+                val from = ParcelFileDescriptor.createPipe().also { fromProgram = it }
+                stdio = intArrayOf(to[0].fd, from[1].fd)
+            }
+            Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, stdio, rows, columns)
+        } catch (e: IOException) {
+            toProgram?.get(1)?.close()
+            fromProgram?.get(0)?.close()
+            throw e
+        } finally {
+            /* The program has its own copies. */
+            toProgram?.get(0)?.close()
+            fromProgram?.get(1)?.close()
+        }
+        dataOutput = toProgram?.let { ParcelFileDescriptor.AutoCloseOutputStream(it[1]) }
+        dataInput = fromProgram?.let { ParcelFileDescriptor.AutoCloseInputStream(it[0]) }
         pty = ParcelFileDescriptor.adoptFd(r[0])
         child = Child(r[1])
         output = FileOutputStream(pty.fileDescriptor)
@@ -185,6 +215,11 @@ class Session(
 
     private fun finished() {
         isRunning = false
+        try {
+            dataOutput?.close()
+            dataInput?.close()
+        } catch (_: IOException) {
+        }
         listener?.onUpdate()
         exited(this)
     }
