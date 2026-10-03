@@ -489,7 +489,19 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             sendKey(key, mods or (extraKeys?.consumeModifiers() ?: 0))
             return true
         }
-        val c = event.getUnicodeChar(event.metaState and (KeyEvent.META_CTRL_MASK or KeyEvent.META_ALT_MASK).inv())
+        /*
+         * Right Alt is AltGr on many layouts: when it makes a character of
+         * its own, type that and leave Alt to left Alt only.
+         */
+        val meta = event.metaState and KeyEvent.META_CTRL_MASK.inv()
+        var c = event.getUnicodeChar(meta and KeyEvent.META_ALT_MASK.inv())
+        if (meta and KeyEvent.META_ALT_RIGHT_ON != 0) {
+            val altGr = event.getUnicodeChar(meta and KeyEvent.META_ALT_LEFT_ON.inv())
+            if (altGr != 0 && altGr != c) {
+                c = altGr
+                if (meta and KeyEvent.META_ALT_LEFT_ON == 0) mods = mods and KeyEncoder.ALT.inv()
+            }
+        }
         if (c == 0 || c and KeyCharacterMap.COMBINING_ACCENT != 0)
             return super.onKeyDown(keyCode, event)
         mods = (mods or (extraKeys?.consumeModifiers() ?: 0)) and KeyEncoder.SHIFT.inv()
