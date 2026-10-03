@@ -16,7 +16,8 @@ port forwards on 127.0.0.1 do not need it.
 
 ## Features
 
-- OpenSSH 10.5p1 `ssh` and `ssh-keygen` built with LibreSSL 4.3.2
+- OpenSSH 10.5p1 `ssh`, `ssh-keygen`, `ssh-agent`, `ssh-add`, `scp` and
+  `sftp` built with LibreSSL 4.3.2
 - Extra keys row above the soft keyboard: `ESC` `/` `|` `-` `HOME` `↑`
   `END` `PGUP` on the first row, `TAB` `CTRL` `ALT` `~` `←` `↓` `→`
   `PGDN` on the second. `CTRL` and `ALT` apply to the next key, typed or
@@ -53,8 +54,8 @@ live in its `.ssh` directory, which is excluded from backups and device
 transfers.
 
 Android only lets an app execute files from its native library
-directory, so `ssh` and `ssh-keygen` are packaged as `libssh.so` and
-`libssh-keygen.so` and extracted at install time.
+directory, so the programs are packaged as `lib<name>.so`, e.g.
+`libssh.so`, and extracted at install time.
 
 Bionic reports `/data` as the home directory of application users and
 OpenSSH finds `~/.ssh` through `getpwuid(3)`. The binaries are linked
@@ -98,8 +99,7 @@ update signed with the same key, so keep a copy of the keystore.
 
 ## Limitations
 
-- Only `ssh` and `ssh-keygen` are included: no `ssh-agent`, `scp` or
-  `sftp` yet
+- No `ssh-agent`, `scp` or `sftp` yet
 - No FIDO security keys and no PKCS#11
 - No mouse reporting
 - Combining characters are not rendered

@@ -1,3 +1,20 @@
+--- a/misc.c
++++ b/misc.c
+@@ -2947,11 +2947,14 @@
+ 			    pw->pw_name, (u_int)pw->pw_gid, strerror(errno));
+ 			_exit(1);
+ 		}
++#ifndef __ANDROID__
++		/* The app seccomp filter kills setresgid(). */
+ 		if (setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) == -1) {
+ 			error("%s: setresgid %u: %s", tag, (u_int)pw->pw_gid,
+ 			    strerror(errno));
+ 			_exit(1);
+ 		}
++#endif
+ 		if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) == -1) {
+ 			error("%s: setresuid %u: %s", tag, (u_int)pw->pw_uid,
+ 			    strerror(errno));
 --- a/openbsd-compat/explicit_bzero.c
 +++ b/openbsd-compat/explicit_bzero.c
 @@ -33,6 +33,24 @@
@@ -60,3 +77,17 @@
  		result = ERRSET_FAIL;
  		goto fail;
  	}
+--- a/ssh-agent.c
++++ b/ssh-agent.c
+@@ -2278,8 +2278,11 @@
+ 	sanitise_stdfd();
+ 
+ 	/* drop */
++#ifndef __ANDROID__
++	/* The app seccomp filter kills setgid() and setresgid(). */
+ 	(void)setegid(getgid());
+ 	(void)setgid(getgid());
++#endif
+ 
+ 	platform_disable_tracing(0);	/* strict=no */
+ 

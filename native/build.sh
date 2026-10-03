@@ -13,6 +13,9 @@ OPENSSH_VERSION=10.5p1
 OPENSSH_SHA256=d44d28a839ea9daf969cc69150fde59910b2b39361dad81a3bd6cbd19218db11
 API=33
 
+# scp and sftp find ssh through PATH, see SSH_PROGRAM below.
+PROGRAMS="ssh ssh-keygen ssh-agent ssh-add scp sftp"
+
 LIBRESSL_URL=https://cdn.openbsd.org/pub/OpenBSD/LibreSSL
 OPENSSH_URL=https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable
 
@@ -97,14 +100,15 @@ build_abi()
 		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__" ac_cv_func_bzero=yes \
 		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid" \
 		    LIBS="$dir/homedir.o"
-		make -j "$jobs" ssh ssh-keygen
+		make -j "$jobs" SSH_PROGRAM=ssh $PROGRAMS
 	)
 
 	mkdir -p "$jnilibs/$abi"
 	"$cc" -shared -fPIC -O2 -Wall -Wextra "$ldflags" \
 	    -o "$jnilibs/$abi/librassh.so" "$native/pty.c"
-	"$STRIP" -o "$jnilibs/$abi/libssh.so" "$dir/openssh/ssh"
-	"$STRIP" -o "$jnilibs/$abi/libssh-keygen.so" "$dir/openssh/ssh-keygen"
+	for p in $PROGRAMS; do
+		"$STRIP" -o "$jnilibs/$abi/lib$p.so" "$dir/openssh/$p"
+	done
 	"$STRIP" "$jnilibs/$abi/librassh.so"
 }
 
