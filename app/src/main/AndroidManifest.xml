@@ -46,7 +46,7 @@
         <!-- Not recreated, which would leave a running transfer without its screen. -->
         <activity
             android:name=".FilesActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
