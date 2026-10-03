@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 
 /**
@@ -43,9 +44,15 @@ class SessionService : Service() {
     override fun onBind(intent: Intent): IBinder = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        /* A foreground start must be honored even if the sessions are gone. */
-        startForeground(NOTIFICATION, notification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        /*
+         * A foreground start must be honored even if the sessions are gone.
+         * The specialUse type only exists from Android 14 on.
+         */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+            startForeground(NOTIFICATION, notification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        else
+            startForeground(NOTIFICATION, notification())
         foreground = true
         if (_sessions.isEmpty()) {
             stopForeground(STOP_FOREGROUND_REMOVE)

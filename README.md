@@ -7,7 +7,7 @@ on a pseudo-terminal and draws it with its own xterm compatible terminal
 emulator. There is no SSH reimplementation: what works with `ssh` on a
 Unix box works here, including `~/.ssh/config`.
 
-Targets Android 17 (API 37), runs on Android 14 (API 34) and later.
+Targets Android 17 (API 37), runs on Android 13 (API 33) and later.
 
 On Android 17 the app asks for the local network permission at start:
 without it, hosts on the LAN (RFC 1918, CGNAT and link-local addresses)
@@ -57,8 +57,10 @@ directory, so `ssh` and `ssh-keygen` are packaged as `libssh.so` and
 Bionic reports `/data` as the home directory of application users and
 OpenSSH finds `~/.ssh` through `getpwuid(3)`. The binaries are linked
 with `-Wl,--wrap=getpwuid` and `native/homedir.c` substitutes `$HOME`, so
-OpenSSH itself needs a single patch, `native/openssh-resolver.patch`, as
-bionic keeps the resolver state used for SSHFP lookups private.
+OpenSSH itself only needs `native/openssh-android.patch`: bionic keeps
+the resolver state used for SSHFP lookups private, and has neither
+`explicit_bzero()` nor the `bzero()` function the portable fallback
+relies on, so the OpenBSD libc `explicit_bzero()` is used instead.
 
 ## Building
 

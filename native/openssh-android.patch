@@ -1,3 +1,30 @@
+--- a/openbsd-compat/explicit_bzero.c
++++ b/openbsd-compat/explicit_bzero.c
+@@ -33,6 +33,24 @@
+ 	(void)memset_s(p, n, 0, n);
+ }
+ 
++#elif defined(__ANDROID__)
++
++/*
++ * Bionic has no bzero() function to point to, use the OpenBSD libc
++ * version (lib/libc/string/explicit_bzero.c 1.4, public domain).
++ */
++__attribute__((weak)) void
++__explicit_bzero_hook(void *buf, size_t len)
++{
++}
++
++void
++explicit_bzero(void *buf, size_t len)
++{
++	memset(buf, 0, len);
++	__explicit_bzero_hook(buf, len);
++}
++
+ #else /* HAVE_MEMSET_S */
+ 
+ /*
 --- a/openbsd-compat/getrrsetbyname.c
 +++ b/openbsd-compat/getrrsetbyname.c
 @@ -67,7 +67,7 @@

@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "it.allard.rassh"
-        minSdk = 34
+        minSdk = 33
         targetSdk = 37
         versionCode = 1
         versionName = "0.1"

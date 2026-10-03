@@ -11,7 +11,7 @@ LIBRESSL_VERSION=4.3.2
 LIBRESSL_SHA256=edf01aee24c65d69e6a9efcb9d44bcda682ff9d4f3bbbd95e794e1dfa90847b5
 OPENSSH_VERSION=10.5p1
 OPENSSH_SHA256=d44d28a839ea9daf969cc69150fde59910b2b39361dad81a3bd6cbd19218db11
-API=34
+API=33
 
 LIBRESSL_URL=https://cdn.openbsd.org/pub/OpenBSD/LibreSSL
 OPENSSH_URL=https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable
@@ -86,17 +86,15 @@ build_abi()
 
 	# Without HAVE_ATTRIBUTE__SENTINEL__, OpenSSH defines __sentinel__
 	# away and breaks the attribute in the bionic headers. Bionic only
-	# provides bzero() as a macro, which the configure link test misses,
-	# and names explicit_memset() memset_explicit().
+	# provides bzero() as a macro, which the configure link test misses.
 	unpack "$work/openssh-$OPENSSH_VERSION.tar.gz" "$dir/openssh"
-	patch -d "$dir/openssh" -p1 < "$native/openssh-resolver.patch"
+	patch -d "$dir/openssh" -p1 < "$native/openssh-android.patch"
 	(
 		cd "$dir/openssh"
 		./configure --host="$target" --with-ssl-dir="$prefix" \
 		    --disable-security-key --disable-pkcs11 \
 		    --sysconfdir=/etc/ssh \
-		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__ -Dexplicit_memset=memset_explicit" \
-		    ac_cv_func_bzero=yes ac_cv_func_explicit_memset=yes \
+		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__" ac_cv_func_bzero=yes \
 		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid" \
 		    LIBS="$dir/homedir.o"
 		make -j "$jobs" ssh ssh-keygen
