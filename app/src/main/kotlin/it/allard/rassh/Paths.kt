@@ -1,8 +1,12 @@
 package it.allard.rassh
 
 import android.content.Context
+import android.system.ErrnoException
 import android.system.Os
+import android.system.OsConstants
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 /** Where things live. $HOME is the app files directory. */
 class Paths(context: Context) {
@@ -48,14 +52,32 @@ class Paths(context: Context) {
         }
     }
 
-    /** Replace file with text, readable by the owner only. */
+    /*
+     * Replace file with text, readable by the owner only. The data and
+     * the rename reach the disk before returning, as callers may delete
+     * the only other copy right after.
+     */
+    @Throws(IOException::class)
     fun writePrivate(file: File, text: String) {
         val tmp = File(file.path + ".tmp")
-        tmp.writeText(text)
-        Os.chmod(tmp.path, "600".toInt(8))
-        if (!tmp.renameTo(file)) {
-            tmp.delete()
-            throw java.io.IOException("rename ${tmp.path}")
+        try {
+            FileOutputStream(tmp).use {
+                it.write(text.toByteArray())
+                it.fd.sync()
+            }
+            Os.chmod(tmp.path, "600".toInt(8))
+            if (!tmp.renameTo(file)) {
+                tmp.delete()
+                throw IOException("rename ${tmp.path}")
+            }
+            val dir = Os.open(file.parent, OsConstants.O_RDONLY, 0)
+            try {
+                Os.fsync(dir)
+            } finally {
+                Os.close(dir)
+            }
+        } catch (e: ErrnoException) {
+            throw e.rethrowAsIOException()
         }
     }
 
