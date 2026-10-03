@@ -107,9 +107,16 @@ class Session(
         update()
     }
 
-    /** Hang up the program, the session ends when it exits. */
-    fun hangup() {
+    /*
+     * Hang up the program and what it started on the terminal. Whatever
+     * still holds the terminal after a while is killed, as it would keep
+     * the reader thread and the terminal open. The group is only
+     * signalled while the terminal is held, its id cannot be reused then.
+     */
+    fun close() {
         if (isRunning) child.signal(SIGHUP)
+        if (readerDone.count > 0L) child.signalGroup(SIGHUP)
+        handler.postDelayed({ if (readerDone.count > 0L) child.signalGroup(SIGKILL) }, CLOSE_MILLIS)
     }
 
     override fun titleChanged(title: String) {
@@ -168,6 +175,8 @@ class Session(
     companion object {
         private const val BUFFER_SIZE = 8192
         private const val DRAIN_MILLIS = 500L
+        private const val CLOSE_MILLIS = 2000L
         private const val SIGHUP = 1
+        private const val SIGKILL = 9
     }
 }

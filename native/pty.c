@@ -275,3 +275,14 @@ Java_it_allard_rassh_Pty_sendSignal(JNIEnv *env, jclass cls, jint pid,
 	if (pid > 0)
 		(void)kill(pid, sig);
 }
+
+/* The program is the leader of its own session and process group. */
+JNIEXPORT void JNICALL
+Java_it_allard_rassh_Pty_signalGroup(JNIEnv *env, jclass cls, jint pgid,
+    jint sig)
+{
+	(void)env;
+	(void)cls;
+	if (pgid > 0)
+		(void)kill(-pgid, sig);
+}

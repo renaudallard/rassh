@@ -42,6 +42,9 @@ object Pty {
 
     @JvmStatic
     external fun sendSignal(pid: Int, signal: Int)
+
+    @JvmStatic
+    external fun signalGroup(pgid: Int, signal: Int)
 }
 
 /*
@@ -66,6 +69,14 @@ class Child(private val pid: Int) {
         synchronized(this) {
             if (!reaped) Pty.sendSignal(pid, signal)
         }
+    }
+
+    /*
+     * Signal the process group the child leads, its pid stays in use
+     * while any member lives, even once the child itself is reaped.
+     */
+    fun signalGroup(signal: Int) {
+        Pty.signalGroup(pid, signal)
     }
 }
 

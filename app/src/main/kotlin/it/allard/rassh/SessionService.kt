@@ -81,7 +81,7 @@ class SessionService : Service() {
     }
 
     override fun onDestroy() {
-        for (s in _sessions) s.hangup()
+        for (s in _sessions) s.close()
         _sessions.clear()
         agent.stop()
         super.onDestroy()
@@ -134,7 +134,7 @@ class SessionService : Service() {
 
     /** Forget a session, hanging it up if it still runs. */
     fun remove(session: Session) {
-        session.hangup()
+        session.close()
         session.listener = null
         _sessions.remove(session)
         if (_sessions.isEmpty() && foreground) {
