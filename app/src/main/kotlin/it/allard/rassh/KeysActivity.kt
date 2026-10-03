@@ -8,7 +8,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.system.ErrnoException
 import android.view.Menu
@@ -102,29 +101,20 @@ class KeysActivity : Activity() {
         }
     }
 
-    /*
-     * Run argv in a terminal, for programs that may ask a passphrase,
-     * pipes become /dev/fd/3 and up. Returns false if it did not start.
-     */
-    private fun run(
-        name: String,
-        path: String,
-        argv: List<String>,
-        pipes: List<ParcelFileDescriptor> = emptyList(),
-    ): Boolean {
-        val service = binding.service ?: return false
+    /* Run argv in a terminal, for programs that may ask a passphrase. */
+    private fun run(name: String, path: String, argv: List<String>) {
+        val service = binding.service ?: return
         val session = try {
             paths.ensureSshDir()
-            service.start(name, path, argv, fds = pipes.map { it.fd }.toIntArray())
+            service.start(name, path, argv)
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
-            return false
+            return
         } catch (e: ErrnoException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
-            return false
+            return
         }
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
-        return true
     }
 
     /* A vault key may have no file left, its name is taken all the same. */
