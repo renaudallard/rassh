@@ -277,11 +277,15 @@ class MainActivity : Activity(), SessionService.Listener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_ADD, 0, R.string.add_host)
+            .setIcon(R.drawable.ic_add_host)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         if (binding.service?.sessions?.isNotEmpty() == true)
             menu.add(Menu.NONE, MENU_SESSIONS, 1, R.string.sessions)
+                .setIcon(R.drawable.ic_sessions)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_KEYS, 2, R.string.keys)
+            .setIcon(R.drawable.ic_key)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_ABOUT, 3, R.string.about)
         return true
     }

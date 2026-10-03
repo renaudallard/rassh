@@ -94,11 +94,17 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_PASTE, 0, R.string.paste)
+            .setIcon(R.drawable.ic_paste)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_KEYBOARD, 1, R.string.keyboard)
+            .setIcon(R.drawable.ic_keyboard)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_SESSIONS, 2, R.string.sessions)
+            .setIcon(R.drawable.ic_sessions)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_CLOSE, 3, R.string.close_session)
+            .setIcon(R.drawable.ic_close_session)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         return true
     }
 
