@@ -112,7 +112,10 @@ class Vault(private val paths: Paths) {
     @Throws(IOException::class)
     fun add(dataKey: ByteArray, name: String, secret: ByteArray) {
         val v = load() ?: throw IOException("no vault")
-        save(v.first, v.second.filter { it.name != name } + seal(dataKey, name, secret))
+        val others = v.second.filter { it.name != name }
+        /* All are loaded together for a connection, more could not be. */
+        if (others.size >= Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
+        save(v.first, others + seal(dataKey, name, secret))
     }
 
     /* The name is part of the sealed data, so renaming seals the key again. */

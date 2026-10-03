@@ -15,8 +15,6 @@ import java.security.GeneralSecurityException
 /* The longest keys stay in the agent once loaded, in seconds. */
 private const val KEY_LIFETIME = 60
 
-/* Descriptors a program can be given, see MAX_FDS in native/pty.c. */
-private const val MAX_KEYS = 64
 
 /**
  * Ask for a fingerprint, then call use with the vault key, zeroed
@@ -136,7 +134,10 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
  * keys could not be moved.
  */
 fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
-    val pending = Keys.plaintext(paths.sshDir).filter { Keys.publicKey(paths.sshDir, it) != null }
+    /* Too large a key would fill its pipe to ssh-add before it reads, see Keys.MAX_SIZE. */
+    val pending = Keys.plaintext(paths.sshDir).filter {
+        Keys.publicKey(paths.sshDir, it) != null && File(paths.sshDir, it).length() <= Keys.MAX_SIZE
+    }
     if (pending.isEmpty()) return done(true)
     withVaultKey(vault, getString(R.string.protect_reason), { done(false) }) { key ->
         try {
@@ -188,7 +189,7 @@ fun rewriteIdentities(paths: Paths, files: Map<String, String>) {
  */
 @Throws(IOException::class)
 fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<ParcelFileDescriptor> {
-    if (names.size > MAX_KEYS) throw IOException("more than $MAX_KEYS keys")
+    if (names.size > Keys.MAX_COUNT) throw IOException("more than ${Keys.MAX_COUNT} keys")
     val pipes = mutableListOf<ParcelFileDescriptor>()
     try {
         for (name in names) {

@@ -239,7 +239,8 @@ vault and decrypts them into the agent during the login. JuiceSSH is no longer o
 - No mosh
 - No mouse reporting
 - Combining characters are not rendered
-- At most 64 keys can be unlocked at once
+- The vault holds at most 64 keys, all loaded for each connection, and
+  keys over 64 KiB are refused
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
   Play to some app categories
 

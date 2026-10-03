@@ -12,6 +12,9 @@ object Keys {
      */
     const val MAX_SIZE = 65536
 
+    /* The most keys the vault holds, descriptors a program can be given, see MAX_FDS in native/pty.c. */
+    const val MAX_COUNT = 64
+
     private val RESERVED = setOf("config", "known_hosts", "known_hosts2", "authorized_keys", Vault.FILE)
 
     @Throws(IOException::class)

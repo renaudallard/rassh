@@ -18,7 +18,7 @@ import kotlin.concurrent.thread
 
 /* Moving hosts, keys and settings to another phone, see Backup. */
 
-/* Far above what MAX_KEYS keys and a config take. */
+/* Far above what Keys.MAX_COUNT keys and a config take. */
 private const val MAX_EXPORT_SIZE = 16 * 1024 * 1024
 private const val MIN_PASSPHRASE = 8
 private const val CONFIG = "config"
