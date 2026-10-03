@@ -27,4 +27,25 @@ class SftpFakeTest {
         assertEquals(SftpException.PERMISSION_DENIED, e.status)
         assertEquals("denied", e.message)
     }
+
+    @Test
+    fun emptyReadsEnd() {
+        val fake = FakeServer { type, id ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+                5 -> FakeServer.packet(103) { writeInt(id); writeInt(0) }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        assertFailsWith<java.io.IOException> { client.download("/f", java.io.ByteArrayOutputStream()) }
+    }
 }

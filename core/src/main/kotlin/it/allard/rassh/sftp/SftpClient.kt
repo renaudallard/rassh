@@ -170,7 +170,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 }
                 expect(r, FXP_DATA)
                 val data = r.body.bytes()
-                if (at != done || data.size > CHUNK) throw IOException("unexpected data")
+                /* The end comes as a status, empty data would ask the same again forever. */
+                if (at != done || data.size > CHUNK || data.isEmpty()) throw IOException("unexpected data")
                 out.write(data)
                 done += data.size
                 /* A short read: the requests after it start at the wrong offset. */
