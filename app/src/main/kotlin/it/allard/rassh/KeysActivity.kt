@@ -237,7 +237,9 @@ class KeysActivity : Activity() {
         val pub = Keys.publicKey(paths.sshDir, name)
         val actions = mutableListOf<Pair<Int, () -> Unit>>()
         if (pub == null) {
-            actions.add(R.string.derive_public_key to { derivePublicKey(name) })
+            /* ssh-keygen reads the key from its file, a key in the vault has none. */
+            if (File(paths.sshDir, name).isFile)
+                actions.add(R.string.derive_public_key to { derivePublicKey(name) })
         } else {
             actions.add(R.string.show_public_key to { showPublicKey(name, pub) })
             actions.add(R.string.share_public_key to {

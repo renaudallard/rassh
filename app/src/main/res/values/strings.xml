@@ -100,7 +100,7 @@
     <string name="show_public_key">Show public key</string>
     <string name="share_public_key">Share public key</string>
     <string name="public_key_copied">Public key copied</string>
-    <string name="public_key_missing">No public key, use Create public key</string>
+    <string name="public_key_missing">No public key</string>
     <string name="derive_public_key">Create public key</string>
     <string name="error_key_name">Use letters, digits, dot, dash and underscore, not a reserved name</string>
     <string name="error_key_exists">A key or file with this name already exists</string>
