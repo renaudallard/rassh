@@ -82,7 +82,19 @@ from cdn.openbsd.org, checks their SHA-256 and builds `arm64-v8a` and
 dialog.
 
 The GitHub workflow in `.github/workflows/build.yml` does the same and
-publishes the debug and unsigned release APKs as artifacts.
+keeps the debug and release APKs as artifacts. Local and pull request
+release builds are unsigned.
+
+## Releases
+
+Bumping `versionName` in `app/build.gradle.kts` and pushing to `main`
+publishes a GitHub release tagged `v<versionName>` with the signed APK
+attached. Pushes whose version already has a release publish nothing.
+
+Release APKs are signed with the key held in the repository secrets
+`RASSH_KEYSTORE` (base64 PKCS12 keystore), `RASSH_KEYSTORE_PASSWORD`,
+`RASSH_KEY_ALIAS` and `RASSH_KEY_PASSWORD`. Android only installs an
+update signed with the same key, so keep a copy of the keystore.
 
 ## Limitations
 

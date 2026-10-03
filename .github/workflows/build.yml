@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NDK_VERSION: 30.0.16248370
+      RASSH_KEYSTORE: ${{ secrets.RASSH_KEYSTORE }}
+      RASSH_KEYSTORE_PASSWORD: ${{ secrets.RASSH_KEYSTORE_PASSWORD }}
+      RASSH_KEY_ALIAS: ${{ secrets.RASSH_KEY_ALIAS }}
+      RASSH_KEY_PASSWORD: ${{ secrets.RASSH_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
 
@@ -28,6 +32,12 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
               "platforms;android-37.0" "build-tools;36.0.0" "ndk;$NDK_VERSION"
 
+      - name: Set up release signing
+        if: env.RASSH_KEYSTORE != ''
+        run: |
+          echo "$RASSH_KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RASSH_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
       - name: Build OpenSSH and LibreSSL
         run: ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" native/build.sh
 
@@ -40,3 +50,42 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
+
+  # Publish the signed APK when versionName has no release yet.
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check version
+        id: version
+        run: |
+          version=$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          test -n "$version"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+              echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+              echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v8
+        if: steps.version.outputs.new == 'true'
+        with:
+          name: rassh
+          path: apk
+
+      - name: Publish release
+        if: steps.version.outputs.new == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          cp apk/release/app-release.apk "rassh-$TAG.apk"
+          gh release create "$TAG" "rassh-$TAG.apk" --target "$GITHUB_SHA" \
+              --title "rassh $TAG" --generate-notes

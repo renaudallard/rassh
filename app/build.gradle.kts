@@ -14,11 +14,25 @@ android {
         versionName = "0.1"
     }
 
+    /* Release builds are signed only when the CI provides the keystore. */
+    val keystore = System.getenv("RASSH_KEYSTORE_FILE")
+    if (keystore != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystore)
+                storePassword = System.getenv("RASSH_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RASSH_KEY_ALIAS")
+                keyPassword = System.getenv("RASSH_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (keystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 
