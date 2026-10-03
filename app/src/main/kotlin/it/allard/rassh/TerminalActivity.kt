@@ -13,6 +13,9 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private val binding = ServiceBinding(this) { attach(it) }
     private var session: Session? = null
 
+    /* The session to show, kept when the activity is recreated. */
+    private var wanted = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_terminal)
@@ -23,12 +26,19 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         terminal.extraKeys = keys
         keys.listener = terminal
         terminal.onCloseRequest = { closeSession() }
+        wanted = savedInstanceState?.getInt(STATE_SESSION, -1) ?: intent.getIntExtra(EXTRA_SESSION, -1)
         binding.bind()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(STATE_SESSION, session?.id ?: wanted)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        wanted = intent.getIntExtra(EXTRA_SESSION, -1)
         binding.service?.let { attach(it) }
     }
 
@@ -51,8 +61,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun attach(service: SessionService) {
         service.addListener(this)
-        val id = intent.getIntExtra(EXTRA_SESSION, -1)
-        show(service.find(id) ?: session?.takeIf { it in service.sessions } ?: service.sessions.lastOrNull())
+        show(service.find(wanted) ?: session?.takeIf { it in service.sessions } ?: service.sessions.lastOrNull())
     }
 
     private fun show(s: Session?) {
@@ -65,6 +74,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
             return
         }
         s.listener = this
+        wanted = s.id
         actionBar?.title = s.title
         terminal.showKeyboard()
     }
@@ -134,6 +144,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     companion object {
+        private const val STATE_SESSION = "session"
         private const val MENU_PASTE = 1
         private const val MENU_KEYBOARD = 2
         private const val MENU_SESSIONS = 3
