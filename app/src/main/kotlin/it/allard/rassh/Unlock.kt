@@ -192,10 +192,11 @@ fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<Parcel
     val pipes = mutableListOf<ParcelFileDescriptor>()
     try {
         for (name in names) {
-            val p = ParcelFileDescriptor.createPipe()
-            pipes.add(p[0])
+            /* Decrypted first, so that a failure leaves no pipe end open. */
             val secret = vault.read(dataKey, name)
             try {
+                val p = ParcelFileDescriptor.createPipe()
+                pipes.add(p[0])
                 ParcelFileDescriptor.AutoCloseOutputStream(p[1]).use { it.write(secret) }
             } finally {
                 secret.fill(0)

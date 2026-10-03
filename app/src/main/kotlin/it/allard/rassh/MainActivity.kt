@@ -221,7 +221,9 @@ class MainActivity : Activity(), SessionService.Listener {
             val pipes = try {
                 keyPipes(vault, key, names)
             } catch (e: IOException) {
+                /* Connect anyway, like when the fingerprint is refused. */
                 toast(getString(R.string.vault_error, e.message))
+                start(service, title, path, argv, cwd, emptyList())
                 return@withVaultKey
             }
             try {
