@@ -225,31 +225,30 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     paths.ensureSshDir()
     /*
      * Write the export first and only then remove what it does not hold,
-     * so that a failure leaves the old setup rather than nothing.
+     * so that a failure leaves the old setup rather than nothing. The
+     * vault is replaced in one write.
      */
     val keys = items.filter { it.type == Backup.KEY }
+    val sealed = keys.map { it.name }.filter { hasPublicKey(items, it) }.toSet()
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            Backup.KEY -> storeKey(paths, vault, key, items, item)
+            /* Without its public key, in clear as it was, see storeKey(). */
+            Backup.KEY -> if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
             Backup.SETTING -> putSetting(item)
         }
     }
-    val sealed = keys.map { it.name }.filter { hasPublicKey(items, it) }.toSet()
-    val clear = keys.map { it.name }.toSet() - sealed
+    vault.replaceAll(key, keys.filter { it.name in sealed }.map { it.name to it.data })
     usePublicKeys(paths, sealed.toList())
+    val clear = keys.map { it.name }.toSet() - sealed
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
     for (name in present) {
         when (name) {
             /* The imported copy replaces the one of the same name. */
             in sealed -> File(dir, name).delete()
             /* It came without a public key, the old one is of another key. */
-            in clear -> {
-                vault.remove(name)
-                File(dir, "$name.pub").delete()
-            }
+            in clear -> File(dir, "$name.pub").delete()
             else -> {
-                vault.remove(name)
                 File(dir, name).delete()
                 File(dir, "$name.pub").delete()
             }
