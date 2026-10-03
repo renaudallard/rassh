@@ -6,7 +6,12 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.os.storage.StorageManager
+import android.provider.Settings
+import android.text.InputType
 import android.system.ErrnoException
 import android.view.KeyEvent
 import android.view.Menu
@@ -14,9 +19,12 @@ import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.PopupMenu
+import android.widget.TextView
 import it.allard.rassh.config.Args
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
@@ -63,7 +71,7 @@ class MainActivity : Activity(), SessionService.Listener {
         list.emptyView = findViewById(R.id.empty)
         list.setOnItemClickListener { _, _, position, _ ->
             val name = hosts[position].name
-            connect(name, listOf(name))
+            launch(name, paths.ssh, listOf("ssh", name))
         }
         list.setOnItemLongClickListener { _, view, position, _ ->
             hostMenu(view, hosts[position].name)
@@ -128,13 +136,13 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.invalid_arguments))
             return
         }
-        connect(text, args)
+        launch(text, paths.ssh, listOf("ssh") + args)
     }
 
-    private fun connect(name: String, args: List<String>) {
+    private fun launch(title: String, path: String, argv: List<String>, cwd: String = paths.home.path) {
         val service = binding.service ?: return
         val session = try {
-            service.start(name, paths.ssh, listOf("ssh") + args)
+            service.start(title, path, argv, cwd)
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, e.message))
             return
@@ -142,12 +150,80 @@ class MainActivity : Activity(), SessionService.Listener {
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
     }
 
+    /*
+     * scp and sftp work relative to shared storage when the app may use
+     * it, otherwise relative to the private home directory.
+     */
+    private fun withStorage(action: (String) -> Unit) {
+        val storage = getSystemService(StorageManager::class.java).primaryStorageVolume.directory
+        if (Environment.isExternalStorageManager() && storage != null) {
+            action(storage.path)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setMessage(R.string.storage_rationale)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
+                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.fromParts("package", packageName, null)))
+            }
+            .setNeutralButton(R.string.continue_anyway) { _, _ -> action(paths.home.path) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun sftp(host: String) {
+        withStorage { cwd -> launch("sftp $host", paths.sftp, listOf("sftp", host), cwd) }
+    }
+
+    private fun scp(host: String) {
+        withStorage { cwd ->
+            val layout = LinearLayout(this)
+            layout.orientation = LinearLayout.VERTICAL
+            val pad = (resources.displayMetrics.density * 20).toInt()
+            layout.setPadding(pad, pad / 2, pad, 0)
+            val hint = TextView(this)
+            hint.setText(R.string.scp_hint)
+            val fromLabel = TextView(this)
+            fromLabel.setText(R.string.scp_from)
+            val from = EditText(this)
+            from.isSingleLine = true
+            from.inputType = PATH_INPUT
+            from.setText(if (cwd == paths.home.path) "" else "Download/")
+            val toLabel = TextView(this)
+            toLabel.setText(R.string.scp_to)
+            val to = EditText(this)
+            to.isSingleLine = true
+            to.inputType = PATH_INPUT
+            to.setText(getString(R.string.scp_remote, host))
+            val recursive = CheckBox(this)
+            recursive.setText(R.string.scp_recursive)
+            for (v in listOf(hint, fromLabel, from, toLabel, to, recursive)) layout.addView(v)
+
+            AlertDialog.Builder(this)
+                .setTitle(R.string.scp)
+                .setView(layout)
+                .setPositiveButton(R.string.copy_files) { _, _ ->
+                    val argv = mutableListOf("scp")
+                    if (recursive.isChecked) argv.add("-r")
+                    argv.add(from.text.toString().trim())
+                    argv.add(to.text.toString().trim())
+                    launch("scp $host", paths.scp, argv, cwd)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
     private fun hostMenu(anchor: View, name: String) {
         val menu = PopupMenu(this, anchor)
-        menu.menu.add(Menu.NONE, MENU_EDIT, 0, R.string.edit)
-        menu.menu.add(Menu.NONE, MENU_DELETE, 1, R.string.delete)
+        menu.menu.add(Menu.NONE, MENU_SFTP, 0, R.string.sftp)
+        menu.menu.add(Menu.NONE, MENU_SCP, 1, R.string.scp)
+        menu.menu.add(Menu.NONE, MENU_EDIT, 2, R.string.edit)
+        menu.menu.add(Menu.NONE, MENU_DELETE, 3, R.string.delete)
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                MENU_SFTP -> sftp(name)
+                MENU_SCP -> scp(name)
                 MENU_EDIT -> startActivity(Intent(this, HostActivity::class.java).putExtra(EXTRA_HOST, name))
                 MENU_DELETE -> deleteHost(name)
             }
@@ -177,7 +253,7 @@ class MainActivity : Activity(), SessionService.Listener {
         val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
         thread {
             val ssh = try {
-                runProgram(paths.ssh, listOf("ssh", "-V"), paths.env)
+                runProgram(paths.ssh, listOf("ssh", "-V"), paths.env, paths.home.path)
             } catch (e: IOException) {
                 e.toString()
             }
@@ -228,5 +304,9 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_ABOUT = 4
         private const val MENU_EDIT = 5
         private const val MENU_DELETE = 6
+        private const val MENU_SFTP = 7
+        private const val MENU_SCP = 8
+        private const val PATH_INPUT = InputType.TYPE_CLASS_TEXT or
+            InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
     }
 }

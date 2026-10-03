@@ -90,8 +90,9 @@ close_fds(int maxfd)
 
 /* Runs in the forked child, only async-signal-safe calls are allowed. */
 static void
-child(const char *path, char **argv, char **envp, int maxfd)
+child(const char *path, char **argv, char **envp, const char *cwd, int maxfd)
 {
+	static const char	 nodir[] = "rassh: cannot change directory\r\n";
 	static const char	 msg[] = "rassh: cannot execute program\r\n";
 	struct sigaction	 sa;
 	sigset_t		 set;
@@ -104,6 +105,10 @@ child(const char *path, char **argv, char **envp, int maxfd)
 	(void)sigemptyset(&set);
 	(void)sigprocmask(SIG_SETMASK, &set, NULL);
 	close_fds(maxfd);
+	if (chdir(cwd) == -1) {
+		(void)write(STDERR_FILENO, nodir, sizeof(nodir) - 1);
+		_exit(127);
+	}
 	(void)execve(path, argv, envp);
 	(void)write(STDERR_FILENO, msg, sizeof(msg) - 1);
 	_exit(127);
@@ -111,10 +116,10 @@ child(const char *path, char **argv, char **envp, int maxfd)
 
 JNIEXPORT jintArray JNICALL
 Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
-    jobjectArray jargv, jobjectArray jenvp, jint rows, jint cols)
+    jobjectArray jargv, jobjectArray jenvp, jstring jcwd, jint rows, jint cols)
 {
 	struct winsize	  ws;
-	const char	 *path;
+	const char	 *path, *cwd = NULL;
 	char		**argv = NULL, **envp = NULL;
 	jintArray	  result = NULL;
 	jint		  ret[2];
@@ -129,6 +134,8 @@ Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
 	}
 	if ((path = (*env)->GetStringUTFChars(env, jpath, NULL)) == NULL)
 		return NULL;
+	if ((cwd = (*env)->GetStringUTFChars(env, jcwd, NULL)) == NULL)
+		goto out;
 	if ((argv = to_strings(env, jargv)) == NULL ||
 	    (envp = to_strings(env, jenvp)) == NULL) {
 		throw_io(env, "start", ENOMEM);
@@ -145,7 +152,7 @@ Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
 		goto out;
 	}
 	if (pid == 0)
-		child(path, argv, envp, (int)maxfd);
+		child(path, argv, envp, cwd, (int)maxfd);
 
 	if (fcntl(master, F_SETFD, FD_CLOEXEC) == -1) {
 		saved = errno;
@@ -168,6 +175,8 @@ kill:
 out:
 	free_strings(argv);
 	free_strings(envp);
+	if (cwd != NULL)
+		(*env)->ReleaseStringUTFChars(env, jcwd, cwd);
 	(*env)->ReleaseStringUTFChars(env, jpath, path);
 	return result;
 }

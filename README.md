@@ -2,10 +2,10 @@
 
 An SSH client for Android built around the real OpenSSH `ssh(1)`.
 
-The app ships OpenSSH 10.5p1 linked against LibreSSL 4.3.2, runs `ssh`
-on a pseudo-terminal and draws it with its own xterm compatible terminal
-emulator. There is no SSH reimplementation: what works with `ssh` on a
-Unix box works here, including `~/.ssh/config`.
+The app ships OpenSSH 10.5p1 linked against LibreSSL 4.3.2, runs `ssh`,
+`sftp` and `scp` on a pseudo-terminal and draws them with its own xterm
+compatible terminal emulator. There is no SSH reimplementation: what
+works with `ssh` on a Unix box works here, including `~/.ssh/config`.
 
 Targets Android 17 (API 37), runs on Android 13 (API 33) and later.
 
@@ -33,6 +33,9 @@ port forwards on 127.0.0.1 do not need it.
 - An `ssh-agent` runs alongside the app and every session gets
   `SSH_AUTH_SOCK`, so `AddKeysToAgent` and agent forwarding work. Keys
   are added, listed and removed with `ssh-add` from the keys screen.
+- `sftp` and `scp` from the menu of a saved host. They run from shared
+  storage when the app has All files access, from the private home
+  directory otherwise.
 - Several sessions at once, kept alive by a foreground service
 - 256 colors and 24 bit color, alternate screen, scroll regions, wide
   characters, DEC line drawing, bracketed paste
@@ -104,10 +107,11 @@ update signed with the same key, so keep a copy of the keystore.
 
 ## Limitations
 
-- No `scp` or `sftp` yet
 - No FIDO security keys and no PKCS#11
 - No mouse reporting
 - Combining characters are not rendered
+- All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
+  Play to some app categories
 
 ## License
 

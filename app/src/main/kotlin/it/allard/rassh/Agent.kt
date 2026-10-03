@@ -21,7 +21,7 @@ class Agent(private val paths: Paths) {
         if (pid > 0) return
         paths.agentSocket.delete()
         val argv = arrayOf("ssh-agent", "-D", "-a", paths.agentSocket.path)
-        val r = Pty.start(paths.agent, argv, paths.env.toTypedArray(), ROWS, COLUMNS)
+        val r = Pty.start(paths.agent, argv, paths.env.toTypedArray(), paths.home.path, ROWS, COLUMNS)
         val pty = ParcelFileDescriptor.adoptFd(r[0])
         val p = r[1]
         pid = p

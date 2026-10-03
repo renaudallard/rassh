@@ -16,6 +16,17 @@
     <string name="invalid_arguments">Unbalanced quotes in arguments</string>
     <string name="start_failed">Cannot start ssh: %1$s</string>
     <string name="config_failed">Cannot write ssh config: %1$s</string>
+    <string name="sftp">sftp</string>
+    <string name="scp">scp</string>
+    <string name="scp_from">From</string>
+    <string name="scp_to">To</string>
+    <string name="scp_hint">Remote files are written host:path</string>
+    <string name="scp_remote" translatable="false">%1$s:</string>
+    <string name="scp_recursive">Copy directories (-r)</string>
+    <string name="copy_files">Copy</string>
+    <string name="storage_rationale">scp and sftp need All files access to read and write your files. Without it they only reach the app\'s private directory.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="continue_anyway">Continue</string>
 
     <!-- Host editor -->
     <string name="new_host">New host</string>

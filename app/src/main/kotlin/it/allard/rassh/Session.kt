@@ -24,6 +24,7 @@ class Session(
     path: String,
     argv: List<String>,
     env: List<String>,
+    cwd: String,
     private val exitMessage: (Int) -> String,
     private val exited: (Session) -> Unit,
 ) : TerminalClient {
@@ -51,7 +52,7 @@ class Session(
     private val updatePending = AtomicBoolean()
 
     init {
-        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), ROWS, COLUMNS)
+        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, ROWS, COLUMNS)
         pty = ParcelFileDescriptor.adoptFd(r[0])
         pid = r[1]
         output = FileOutputStream(pty.fileDescriptor)

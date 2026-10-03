@@ -91,16 +91,16 @@ class SessionService : Service() {
 
     fun find(id: Int): Session? = _sessions.find { it.id == id }
 
-    /** Start argv[0] from path on a new terminal. */
+    /** Start argv[0] from path in cwd on a new terminal. */
     @Throws(IOException::class)
-    fun start(name: String, path: String, argv: List<String>): Session {
+    fun start(name: String, path: String, argv: List<String>, cwd: String = paths.home.path): Session {
         try {
             paths.linkPrograms()
         } catch (e: ErrnoException) {
             e.rethrowAsIOException()
         }
         agent.start()
-        val session = Session(nextId++, name, path, argv, paths.env,
+        val session = Session(nextId++, name, path, argv, paths.env, cwd,
             { getString(R.string.session_exited, it) }, { changed() })
         _sessions.add(session)
         if (!foreground)

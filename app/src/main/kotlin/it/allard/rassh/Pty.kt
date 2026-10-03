@@ -8,10 +8,17 @@ object Pty {
         System.loadLibrary("rassh")
     }
 
-    /** Start path with argv and envp, returns the master fd and the pid. */
+    /** Start path with argv and envp in cwd, returns the master fd and the pid. */
     @JvmStatic
     @Throws(IOException::class)
-    external fun start(path: String, argv: Array<String>, envp: Array<String>, rows: Int, cols: Int): IntArray
+    external fun start(
+        path: String,
+        argv: Array<String>,
+        envp: Array<String>,
+        cwd: String,
+        rows: Int,
+        cols: Int,
+    ): IntArray
 
     @JvmStatic
     @Throws(IOException::class)
@@ -28,8 +35,8 @@ object Pty {
 
 /** Run a program to completion and return what it printed. */
 @Throws(IOException::class)
-fun runProgram(path: String, argv: List<String>, env: List<String>): String {
-    val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), 24, 80)
+fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String): String {
+    val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, 24, 80)
     val out = java.io.ByteArrayOutputStream()
     android.os.ParcelFileDescriptor.adoptFd(r[0]).use { pty ->
         val input = java.io.FileInputStream(pty.fileDescriptor)
