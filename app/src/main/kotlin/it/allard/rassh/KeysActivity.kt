@@ -199,7 +199,7 @@ class KeysActivity : Activity() {
 
     private fun displayName(uri: Uri): String =
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-            if (c.moveToFirst()) c.getString(0) else null
+            if (c.moveToFirst()) c.getString(0)?.let { Keys.safeName(it) } else null
         } ?: "id_imported"
 
     private fun importKey(uri: Uri) {

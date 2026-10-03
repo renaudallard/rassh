@@ -17,10 +17,19 @@ object Keys {
             .map { it.name }
             .sorted()
 
-    /** A plain file name that does not clash with other ssh files. */
+    /*
+     * A plain file name that does not clash with other ssh files. Names
+     * end up in IdentityFile lines, where ssh expands % and ${} and
+     * parses quotes, so only a safe set of characters is allowed.
+     */
     fun isValidName(name: String): Boolean =
-        name.isNotEmpty() && !name.startsWith(".") && name.none { it == '/' || it.isWhitespace() } &&
+        name.isNotEmpty() && !name.startsWith(".") && name.all { it in SAFE } &&
             !name.endsWith(".pub") && !name.endsWith(".tmp") && name !in RESERVED
+
+    /** name with the characters isValidName() refuses replaced. */
+    fun safeName(name: String): String = name.map { if (it in SAFE) it else '_' }.joinToString("")
+
+    private val SAFE = ('a'..'z') + ('A'..'Z') + ('0'..'9') + listOf('.', '_', '-')
 
     private fun isPrivateKey(file: File): Boolean =
         try {
