@@ -53,6 +53,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The directory an upload waits for its files for. */
     private var uploading: String? = null
 
+    /* A picker result waiting for the connection, see onActivityResult(). */
+    private var pendingResult: Pair<Int, Intent>? = null
+
     @Volatile
     private var cancelled = false
 
@@ -134,6 +137,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         if (c != null) {
             showTerminal(false)
             load(cwd ?: home ?: ".")
+            takePending()
             return
         }
         status.setText(R.string.files_connecting)
@@ -159,10 +163,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             home = start
             showTerminal(false)
             load(cwd ?: start)
+            takePending()
         }
     }
 
     private fun client() = session?.sftp
+
+    private fun takePending() {
+        val (code, data) = pendingResult ?: return
+        pendingResult = null
+        handleResult(code, data)
+    }
 
     /* Hidden, it takes the keyboard it may have opened for a password along. */
     private fun showTerminal(show: Boolean) {
@@ -256,9 +267,20 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             REQUEST_UPLOAD)
     }
 
+    /*
+     * A recreated browser gets the result of the picker before it is
+     * connected again, it waits for SFTP then.
+     */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK || data == null) return
+        if (client() == null)
+            pendingResult = Pair(requestCode, data)
+        else
+            handleResult(requestCode, data)
+    }
+
+    private fun handleResult(requestCode: Int, data: Intent) {
         when (requestCode) {
             REQUEST_DOWNLOAD -> {
                 val remote = downloading ?: return
