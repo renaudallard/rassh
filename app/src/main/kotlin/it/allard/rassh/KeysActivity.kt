@@ -125,9 +125,13 @@ class KeysActivity : Activity() {
         else -> null
     }
 
-    /* A new key could not be moved into a full vault and would stay in clear. */
+    /*
+     * A new key could not be moved into a full vault and would stay in
+     * clear. Keys in clear with their public key are on their way there.
+     */
     private fun vaultFull(): Boolean {
-        if (vaultNames().size < Keys.MAX_COUNT) return false
+        val waiting = Keys.plaintext(paths.sshDir).count { Keys.publicKey(paths.sshDir, it) != null }
+        if (vaultNames().size + waiting < Keys.MAX_COUNT) return false
         toast(getString(R.string.vault_full, Keys.MAX_COUNT))
         return true
     }
