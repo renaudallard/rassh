@@ -54,8 +54,10 @@ encrypted and unlocked with your fingerprint.
   or `-J jump host`
 - **Encrypted keys** - private keys live in a vault sealed by the Android
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
-- **Agent** - one `ssh-agent` for every session, so `AddKeysToAgent` and
-  agent forwarding work
+- **Agent** - one `ssh-agent` holds the unlocked keys while logging in,
+  so `ssh`, `scp`, `sftp` and `ProxyJump` hosts use them without writing
+  them to disk. The keys leave it once logged in, so a forwarded agent is
+  empty
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import private keys, rename keys, show, copy or share public keys
 - **sftp and scp** - from the menu of a saved host, working from shared
@@ -120,8 +122,8 @@ There is no PIN fallback.
   a failed login, they leave the agent after 60 seconds, or when the
   screen turns off. Cancelling connects without them, for password
   logins.
-- The keys screen can unlock them on demand, list the agent keys and
-  remove them from the agent.
+- The keys screen can unlock them on demand, for 60 seconds at most,
+  list the agent keys and remove them from the agent.
 
 Public keys stay in clear next to the vault. Since `ssh` skips an
 `IdentityFile` whose private key is gone, but takes a public key and finds
@@ -152,7 +154,7 @@ Storing the keys takes a fingerprint.
 
 ```
 native/   build script for LibreSSL and OpenSSH, JNI pty helper
-core/     terminal emulator and ssh_config editor, plain Kotlin/JVM
+core/     terminal emulator, ssh_config editor and export format, plain Kotlin/JVM
 app/      Android application
 ```
 
