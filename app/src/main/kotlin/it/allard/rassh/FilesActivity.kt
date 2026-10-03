@@ -21,6 +21,7 @@ import it.allard.rassh.sftp.SftpAttrs
 import it.allard.rassh.sftp.SftpCancelledException
 import it.allard.rassh.sftp.SftpClient
 import it.allard.rassh.sftp.SftpEntry
+import it.allard.rassh.sftp.SftpException
 import java.io.IOException
 import java.text.DateFormat
 import java.util.Date
@@ -49,6 +50,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The remote file a download waits for its destination for. */
     private var downloading: String? = null
 
+    /* The directory an upload waits for its files for. */
+    private var uploading: String? = null
+
     @Volatile
     private var cancelled = false
 
@@ -71,6 +75,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         cwd = savedInstanceState?.getString(STATE_PATH)
         home = savedInstanceState?.getString(STATE_HOME)
         downloading = savedInstanceState?.getString(STATE_DOWNLOAD)
+        uploading = savedInstanceState?.getString(STATE_UPLOAD)
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { back() }
         binding.bind()
     }
@@ -80,6 +85,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         outState.putString(STATE_PATH, cwd)
         outState.putString(STATE_HOME, home)
         outState.putString(STATE_DOWNLOAD, downloading)
+        outState.putString(STATE_UPLOAD, uploading)
     }
 
     override fun onDestroy() {
@@ -168,27 +174,30 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         return parts.joinToString("  ")
     }
 
-    private fun path(name: String): String {
-        val dir = cwd ?: "."
-        return if (dir == "/") "/$name" else "$dir/$name"
-    }
+    private fun path(dir: String, name: String): String = if (dir == "/") "/$name" else "$dir/$name"
 
     /* A directory is entered, a link followed when it leads to one. */
     private fun open(e: SftpEntry) {
         val c = client() ?: return
-        val p = path(e.name)
+        val dir = cwd ?: return
+        val p = path(dir, e.name)
         when {
             e.attrs.isDirectory -> load(p)
-            e.attrs.isLink -> run({ c.stat(p) }) { if (it.isDirectory) load(p) else actions(e) }
-            else -> actions(e)
+            e.attrs.isLink -> run({ c.stat(p) }) { if (it.isDirectory) load(p) else actions(e, dir) }
+            else -> actions(e, dir)
         }
     }
 
-    private fun actions(e: SftpEntry) {
+    /*
+     * The entry is in dir, the directory listed when it was picked: the
+     * listing may change before an action is confirmed.
+     */
+    private fun actions(e: SftpEntry, dir: String? = cwd) {
+        dir ?: return
         val items = mutableListOf<Pair<Int, () -> Unit>>()
-        if (!e.attrs.isDirectory) items.add(R.string.download to { download(e) })
-        items.add(R.string.rename to { rename(e) })
-        items.add(R.string.delete to { delete(e) })
+        if (!e.attrs.isDirectory) items.add(R.string.download to { download(e, dir) })
+        items.add(R.string.rename to { rename(e, dir) })
+        items.add(R.string.delete to { delete(e, dir) })
         AlertDialog.Builder(this)
             .setTitle(e.name)
             .setItems(items.map { getString(it.first) }.toTypedArray()) { _, which -> items[which].second() }
@@ -204,8 +213,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         load(dir.substringBeforeLast('/').ifEmpty { "/" })
     }
 
-    private fun download(e: SftpEntry) {
-        downloading = path(e.name)
+    private fun download(e: SftpEntry, dir: String) {
+        downloading = path(dir, e.name)
         val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(e.name.substringAfterLast('.', "").lowercase())
         startActivityForResult(
             Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
@@ -215,6 +224,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     private fun upload() {
+        uploading = cwd ?: return
         startActivityForResult(
             Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true),
@@ -232,10 +242,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 saveTo(remote, uri)
             }
             REQUEST_UPLOAD -> {
+                val dir = uploading ?: return
+                uploading = null
                 val clip = data.clipData
                 val uris = if (clip != null) (0 until clip.itemCount).map { clip.getItemAt(it).uri }
                     else listOfNotNull(data.data)
-                if (uris.isNotEmpty()) confirmUpload(uris)
+                if (uris.isNotEmpty()) confirmUpload(uris, dir)
             }
         }
     }
@@ -267,33 +279,43 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         return if (safe.isNullOrEmpty() || safe == "." || safe == "..") "upload" else safe
     }
 
-    private fun confirmUpload(uris: List<Uri>) {
+    /* The server says what exists in dir, the listing shown may be another one. */
+    private fun confirmUpload(uris: List<Uri>, dir: String) {
+        val c = client() ?: return
         val names = uris.map { remoteName(it) }
-        val existing = entries.map { it.name }.toSet()
-        if (names.none { it in existing }) {
-            uploadAll(uris, names)
-            return
+        run({ names.any { exists(c, path(dir, it)) } }) { clash ->
+            if (!clash) {
+                uploadAll(uris, names, dir)
+                return@run
+            }
+            AlertDialog.Builder(this)
+                .setMessage(R.string.replace_files)
+                .setPositiveButton(R.string.replace) { _, _ -> uploadAll(uris, names, dir) }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
         }
-        AlertDialog.Builder(this)
-            .setMessage(R.string.replace_files)
-            .setPositiveButton(R.string.replace) { _, _ -> uploadAll(uris, names) }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
-    private fun uploadAll(uris: List<Uri>, names: List<String>) {
+    private fun exists(c: SftpClient, path: String): Boolean =
+        try {
+            c.lstat(path)
+            true
+        } catch (e: SftpException) {
+            if (e.status != SftpException.NO_SUCH_FILE) throw e
+            false
+        }
+
+    private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String) {
         val c = client() ?: return
-        val dir = cwd ?: return
         transfer(getString(R.string.uploading, names.joinToString(", ")), { progress ->
             for ((uri, name) in uris.zip(names)) {
                 val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
-                val target = if (dir == "/") "/$name" else "$dir/$name"
-                input.use { c.upload(it, target, progress) }
+                input.use { c.upload(it, path(dir, name), progress) }
             }
         }) { load(dir) }
     }
 
-    private fun rename(e: SftpEntry) {
+    private fun rename(e: SftpEntry, dir: String) {
         val c = client() ?: return
         val field = pathField(e.name)
         val dialog = AlertDialog.Builder(this)
@@ -309,18 +331,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
-            val dir = cwd ?: return@setOnClickListener
-            run({ c.rename(path(e.name), path(to)) }) { load(dir) }
+            run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
         }
     }
 
-    private fun delete(e: SftpEntry) {
+    private fun delete(e: SftpEntry, dir: String) {
         val c = client() ?: return
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.delete_file, e.name))
             .setPositiveButton(R.string.delete) { _, _ ->
-                val dir = cwd ?: return@setPositiveButton
-                val p = path(e.name)
+                val p = path(dir, e.name)
                 run({ if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p) }) { load(dir) }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -329,6 +349,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun newFolder() {
         val c = client() ?: return
+        val dir = cwd ?: return
         val field = pathField("")
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.new_folder)
@@ -343,8 +364,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
-            val dir = cwd ?: return@setOnClickListener
-            run({ c.mkdir(path(name)) }) { load(dir) }
+            run({ c.mkdir(path(dir, name)) }) { load(dir) }
         }
     }
 
@@ -447,6 +467,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val STATE_PATH = "path"
         private const val STATE_HOME = "home"
         private const val STATE_DOWNLOAD = "download"
+        private const val STATE_UPLOAD = "upload"
         private const val REQUEST_DOWNLOAD = 1
         private const val REQUEST_UPLOAD = 2
         private const val MENU_UPLOAD = 1
