@@ -65,7 +65,7 @@ encrypted and unlocked with your fingerprint.
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, pinch to zoom, long press to select and copy
 - **Theme** - light or dark like the phone, with its accent color, the
-  terminal included
+  terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
   system monospace font for a proportional one
 - **Hardware keyboards** - arrows, Home, End, Page Up and Down, Insert,
