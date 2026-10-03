@@ -135,6 +135,13 @@ class KeysActivity : Activity() {
         else -> null
     }
 
+    /* A new key could not be moved into a full vault and would stay in clear. */
+    private fun vaultFull(): Boolean {
+        if (vaultNames().size < Keys.MAX_COUNT) return false
+        toast(getString(R.string.vault_full, Keys.MAX_COUNT))
+        return true
+    }
+
     private fun generate() {
         val typeLabel = TextView(this)
         typeLabel.setText(R.string.key_type)
@@ -358,8 +365,8 @@ class KeysActivity : Activity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            MENU_GENERATE -> generate()
-            MENU_IMPORT -> startActivityForResult(
+            MENU_GENERATE -> if (!vaultFull()) generate()
+            MENU_IMPORT -> if (!vaultFull()) startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
             android.R.id.home -> finish()

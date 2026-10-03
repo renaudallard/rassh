@@ -268,6 +268,9 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val dir = paths.sshDir
     paths.ensureSshDir()
     val keys = items.filter { it.type == Backup.KEY && it.name !in present }
+    /* Checked first, not to stop with only part of the file added. */
+    if (vault.names().size + keys.count { hasPublicKey(items, it.name) } > Keys.MAX_COUNT)
+        throw IOException("at most ${Keys.MAX_COUNT} keys")
     for (item in keys) {
         storeKey(paths, vault, key, items, item)
         items.find { it.type == Backup.FILE && it.name == "${item.name}.pub" }?.let {
