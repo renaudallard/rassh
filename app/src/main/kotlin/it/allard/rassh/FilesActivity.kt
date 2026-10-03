@@ -409,9 +409,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      */
     private fun <T> run(task: () -> T, done: (T) -> Unit) {
         worker.execute {
+            /* Android's files may also refuse with these, a revoked permission for instance. */
             val result = try {
                 Result.success(task())
             } catch (e: IOException) {
+                Result.failure(e)
+            } catch (e: SecurityException) {
+                Result.failure(e)
+            } catch (e: IllegalArgumentException) {
                 Result.failure(e)
             }
             runOnUiThread {
