@@ -267,7 +267,7 @@ class KeysActivity : Activity() {
             if (name in vaultNames())
                 unlock(name, listOf(name))
             else
-                run(name, SHELL, addCommand(listOf(File(paths.sshDir, name).path)))
+                run(name, SHELL, addCommand(listOf("-t", KEY_LIFETIME.toString(), File(paths.sshDir, name).path)))
         })
         actions.add(R.string.rename to { renameKey(name) })
         actions.add(R.string.delete to { deleteKey(name) })
