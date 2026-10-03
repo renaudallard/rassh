@@ -91,6 +91,11 @@ class SshConfigTest {
     }
 
     @Test
+    fun quotedPort() {
+        assertEquals("2222", SshConfig.parse("Host q\n    Port \"2222\"\n").hosts[0].port)
+    }
+
+    @Test
     fun duplicateNamesListedOnce() {
         val config = SshConfig.parse("Host a\n    User x\n\nHost a\n    LocalForward 8080 x:80\n")
         assertEquals(listOf("a" to "x"), config.hosts.map { it.name to it.user })

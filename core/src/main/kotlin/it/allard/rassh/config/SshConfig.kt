@@ -107,7 +107,7 @@ class SshConfig private constructor(
             when {
                 key.equals("HostName", true) && hostName == null -> hostName = unquote(value)
                 key.equals("User", true) && user == null -> user = unquote(value)
-                key.equals("Port", true) && port == null -> port = value
+                key.equals("Port", true) && port == null -> port = unquote(value)
                 key.equals("IdentityFile", true) && identity == null -> identity = unquote(value)
                 key.equals("LocalForward", true) -> local.add(value)
                 key.equals("RemoteForward", true) -> remote.add(value)
