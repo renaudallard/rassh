@@ -29,6 +29,7 @@
     <string name="continue_anyway">Continue</string>
     <string name="second_session">A session to %1$s is already open. Open another one?</string>
     <string name="open_session">Open</string>
+    <string name="session_label">%1$s (%2$s)</string>
 
     <!-- Host editor -->
     <string name="new_host">New host</string>

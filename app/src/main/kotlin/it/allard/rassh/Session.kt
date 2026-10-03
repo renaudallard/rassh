@@ -45,6 +45,8 @@ class Session(
     var listener: Listener? = null
     var title = name
         private set
+    /** When the session started, in milliseconds since the epoch. */
+    val opened = System.currentTimeMillis()
     var isRunning = true
         private set
 

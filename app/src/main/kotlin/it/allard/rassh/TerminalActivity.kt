@@ -4,9 +4,11 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import java.text.DateFormat
 
 class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private lateinit var terminal: TerminalView
@@ -47,7 +49,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         super.onResume()
         session?.let {
             it.listener = this
-            actionBar?.title = it.title
+            actionBar?.title = label(it)
             terminal.invalidate()
         }
     }
@@ -75,7 +77,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         }
         s.listener = this
         wanted = s.id
-        actionBar?.title = s.title
+        actionBar?.title = label(s)
         terminal.showKeyboard()
     }
 
@@ -88,11 +90,22 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     override fun onTitleChanged() {
-        actionBar?.title = session?.title
+        actionBar?.title = session?.let { label(it) }
+    }
+
+    /* The title, with the opening time when other sessions reach the same server. */
+    private fun label(s: Session): String {
+        val sessions = binding.service?.sessions ?: return s.title
+        if (s.server == null || sessions.count { it.server == s.server } < 2) return s.title
+        val opened = DateUtils.formatSameDayTime(s.opened, System.currentTimeMillis(),
+            DateFormat.SHORT, DateFormat.MEDIUM)
+        return getString(R.string.session_label, s.title, opened)
     }
 
     override fun sessionsChanged() {
         val service = binding.service ?: return
+        /* A session to the same server may have come or gone. */
+        session?.let { actionBar?.title = label(it) }
         if (session?.let { it in service.sessions } != true)
             show(service.sessions.lastOrNull())
     }
@@ -105,7 +118,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun chooseSession() {
         val service = binding.service ?: return
         val sessions = service.sessions.toList()
-        val labels = sessions.map { it.title }.toMutableList()
+        val labels = sessions.map { label(it) }.toMutableList()
         labels.add(getString(R.string.new_session))
         AlertDialog.Builder(this)
             .setTitle(R.string.sessions)

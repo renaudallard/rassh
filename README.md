@@ -63,7 +63,8 @@ encrypted and unlocked with your fingerprint.
 - **Export and import** - hosts, keys and settings in one file sealed with
   a passphrase, see [Moving to another phone](#moving-to-another-phone)
 - **Sessions** - several at once, kept alive by a foreground service.
-  Opening a second one to the same server asks first
+  Opening a second one to the same server asks first, and sessions to the
+  same server show when they were opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, pinch to zoom, long press to select and copy
