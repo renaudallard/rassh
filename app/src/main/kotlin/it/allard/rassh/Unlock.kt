@@ -218,6 +218,21 @@ const val AGENT_WAIT = "i=0; while [ ! -S \"\$SSH_AUTH_SOCK\" ] && [ \$i -lt 100
 fun addCommand(args: List<String>): List<String> =
     listOf("sh", "-c", AGENT_WAIT + "exec ssh-add \"\$@\"", "sh") + args
 
+/*
+ * The named vault keys the agent does not hold, asked to the agent
+ * itself: ssh-add may have failed, the agent restarted or keys expired.
+ * Blocks, not to be called on the main thread.
+ */
+fun missingKeys(paths: Paths, names: List<String>): List<String> {
+    val listed = try {
+        runProgram(SHELL, addCommand(listOf("-L")), paths.env, paths.home.path)
+    } catch (_: IOException) {
+        ""
+    }
+    val held = listed.lines().mapNotNull { it.split(' ').getOrNull(1) }.toSet()
+    return names.filter { Keys.publicKey(paths.sshDir, it)?.split(' ')?.getOrNull(1) !in held }
+}
+
 /** ssh-add arguments loading the keys of keyPipes() for KEY_LIFETIME. */
 fun addArgs(count: Int): List<String> =
     listOf("-t", KEY_LIFETIME.toString()) + (0 until count).map { "/dev/fd/${3 + it}" }

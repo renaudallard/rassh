@@ -128,7 +128,7 @@ class KeysActivity : Activity() {
     }
 
     /* Load vault keys into the agent for KEY_LIFETIME, after a fingerprint. */
-    private fun unlock(title: String, names: List<String>, all: Boolean) {
+    private fun unlock(title: String, names: List<String>) {
         if (names.isEmpty()) return
         withVaultKey(vault, getString(R.string.unlock_reason)) { key ->
             val pipes = try {
@@ -138,8 +138,7 @@ class KeysActivity : Activity() {
                 return@withVaultKey
             }
             try {
-                if (run(title, SHELL, addCommand(addArgs(names.size)), pipes) && all)
-                    binding.service?.keysUnlocked()
+                run(title, SHELL, addCommand(addArgs(names.size)), pipes)
             } finally {
                 pipes.forEach { it.close() }
             }
@@ -264,7 +263,7 @@ class KeysActivity : Activity() {
         }
         actions.add(R.string.add_to_agent to {
             if (name in vaultNames())
-                unlock(name, listOf(name), false)
+                unlock(name, listOf(name))
             else
                 run(name, SHELL, addCommand(listOf(File(paths.sshDir, name).path)))
         })
@@ -387,12 +386,9 @@ class KeysActivity : Activity() {
             MENU_IMPORT -> startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
-            MENU_UNLOCK -> unlock(getString(R.string.unlock_keys), vaultNames(), true)
+            MENU_UNLOCK -> unlock(getString(R.string.unlock_keys), vaultNames())
             MENU_AGENT_LIST -> run(getString(R.string.agent_keys), SHELL, addCommand(listOf("-l")))
-            MENU_AGENT_CLEAR -> {
-                binding.service?.lockKeys()
-                run(getString(R.string.agent_clear), SHELL, addCommand(listOf("-D")))
-            }
+            MENU_AGENT_CLEAR -> run(getString(R.string.agent_clear), SHELL, addCommand(listOf("-D")))
             android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)
         }

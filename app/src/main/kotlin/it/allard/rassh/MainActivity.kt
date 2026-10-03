@@ -175,8 +175,8 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     /*
-     * Start argv[0] on a terminal. When the vault keys are locked, ask for
-     * a fingerprint and have ssh-add load them first. Without it the
+     * Start argv[0] on a terminal. When the agent lacks vault keys, ask
+     * for a fingerprint and have ssh-add load them first. Without it the
      * program runs anyway, for password logins.
      */
     private fun launch(title: String, path: String, argv: List<String>, cwd: String = paths.home.path) {
@@ -187,10 +187,35 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.vault_error, e.message))
             emptyList()
         }
-        if (names.isEmpty() || !service.keysLocked) {
+        if (names.isEmpty()) {
             start(service, title, path, argv, cwd, emptyList())
             return
         }
+        try {
+            service.startAgent()
+        } catch (e: IOException) {
+            toast(getString(R.string.start_failed, "ssh-agent", e.message))
+        }
+        thread {
+            val missing = missingKeys(paths, names)
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                if (missing.isEmpty())
+                    start(service, title, path, argv, cwd, emptyList())
+                else
+                    unlockAndStart(service, names, title, path, argv, cwd)
+            }
+        }
+    }
+
+    private fun unlockAndStart(
+        service: SessionService,
+        names: List<String>,
+        title: String,
+        path: String,
+        argv: List<String>,
+        cwd: String,
+    ) {
         withVaultKey(vault, getString(R.string.unlock_reason),
             { start(service, title, path, argv, cwd, emptyList()) }) { key ->
             val pipes = try {
@@ -203,8 +228,7 @@ class MainActivity : Activity(), SessionService.Listener {
                 /* ssh-add from the pipes, then the program, found in PATH. */
                 val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
                     "; exec \"\$0\" \"\$@\""
-                if (start(service, title, SHELL, listOf("sh", "-c", script) + argv, cwd, pipes))
-                    service.keysUnlocked()
+                start(service, title, SHELL, listOf("sh", "-c", script) + argv, cwd, pipes)
             } finally {
                 pipes.forEach { it.close() }
             }

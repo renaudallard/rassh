@@ -15,13 +15,10 @@ class Agent(private val paths: Paths) {
     private val handler = Handler(Looper.getMainLooper())
     private var child: Child? = null
 
-    /*
-     * Start the agent unless it runs. Clients wait for its socket, see
-     * AGENT_WAIT. Returns true when a new, empty, agent was started.
-     */
+    /* Start the agent unless it runs. Clients wait for its socket, see AGENT_WAIT. */
     @Throws(IOException::class)
-    fun start(): Boolean {
-        if (child != null) return false
+    fun start() {
+        if (child != null) return
         paths.agentSocket.delete()
         val argv = arrayOf("ssh-agent", "-D", "-a", paths.agentSocket.path)
         val r = Pty.start(paths.agent, argv, paths.env.toTypedArray(), paths.home.path, IntArray(0), ROWS, COLUMNS)
@@ -36,7 +33,6 @@ class Agent(private val paths: Paths) {
             }
             handler.post { if (child === c) child = null }
         }
-        return true
     }
 
     fun stop() {

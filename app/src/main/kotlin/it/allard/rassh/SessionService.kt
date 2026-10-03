@@ -10,7 +10,6 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.os.SystemClock
 import android.system.ErrnoException
 import java.io.IOException
 
@@ -35,11 +34,6 @@ class SessionService : Service() {
     private var foreground = false
     private lateinit var paths: Paths
     private lateinit var agent: Agent
-    private var unlockedUntil = 0L
-
-    /** The vault keys are not known to be in the agent. */
-    val keysLocked: Boolean
-        get() = SystemClock.elapsedRealtime() >= unlockedUntil
 
     val sessions: List<Session>
         get() = _sessions
@@ -111,7 +105,7 @@ class SessionService : Service() {
         } catch (e: ErrnoException) {
             e.rethrowAsIOException()
         }
-        if (agent.start()) lockKeys()
+        agent.start()
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
         val session = Session(nextId++, name, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
@@ -123,13 +117,10 @@ class SessionService : Service() {
         return session
     }
 
-    /** The vault keys were just added to the agent for KEY_LIFETIME. */
-    fun keysUnlocked() {
-        unlockedUntil = SystemClock.elapsedRealtime() + KEY_LIFETIME * 1000L
-    }
-
-    fun lockKeys() {
-        unlockedUntil = 0
+    /** Start the agent if it is not running, before asking it something. */
+    @Throws(IOException::class)
+    fun startAgent() {
+        agent.start()
     }
 
     /** Forget a session, hanging it up if it still runs. */
