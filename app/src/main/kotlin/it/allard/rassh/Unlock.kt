@@ -244,6 +244,8 @@ fun clearAfterLogin(argv: List<String>): List<String> =
     if (argv.firstOrNull() != "ssh") argv
     else listOf("ssh", "-o", "PermitLocalCommand=yes", "-o", "LocalCommand=ssh-add -D >/dev/null 2>&1") + argv.drop(1)
 
+/** The paths of the pipes of keyPipes() in the program they are given to. */
+fun keyFiles(count: Int): List<String> = (0 until count).map { "/dev/fd/${3 + it}" }
+
 /** ssh-add arguments loading the keys of keyPipes() for KEY_LIFETIME. */
-fun addArgs(count: Int): List<String> =
-    listOf("-t", KEY_LIFETIME.toString()) + (0 until count).map { "/dev/fd/${3 + it}" }
+fun addArgs(count: Int): List<String> = listOf("-t", KEY_LIFETIME.toString()) + keyFiles(count)

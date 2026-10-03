@@ -243,9 +243,14 @@ class MainActivity : Activity(), SessionService.Listener {
                 return@withVaultKey
             }
             try {
-                /* ssh-add from the pipes, then the program, found in PATH. */
+                /*
+                 * ssh-add from the pipes, then the program, found in PATH.
+                 * The shell cannot close descriptors above 9 and scp and
+                 * sftp keep them, so what ssh-add left unread is drained.
+                 */
+                val files = keyFiles(names.size).joinToString(" ")
                 val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
-                    "; exec \"\$0\" \"\$@\""
+                    "; cat " + files + " >/dev/null 2>&1; exec \"\$0\" \"\$@\""
                 start(service, l, SHELL, listOf("sh", "-c", script) + clearAfterLogin(l.argv), pipes)
             } finally {
                 pipes.forEach { it.close() }
