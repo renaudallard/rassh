@@ -133,6 +133,16 @@ class TerminalTest {
     }
 
     @Test
+    fun underlineColorIsSkipped() {
+        val t = term()
+        t.put("\u001b[31;1mA\u001b[58:2::255:0:0mB\u001b[0m\u001b[58;5;196mC\u001b[73:1:2mD")
+        val s = t.row(0).style
+        assertEquals(s[0], s[1])
+        assertEquals(TextStyle.NORMAL, s[2])
+        assertEquals(TextStyle.NORMAL, s[3])
+    }
+
+    @Test
     fun wideCharacters() {
         val t = term(columns = 5)
         t.put("中文x")

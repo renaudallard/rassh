@@ -547,9 +547,13 @@ class Terminal(
                     i = last
                 }
                 49 -> bg = TextStyle.COLOR_DEFAULT
+                /* Underline color, parsed for its arguments but not drawn. */
+                58 -> i = extendedColor(i).second
                 in 90..97 -> fg = p - 90 + 8
                 in 100..107 -> bg = p - 100 + 8
             }
+            /* Colon arguments of a code not handled above are not attributes. */
+            while (i + 1 < nparams && subParam[i + 1]) i++
             i++
         }
         style = TextStyle.encode(fg, bg, flags)
