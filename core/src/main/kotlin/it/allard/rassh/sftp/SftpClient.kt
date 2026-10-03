@@ -107,7 +107,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         try {
             while (true) {
                 val r = request(Writer(FXP_READDIR).bytes(handle))
-                if (r.type == FXP_STATUS && statusOf(r).status == SftpException.EOF) break
+                if (r.type == FXP_STATUS) {
+                    val e = statusOf(r)
+                    if (e.status == SftpException.EOF) break
+                    throw e
+                }
                 expect(r, FXP_NAME)
                 repeat(r.body.u32()) {
                     val name = r.body.text()
