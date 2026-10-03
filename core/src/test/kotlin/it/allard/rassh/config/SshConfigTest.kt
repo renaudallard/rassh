@@ -162,6 +162,8 @@ class SshConfigTest {
         assertTrue(Host.isValidOption("# Host comment"))
         assertFalse(Host.isValidOption("host other"))
         assertFalse(Host.isValidOption("Match=all"))
+        assertFalse(Host.isValidOption("\"Host\" *"))
+        assertFalse(Host.isValidOption("Ho\"st\" x"))
         assertTrue(Host.isValidWord("user@example"))
         assertFalse(Host.isValidWord("a b"))
     }

@@ -24,7 +24,8 @@ data class Host(
 
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
-            val key = line.trim().split(' ', '\t', '=', limit = 2)[0]
+            /* ssh drops the quotes of a keyword, "Host" is Host. */
+            val key = line.trim().split(' ', '\t', '=', limit = 2)[0].replace("\"", "")
             return !key.equals("Host", true) && !key.equals("Match", true)
         }
 
