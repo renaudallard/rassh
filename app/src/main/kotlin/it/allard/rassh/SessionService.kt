@@ -5,13 +5,17 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.system.ErrnoException
 import java.io.IOException
+import kotlin.concurrent.thread
 
 /**
  * Owns the sessions and keeps the process in the foreground while any
@@ -35,6 +39,18 @@ class SessionService : Service() {
     private lateinit var paths: Paths
     private lateinit var agent: Agent
 
+    /* Keys unlocked by fingerprint must not stay usable on a locked phone. */
+    private val screenOff = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            thread(name = "agent-clear") {
+                try {
+                    runProgram(SHELL, addCommand(listOf("-D")), paths.env, paths.home.path)
+                } catch (_: IOException) {
+                }
+            }
+        }
+    }
+
     val sessions: List<Session>
         get() = _sessions
 
@@ -48,6 +64,7 @@ class SessionService : Service() {
         } catch (_: IOException) {
             /* Tried again by start(). */
         }
+        registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
             NotificationManager.IMPORTANCE_LOW)
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -75,6 +92,7 @@ class SessionService : Service() {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(screenOff)
         for (s in _sessions) s.close()
         _sessions.clear()
         agent.stop()
