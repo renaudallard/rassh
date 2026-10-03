@@ -17,7 +17,7 @@ import java.security.GeneralSecurityException
 const val KEY_LIFETIME = 3600
 
 /* Descriptors a program can be given, see MAX_FDS in native/pty.c. */
-private const val MAX_KEYS = 16
+private const val MAX_KEYS = 64
 
 /**
  * Ask for a fingerprint, then call use with the vault key, zeroed

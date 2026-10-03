@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 #define WINSIZE_MAX	0xffff
-#define MAX_FDS		16
+#define MAX_FDS		64
 
 static void
 throw_io(JNIEnv *env, const char *what, int error)

@@ -174,7 +174,7 @@ update signed with the same key, so keep a copy of the keystore.
 - No FIDO security keys and no PKCS#11
 - No mouse reporting
 - Combining characters are not rendered
-- At most 16 keys can be unlocked at once
+- At most 64 keys can be unlocked at once
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
   Play to some app categories
 
