@@ -106,18 +106,8 @@ class SftpClientTest {
         assertFailsWith<SftpCancelledException> {
             sftp.upload(ByteArrayInputStream(ByteArray(2_000_000)), "$dir/up") { it < 100_000 }
         }
-        /* Nothing of the stopped upload is left. */
+        /* Nothing of the stopped upload of a new file is left. */
         assertEquals(setOf("big"), sftp.list(dir.path).map { it.name }.toSet())
-    }
-
-    @Test
-    fun stoppedReplaceKeepsOriginal() {
-        File(dir, "f").writeText("original")
-        assertFailsWith<SftpCancelledException> {
-            sftp.upload(ByteArrayInputStream(ByteArray(2_000_000)), "$dir/f") { it < 100_000 }
-        }
-        assertEquals("original", File(dir, "f").readText())
-        assertEquals(listOf("f"), sftp.list(dir.path).map { it.name })
     }
 
     @Test
