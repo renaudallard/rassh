@@ -53,6 +53,7 @@
     <string name="uploading">Uploading %1$s</string>
     <string name="replace_files">Some files exist already on the server. Replace them?</string>
     <string name="replace">Replace</string>
+    <string name="upload_same_name">Some of the files have the same name, upload them one at a time</string>
     <string name="new_folder">New folder</string>
     <string name="create">Create</string>
     <string name="refresh">Refresh</string>

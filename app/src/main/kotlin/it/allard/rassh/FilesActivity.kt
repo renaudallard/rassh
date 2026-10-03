@@ -308,6 +308,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun confirmUpload(uris: List<Uri>, dir: String) {
         val c = client() ?: return
         val names = uris.map { remoteName(it) }
+        /* They would replace each other without a word. */
+        if (names.toSet().size != names.size) {
+            toast(getString(R.string.upload_same_name))
+            return
+        }
         run({ names.any { exists(c, path(dir, it)) } }) { clash ->
             if (!clash) {
                 uploadAll(uris, names, dir)
