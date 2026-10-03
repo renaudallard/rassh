@@ -56,6 +56,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     @Volatile
     private var cancelled = false
 
+    /* The dialog of the transfer running, closed with the screen. */
+    private var progressDialog: AlertDialog? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_files)
@@ -89,6 +92,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     override fun onDestroy() {
+        progressDialog?.dismiss()
         session?.let {
             if (it.listener === this) it.listener = null
             if (isFinishing) binding.service?.remove(it)
@@ -409,6 +413,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setNegativeButton(R.string.cancel) { _, _ -> cancelled = true }
             .setCancelable(false)
             .show()
+        progressDialog = dialog
         var shown = 0L
         run({
             task { bytes ->
@@ -423,8 +428,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             dialog.dismiss()
             done()
         }
-        /* An error or a cancel leaves the dialog to close here. */
-        worker.execute { runOnUiThread { if (dialog.isShowing) dialog.dismiss() } }
+        /* An error or a cancel leaves the dialog to close here, if the screen is still there. */
+        worker.execute {
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                if (dialog.isShowing) dialog.dismiss()
+                if (progressDialog === dialog) progressDialog = null
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
