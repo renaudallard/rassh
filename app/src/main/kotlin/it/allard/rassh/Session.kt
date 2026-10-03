@@ -13,6 +13,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
 /**
@@ -59,6 +60,7 @@ class Session(
     private var closed = false
     private val handler = Handler(Looper.getMainLooper())
     private val updatePending = AtomicBoolean()
+    private val pending = AtomicInteger()
     private val readerDone = CountDownLatch(1)
 
     init {
@@ -88,11 +90,22 @@ class Session(
         }
     }
 
+    /*
+     * A program that stops reading would let the replies to a flood of
+     * terminal queries queue up until memory runs out, so writes are
+     * dropped beyond MAX_PENDING queued bytes.
+     */
     override fun write(data: ByteArray) {
+        if (pending.addAndGet(data.size) > MAX_PENDING) {
+            pending.addAndGet(-data.size)
+            return
+        }
         submit {
             try {
                 if (!closed) output.write(data)
             } catch (_: IOException) {
+            } finally {
+                pending.addAndGet(-data.size)
             }
         }
     }
@@ -178,6 +191,7 @@ class Session(
 
     companion object {
         private const val BUFFER_SIZE = 8192
+        private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
         private const val CLOSE_MILLIS = 2000L
         private const val SIGHUP = 1
