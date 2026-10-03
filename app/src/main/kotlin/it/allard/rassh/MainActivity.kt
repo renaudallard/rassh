@@ -56,6 +56,7 @@ class MainActivity : Activity(), SessionService.Listener {
         } catch (e: ErrnoException) {
             toast(e.toString())
         }
+        Keys.removeLeftovers(paths.sshDir)
 
         quick = findViewById(R.id.quick)
         quick.setOnEditorActionListener { _, action, event ->

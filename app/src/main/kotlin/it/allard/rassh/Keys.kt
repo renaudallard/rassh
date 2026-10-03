@@ -45,6 +45,17 @@ object Keys {
             false
         }
 
+    /*
+     * Remove the private keys left in temporary files by a write the app
+     * did not finish, see Paths.writePrivate(). Other temporary files
+     * hold nothing secret.
+     */
+    fun removeLeftovers(dir: File) {
+        dir.listFiles().orEmpty()
+            .filter { it.isFile && it.name.endsWith(".tmp") && isValidName(it.name.removeSuffix(".tmp")) && isPrivateKey(it) }
+            .forEach { it.delete() }
+    }
+
     /** The public key next to a private key, or null. */
     fun publicKey(dir: File, name: String): String? {
         val f = File(dir, "$name.pub")
