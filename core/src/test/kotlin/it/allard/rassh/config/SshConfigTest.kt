@@ -277,7 +277,8 @@ class SshConfigTest {
     @Test
     fun namesSshAccepts() {
         assertTrue(Host.isValidName("web-1.example.org"))
-        for (bad in listOf("-v", "a;b", "a\$b", "a`b", "a|b", "a(b", "a{b", "a\\b", "a b", "a\tb"))
+        assertTrue(Host.isValidName("fe80::1"))
+        for (bad in listOf("a@b", "ssh://x", "-v", "a;b", "a\$b", "a`b", "a|b", "a(b", "a{b", "a\\b", "a b", "a\tb"))
             assertFalse(Host.isValidName(bad), bad)
     }
 }
