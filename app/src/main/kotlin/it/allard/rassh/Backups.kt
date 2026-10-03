@@ -171,7 +171,7 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
             item.name.endsWith(".pub") && Keys.isValidName(item.name.removeSuffix(".pub"))
-        Backup.KEY -> Keys.isValidName(item.name) && item.data.size <= Keys.MAX_SIZE
+        Backup.KEY -> Keys.isValidName(item.name)
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
         else -> false
@@ -207,7 +207,7 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         }
         done()
     }
-    if (items.none { it.type == Backup.KEY && (replace || it.name !in present) && hasPublicKey(items, it.name) })
+    if (items.none { it.type == Backup.KEY && (replace || it.name !in present) && sealable(items, it) })
         return write(null)
     if (!vault.isSetUp) {
         zero()
@@ -229,13 +229,13 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
      * vault is replaced in one write.
      */
     val keys = items.filter { it.type == Backup.KEY }
-    val sealed = keys.map { it.name }.filter { hasPublicKey(items, it) }.toSet()
+    val sealed = keys.filter { sealable(items, it) }.map { it.name }.toSet()
     /* Checked first, not to stop with only part of the file written. */
     if (sealed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            /* Without its public key, in clear as it was, see storeKey(). */
+            /* In clear as it was, see sealable(). */
             Backup.KEY -> if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
             Backup.SETTING -> putSetting(item)
         }
@@ -248,8 +248,8 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         when (name) {
             /* The imported copy replaces the one of the same name. */
             in sealed -> File(dir, name).delete()
-            /* It came without a public key, the old one is of another key. */
-            in clear -> File(dir, "$name.pub").delete()
+            /* An old public key the file did not replace is of another key. */
+            in clear -> if ("$name.pub" !in files) File(dir, "$name.pub").delete()
             else -> {
                 File(dir, name).delete()
                 File(dir, "$name.pub").delete()
@@ -271,7 +271,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     paths.ensureSshDir()
     val keys = items.filter { it.type == Backup.KEY && it.name !in present }
     /* Checked first, not to stop with only part of the file added. */
-    if (vault.names().size + keys.count { hasPublicKey(items, it.name) } > Keys.MAX_COUNT)
+    if (vault.names().size + keys.count { sealable(items, it) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
     for (item in keys) {
         storeKey(paths, vault, key, items, item)
@@ -299,21 +299,22 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)
-    usePublicKeys(paths, keys.map { it.name }.filter { hasPublicKey(items, it) })
+    usePublicKeys(paths, keys.filter { sealable(items, it) }.map { it.name })
     return Pair(hosts, keys.size)
 }
 
-private fun hasPublicKey(items: List<Backup.Item>, name: String): Boolean =
-    items.any { it.type == Backup.FILE && it.name == "$name.pub" }
-
 /*
  * A key goes into the vault with its public key, which ssh needs to use
- * it from the agent. One exported without stays in clear, as it was, to
- * be moved into the vault once its public key is made.
+ * it from the agent, and if it fits the pipe to ssh-add, see Keys.MAX_SIZE.
+ * Otherwise it stays in clear, as on the phone it comes from.
  */
+private fun sealable(items: List<Backup.Item>, key: Backup.Item): Boolean =
+    key.data.size <= Keys.MAX_SIZE && items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" }
+
+/* Into the vault or in clear, see sealable(). */
 @Throws(IOException::class)
 private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item) {
-    if (hasPublicKey(items, item.name))
+    if (sealable(items, item))
         vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
     else
         paths.writePrivate(File(paths.sshDir, item.name), item.data)
