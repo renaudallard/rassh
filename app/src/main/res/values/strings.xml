@@ -14,7 +14,7 @@
     <string name="delete">Delete</string>
     <string name="delete_host">Delete host %1$s?</string>
     <string name="invalid_arguments">Unbalanced quotes in arguments</string>
-    <string name="start_failed">Cannot start ssh: %1$s</string>
+    <string name="start_failed">Cannot start %1$s: %2$s</string>
     <string name="config_failed">Cannot write ssh config: %1$s</string>
     <string name="sftp">sftp</string>
     <string name="scp">scp</string>

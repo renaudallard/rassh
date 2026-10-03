@@ -144,7 +144,7 @@ class MainActivity : Activity(), SessionService.Listener {
         val session = try {
             service.start(title, path, argv, cwd)
         } catch (e: IOException) {
-            toast(getString(R.string.start_failed, e.message))
+            toast(getString(R.string.start_failed, argv[0], e.message))
             return
         }
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
