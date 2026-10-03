@@ -28,6 +28,10 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
               "platforms;android-37.0" "build-tools;36.0.0" "ndk;$NDK_VERSION"
 
+      # The SFTP tests talk to OpenSSH's sftp-server.
+      - name: Install sftp-server
+        run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends openssh-sftp-server
+
       - name: Build OpenSSH and LibreSSL
         run: ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" native/build.sh
 

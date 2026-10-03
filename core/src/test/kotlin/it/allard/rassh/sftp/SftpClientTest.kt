@@ -13,7 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/* Against OpenSSH's sftp-server, skipped where it is not installed. */
+/* Against OpenSSH's sftp-server, skipped where it is not installed, but never on CI. */
 class SftpClientTest {
     private val server = File("/usr/lib/openssh/sftp-server")
     private val dir = File("build/sftp-test").absoluteFile
@@ -22,6 +22,7 @@ class SftpClientTest {
 
     @BeforeTest
     fun start() {
+        if (System.getenv("CI") != null) assertTrue(server.canExecute(), "no ${server.path}")
         assumeTrue(server.canExecute())
         dir.deleteRecursively()
         dir.mkdirs()
