@@ -121,6 +121,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         service.addListener(this)
         val s = service.find(intent.getIntExtra(EXTRA_SESSION, -1))
         if (s == null) {
+            dropPending()
             finish()
             return
         }
@@ -173,6 +174,18 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val (code, data) = pendingResult ?: return
         pendingResult = null
         handleResult(code, data)
+    }
+
+    /* Never connected: the empty file the picker made for a download goes, as when it fails. */
+    private fun dropPending() {
+        val (code, data) = pendingResult ?: return
+        pendingResult = null
+        val uri = data.data ?: return
+        if (code != REQUEST_DOWNLOAD) return
+        try {
+            DocumentsContract.deleteDocument(contentResolver, uri)
+        } catch (_: Exception) {
+        }
     }
 
     /* Hidden, it takes the keyboard it may have opened for a password along. */
@@ -450,7 +463,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun failed(e: Throwable) {
         if (e is SftpCancelledException) return
-        if (session?.sftp == null) status.setText(R.string.files_not_connected)
+        if (session?.sftp == null) {
+            status.setText(R.string.files_not_connected)
+            dropPending()
+        }
         toast(getString(R.string.files_failed, e.message))
     }
 
