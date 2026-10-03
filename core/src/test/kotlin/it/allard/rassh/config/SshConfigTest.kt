@@ -164,6 +164,13 @@ class SshConfigTest {
         assertFalse(Host.isValidOption("Match=all"))
         assertFalse(Host.isValidOption("\"Host\" *"))
         assertFalse(Host.isValidOption("Ho\"st\" x"))
+        assertFalse(Host.isValidOption("\"Host\"*"))
+        assertFalse(Host.isValidOption("=Match all"))
+        assertFalse(Host.isValidOption("\"\" Host *"))
+        assertFalse(Host.isValidOption("  Host = x"))
+        assertTrue(Host.isValidOption("\"HostName\" example.org"))
+        assertTrue(Host.isValidOption("HostKeyAlgorithms=+ssh-rsa"))
+        assertTrue(Host.isValidOption("\"Host unterminated"))
         assertTrue(Host.isValidWord("user@example"))
         assertFalse(Host.isValidWord("a b"))
     }
@@ -192,5 +199,27 @@ class SshConfigTest {
         assertTrue(text.indexOf("Host pi") < text.indexOf("Host *.lan"))
         assertFalse(text.contains("ServerAliveInterval 5"))
         assertFalse(text.contains("nobody"))
+    }
+
+    @Test
+    fun readsKeywordsLikeSsh() {
+        assertEquals(Pair("Host", "*"), SshConfig.keyword("\"Host\"*"))
+        assertEquals(Pair("Host", "x"), SshConfig.keyword("Ho\"st\" x"))
+        assertEquals(Pair("Match", "all"), SshConfig.keyword("=Match all"))
+        assertEquals(Pair("Host", "*"), SshConfig.keyword("\"\" Host *"))
+        assertEquals(Pair("User", "root"), SshConfig.keyword("  User = root  "))
+        assertEquals(Pair("Port", "22"), SshConfig.keyword("Port=22"))
+        assertEquals(Pair("IdentityFile", "\"~/.ssh/my key\""), SshConfig.keyword("IdentityFile \"~/.ssh/my key\""))
+        assertNull(SshConfig.keyword("# Host x"))
+        assertNull(SshConfig.keyword("   "))
+        assertNull(SshConfig.keyword("\"Host x"))
+    }
+
+    @Test
+    fun quotedHostStartsABlock() {
+        val config = SshConfig.parse("Host a\n    User x\n\"Host\" b\n    User y\n")
+        assertEquals(listOf("a", "b"), config.hosts.map { it.name })
+        assertEquals("y", config.find("b")?.user)
+        assertEquals("x", config.find("a")?.user)
     }
 }

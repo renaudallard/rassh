@@ -24,8 +24,7 @@ data class Host(
 
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
-            /* ssh drops the quotes of a keyword, "Host" is Host. */
-            val key = line.trim().split(' ', '\t', '=', limit = 2)[0].replace("\"", "")
+            val key = SshConfig.keyword(line)?.first ?: return true
             return !key.equals("Host", true) && !key.equals("Match", true)
         }
 
@@ -118,7 +117,7 @@ class SshConfig private constructor(
         val dynamic = mutableListOf<String>()
         val other = mutableListOf<String>()
         for (line in block.lines) {
-            val (key, value) = split(line) ?: Pair("", "")
+            val (key, value) = keyword(line) ?: Pair("", "")
             when {
                 key.equals("HostName", true) && hostName == null -> hostName = unquote(value)
                 key.equals("User", true) && user == null -> user = unquote(value)
@@ -163,7 +162,7 @@ class SshConfig private constructor(
             var lines = mutableListOf<String>()
             val all = if (text.isEmpty()) emptyList() else text.removeSuffix("\n").split('\n')
             for (line in all) {
-                val kv = split(line)
+                val kv = keyword(line)
                 if (kv != null && (kv.first.equals("Host", true) || kv.first.equals("Match", true))) {
                     /* Comments right above a block describe it, not the one before. */
                     val above = if (keyword == null) header else lines
@@ -191,7 +190,7 @@ class SshConfig private constructor(
         fun replaceIdentities(text: String, paths: Map<String, String>): String {
             if (text.isEmpty()) return text
             val lines = text.removeSuffix("\n").split('\n').map { line ->
-                val kv = split(line)
+                val kv = keyword(line)
                 val to = kv?.let { paths[unquote(it.second)] }
                 if (kv == null || to == null || !kv.first.equals("IdentityFile", true)) {
                     line
@@ -202,16 +201,44 @@ class SshConfig private constructor(
             return lines.joinToString("\n") + if (text.endsWith("\n")) "\n" else ""
         }
 
-        /** Split a line in keyword and arguments, null for comments and blank lines. */
-        private fun split(line: String): Pair<String, String>? {
-            val s = line.trim()
-            if (s.isEmpty() || s.startsWith("#")) return null
-            val end = s.indexOfFirst { it.isWhitespace() || it == '=' }
-            if (end < 0) return Pair(s, "")
-            var rest = s.substring(end).trimStart()
-            if (rest.startsWith("=")) rest = rest.substring(1).trimStart()
-            return Pair(s.substring(0, end), rest)
+        /**
+         * The keyword of a line and its arguments, read like ssh does in
+         * readconf.c, or null for a line ssh skips. "Host"*, =Match and
+         * "" Host are blocks to ssh, they must be to the app as well.
+         */
+        fun keyword(line: String): Pair<String, String>? {
+            val s = line.trimEnd { it in WHITESPACE || it == '\u000c' }
+            if (s.isEmpty()) return null
+            var t = strdelim(s) ?: return null
+            if (t.first.isEmpty()) t = strdelim(t.second ?: return null) ?: return null
+            val key = t.first
+            if (key.isEmpty() || key[0] == '#') return null
+            return Pair(key, t.second?.trimStart { it in WHITESPACE } ?: "")
         }
+
+        /*
+         * The first token of s and what follows, as strdelim() in misc.c
+         * takes it, the rest null at the end of the line. A quote ends
+         * the token at the next one, null when there is none. One '=' may
+         * stand between the token and the rest.
+         */
+        private fun strdelim(s: String): Pair<String, String?>? {
+            val i = s.indexOfFirst { it in WHITESPACE || it == '"' || it == '=' }
+            if (i < 0) return Pair(s, null)
+            if (s[i] == '"') {
+                val end = s.indexOf('"', i + 1)
+                if (end < 0) return null
+                return Pair(s.substring(0, i) + s.substring(i + 1, end), skipSpace(s, end + 1))
+            }
+            var rest = skipSpace(s, i + 1)
+            if (s[i] != '=' && rest.startsWith("=")) rest = skipSpace(rest, 1)
+            return Pair(s.substring(0, i), rest)
+        }
+
+        private fun skipSpace(s: String, from: Int): String =
+            s.substring(from).trimStart { it in WHITESPACE }
+
+        private const val WHITESPACE = " \t\r\n"
 
         private fun unquote(s: String): String =
             if (s.length >= 2 && s.startsWith("\"") && s.endsWith("\"")) s.substring(1, s.length - 1) else s
