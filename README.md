@@ -35,6 +35,8 @@ port forwards on 127.0.0.1 do not need it.
 - Scrollback with a swipe (in full screen programs a swipe sends the
   cursor keys), pinch to change the font size, long press to select and
   copy
+- DejaVu Sans Mono bundled, as some vendor themes replace the system
+  monospace font with a proportional one
 - Hardware keyboards: arrows, Home, End, Page Up/Down, Insert, Delete,
   F1 to F12, Ctrl and Alt
 
@@ -92,5 +94,5 @@ publishes the debug and unsigned release APKs as artifacts.
 
 ## License
 
-ISC, see `LICENSE`. OpenSSH and LibreSSL keep their own licenses, which
-the About dialog shows.
+ISC, see `LICENSE`. OpenSSH, LibreSSL and the DejaVu fonts keep their
+own licenses, which the About dialog shows.

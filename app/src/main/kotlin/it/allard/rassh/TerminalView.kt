@@ -7,7 +7,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Typeface
 import android.text.InputType
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -50,7 +49,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private var fontSize = prefs.getFloat(PREF_FONT_SIZE, DEFAULT_FONT_SIZE)
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.MONOSPACE }
+    /* A bundled font, OEM themes may replace even Typeface.MONOSPACE. */
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = context.resources.getFont(R.font.dejavu_sans_mono)
+    }
     private var cellWidth = 1f
     private var cellHeight = 1
     private var baseline = 0

@@ -3,6 +3,8 @@ build/
 local.properties
 /native/build/
 /app/src/main/jniLibs/
-/app/src/main/assets/licenses/
+/app/src/main/assets/licenses/libressl.txt
+/app/src/main/assets/licenses/openssh.txt
+/app/src/main/assets/licenses/rassh.txt
 /tmp/
 *.apk
