@@ -51,7 +51,9 @@ app/      Android application
 
 `$HOME` is the app files directory, so keys, `known_hosts` and `config`
 live in its `.ssh` directory, which is excluded from backups and device
-transfers.
+transfers. `~/bin` holds links named after the OpenSSH programs and comes
+first in `PATH`: `ssh` finds itself there for `ProxyJump`, as do `scp`,
+`sftp` and `ProxyCommand ssh -W` lines.
 
 Android only lets an app execute files from its native library
 directory, so the programs are packaged as `lib<name>.so`, e.g.
