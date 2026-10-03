@@ -223,22 +223,10 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     present: List<String>): Pair<Int, Int> {
     val dir = paths.sshDir
     paths.ensureSshDir()
-    for (name in present) {
-        vault.remove(name)
-        File(dir, name).delete()
-        File(dir, "$name.pub").delete()
-    }
-    File(dir, CONFIG).delete()
-    File(dir, KNOWN_HOSTS).delete()
-    val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
-    prefs.edit().remove(TerminalView.PREF_FONT_SIZE).apply()
-    /* The removed keys may still be in the agent. */
-    thread(name = "agent-clear") {
-        try {
-            runProgram(SHELL, addCommand(listOf("-D")), paths.env, paths.home.path)
-        } catch (_: IOException) {
-        }
-    }
+    /*
+     * Write the export first and only then remove what it does not hold,
+     * so that a failure leaves the old setup rather than nothing.
+     */
     val keys = items.filter { it.type == Backup.KEY }
     for (item in items) {
         when (item.type) {
@@ -248,6 +236,26 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         }
     }
     usePublicKeys(paths, keys.map { it.name })
+    val imported = keys.map { it.name }.toSet()
+    val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
+    for (name in present) {
+        /* A key in clear of the same name now is in the vault. */
+        File(dir, name).delete()
+        if (name in imported) continue
+        vault.remove(name)
+        File(dir, "$name.pub").delete()
+    }
+    for (name in listOf(CONFIG, KNOWN_HOSTS))
+        if (name !in files) File(dir, name).delete()
+    if (items.none { it.type == Backup.SETTING && it.name == TerminalView.PREF_FONT_SIZE })
+        getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE).edit().remove(TerminalView.PREF_FONT_SIZE).apply()
+    /* The removed keys may still be in the agent. */
+    thread(name = "agent-clear") {
+        try {
+            runProgram(SHELL, addCommand(listOf("-D")), paths.env, paths.home.path)
+        } catch (_: IOException) {
+        }
+    }
     return Pair(hostCount(paths), keys.size)
 }
 
