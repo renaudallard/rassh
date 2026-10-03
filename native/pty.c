@@ -230,20 +230,40 @@ Java_it_allard_rassh_Pty_setWindowSize(JNIEnv *env, jclass cls, jint fd,
 JNIEXPORT jint JNICALL
 Java_it_allard_rassh_Pty_waitFor(JNIEnv *env, jclass cls, jint pid)
 {
+	siginfo_t	info;
+
+	(void)cls;
+	/* Leave the zombie: its pid cannot be reused until reap(). */
+	memset(&info, 0, sizeof(info));
+	while (waitid(P_PID, (id_t)pid, &info, WEXITED | WNOWAIT) == -1) {
+		if (errno != EINTR) {
+			throw_io(env, "waitid", errno);
+			return -1;
+		}
+	}
+	switch (info.si_code) {
+	case CLD_EXITED:
+		return info.si_status;
+	case CLD_KILLED:
+	case CLD_DUMPED:
+		return 128 + info.si_status;
+	default:
+		return -1;
+	}
+}
+
+JNIEXPORT void JNICALL
+Java_it_allard_rassh_Pty_reap(JNIEnv *env, jclass cls, jint pid)
+{
 	int	status;
 
 	(void)cls;
 	while (waitpid(pid, &status, 0) == -1) {
 		if (errno != EINTR) {
 			throw_io(env, "waitpid", errno);
-			return -1;
+			return;
 		}
 	}
-	if (WIFEXITED(status))
-		return WEXITSTATUS(status);
-	if (WIFSIGNALED(status))
-		return 128 + WTERMSIG(status);
-	return -1;
 }
 
 JNIEXPORT void JNICALL

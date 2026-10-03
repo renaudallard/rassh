@@ -44,7 +44,7 @@ class Session(
     var isRunning = true
         private set
 
-    private val pid: Int
+    private val child: Child
     private val pty: ParcelFileDescriptor
     private val output: FileOutputStream
 
@@ -57,12 +57,12 @@ class Session(
     init {
         val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, rows, columns)
         pty = ParcelFileDescriptor.adoptFd(r[0])
-        pid = r[1]
+        child = Child(r[1])
         output = FileOutputStream(pty.fileDescriptor)
         thread(name = "session-$id-read") { read() }
         thread(name = "session-$id-wait") {
             val status = try {
-                Pty.waitFor(pid)
+                child.waitFor()
             } catch (_: IOException) {
                 -1
             }
@@ -95,7 +95,7 @@ class Session(
 
     /** Hang up the program, the session ends when it exits. */
     fun hangup() {
-        if (isRunning) Pty.sendSignal(pid, SIGHUP)
+        if (isRunning) child.signal(SIGHUP)
     }
 
     override fun titleChanged(title: String) {

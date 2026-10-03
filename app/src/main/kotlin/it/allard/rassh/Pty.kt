@@ -28,13 +28,45 @@ object Pty {
     @Throws(IOException::class)
     external fun setWindowSize(fd: Int, rows: Int, cols: Int)
 
-    /** Wait for pid to exit, returns its status or 128 plus the signal number. */
+    /**
+     * Wait for pid to exit without reaping it, returns its status or 128
+     * plus the signal number.
+     */
     @JvmStatic
     @Throws(IOException::class)
     external fun waitFor(pid: Int): Int
 
     @JvmStatic
+    @Throws(IOException::class)
+    external fun reap(pid: Int)
+
+    @JvmStatic
     external fun sendSignal(pid: Int, signal: Int)
+}
+
+/*
+ * A child process. Its pid is only signalled before it is reaped, as
+ * afterwards the kernel may give the pid to another process.
+ */
+class Child(private val pid: Int) {
+    private var reaped = false
+
+    /** Wait for the exit and reap the process, returns its status. */
+    @Throws(IOException::class)
+    fun waitFor(): Int {
+        val status = Pty.waitFor(pid)
+        synchronized(this) {
+            reaped = true
+            Pty.reap(pid)
+        }
+        return status
+    }
+
+    fun signal(signal: Int) {
+        synchronized(this) {
+            if (!reaped) Pty.sendSignal(pid, signal)
+        }
+    }
 }
 
 /** Run a program to completion and return what it printed. */
@@ -55,6 +87,6 @@ fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String)
             /* EIO when the program exits. */
         }
     }
-    Pty.waitFor(r[1])
+    Child(r[1]).waitFor()
     return out.toString(Charsets.UTF_8).replace("\r\n", "\n").trim()
 }

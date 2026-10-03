@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
  */
 class Agent(private val paths: Paths) {
     private val handler = Handler(Looper.getMainLooper())
-    private var pid = 0
+    private var child: Child? = null
 
     /*
      * Start the agent unless it runs and wait for its socket so clients
@@ -21,20 +21,20 @@ class Agent(private val paths: Paths) {
      */
     @Throws(IOException::class)
     fun start(): Boolean {
-        if (pid > 0) return false
+        if (child != null) return false
         paths.agentSocket.delete()
         val argv = arrayOf("ssh-agent", "-D", "-a", paths.agentSocket.path)
         val r = Pty.start(paths.agent, argv, paths.env.toTypedArray(), paths.home.path, IntArray(0), ROWS, COLUMNS)
         val pty = ParcelFileDescriptor.adoptFd(r[0])
-        val p = r[1]
-        pid = p
+        val c = Child(r[1])
+        child = c
         thread(name = "agent-read") { drain(pty) }
         thread(name = "agent-wait") {
             try {
-                Pty.waitFor(p)
+                c.waitFor()
             } catch (_: IOException) {
             }
-            handler.post { if (pid == p) pid = 0 }
+            handler.post { if (child === c) child = null }
         }
         for (i in 0 until SOCKET_TRIES) {
             if (paths.agentSocket.exists()) break
@@ -44,8 +44,8 @@ class Agent(private val paths: Paths) {
     }
 
     fun stop() {
-        if (pid > 0) Pty.sendSignal(pid, SIGTERM)
-        pid = 0
+        child?.signal(SIGTERM)
+        child = null
     }
 
     /* The agent prints its socket and pid at start, nothing else matters. */
