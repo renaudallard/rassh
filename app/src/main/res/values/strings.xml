@@ -62,7 +62,7 @@
     <string name="generate">Generate</string>
     <string name="import_">Import</string>
     <string name="copy">Copy</string>
-    <string name="copy_public_key">Copy public key</string>
+    <string name="show_public_key">Show public key</string>
     <string name="share_public_key">Share public key</string>
     <string name="public_key_copied">Public key copied</string>
     <string name="public_key_missing">No public key, run ssh-keygen -y to create it</string>
@@ -75,6 +75,10 @@
     <string name="agent_keys">Agent keys</string>
     <string name="agent_clear">Remove keys from agent</string>
     <string name="unlock_keys">Unlock keys</string>
+    <string name="rename">Rename</string>
+    <string name="rename_key">Rename key</string>
+    <string name="rename_reason">Rename the stored key</string>
+    <string name="rename_failed">Cannot rename %1$s</string>
 
     <!-- Key storage -->
     <string name="unlock_title">Unlock SSH keys</string>

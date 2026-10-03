@@ -106,11 +106,26 @@ class Vault(private val paths: Paths) {
     @Throws(IOException::class)
     fun add(dataKey: ByteArray, name: String, secret: ByteArray) {
         val v = load() ?: throw IOException("no vault")
+        save(v.first, v.second.filter { it.name != name } + seal(dataKey, name, secret))
+    }
+
+    /* The name is part of the sealed data, so renaming seals the key again. */
+    @Throws(IOException::class)
+    fun rename(dataKey: ByteArray, from: String, to: String) {
+        val v = load() ?: throw IOException("no vault")
+        val secret = read(dataKey, from)
+        try {
+            save(v.first, v.second.filter { it.name != from && it.name != to } + seal(dataKey, to, secret))
+        } finally {
+            secret.fill(0)
+        }
+    }
+
+    private fun seal(dataKey: ByteArray, name: String, secret: ByteArray): Entry {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(dataKey, "AES"))
         cipher.updateAAD(name.toByteArray())
-        val entry = Entry(name, cipher.iv, cipher.doFinal(secret))
-        save(v.first, v.second.filter { it.name != name } + entry)
+        return Entry(name, cipher.iv, cipher.doFinal(secret))
     }
 
     /** The private key stored as name, the caller zeroes it. */

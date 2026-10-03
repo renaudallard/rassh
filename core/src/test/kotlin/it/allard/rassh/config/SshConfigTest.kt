@@ -91,7 +91,7 @@ class SshConfigTest {
     }
 
     @Test
-    fun publicIdentities() {
+    fun replaceIdentities() {
         val text = """
             |IdentityFile ~/.ssh/id_rsa
             |Host a
@@ -100,7 +100,7 @@ class SshConfigTest {
             |    IdentityFile ~/.ssh/other
             |# IdentityFile ~/.ssh/id_ed25519
             |""".trimMargin()
-        val keys = setOf("~/.ssh/id_ed25519", "/home/u/.ssh/work key", "~/.ssh/id_rsa")
+        val keys = listOf("~/.ssh/id_ed25519", "/home/u/.ssh/work key", "~/.ssh/id_rsa").associateWith { "$it.pub" }
         assertEquals("""
             |IdentityFile ~/.ssh/id_rsa.pub
             |Host a
@@ -108,9 +108,11 @@ class SshConfigTest {
             |    identityfile "/home/u/.ssh/work key.pub"
             |    IdentityFile ~/.ssh/other
             |# IdentityFile ~/.ssh/id_ed25519
-            |""".trimMargin(), SshConfig.publicIdentities(text, keys))
-        assertEquals("", SshConfig.publicIdentities("", keys))
-        assertEquals("Host b", SshConfig.publicIdentities("Host b", keys))
+            |""".trimMargin(), SshConfig.replaceIdentities(text, keys))
+        assertEquals("", SshConfig.replaceIdentities("", keys))
+        assertEquals("Host b", SshConfig.replaceIdentities("Host b", keys))
+        assertEquals("IdentityFile ~/.ssh/new.pub\n",
+            SshConfig.replaceIdentities("IdentityFile ~/.ssh/old.pub\n", mapOf("~/.ssh/old.pub" to "~/.ssh/new.pub")))
     }
 
     @Test

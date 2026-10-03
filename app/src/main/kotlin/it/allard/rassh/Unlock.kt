@@ -165,10 +165,18 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
  */
 @Throws(IOException::class)
 fun usePublicKeys(paths: Paths, names: List<String>) {
-    if (!paths.config.isFile) return
-    val keys = names.flatMap { listOf("~/.ssh/$it", "%d/.ssh/$it", File(paths.sshDir, it).path) }.toSet()
+    rewriteIdentities(paths, names.associateWith { "$it.pub" })
+}
+
+/** Rewrite IdentityFile lines naming files of ~/.ssh, mapped old to new. */
+@Throws(IOException::class)
+fun rewriteIdentities(paths: Paths, files: Map<String, String>) {
+    if (!paths.config.isFile || files.isEmpty()) return
+    /* The ways such a file can be written, kept as they are. */
+    fun spellings(file: String) = listOf("~/.ssh/$file", "%d/.ssh/$file", File(paths.sshDir, file).path)
+    val map = files.flatMap { (from, to) -> spellings(from).zip(spellings(to)) }.toMap()
     val text = paths.config.readText()
-    val changed = SshConfig.publicIdentities(text, keys)
+    val changed = SshConfig.replaceIdentities(text, map)
     if (changed != text) paths.writePrivate(paths.config, changed)
 }
 

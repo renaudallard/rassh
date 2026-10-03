@@ -154,19 +154,18 @@ class SshConfig private constructor(
         }
 
         /**
-         * Point the IdentityFile lines naming one of keys, given as the
-         * paths written in the file, to the public key next to it, for
-         * private keys only kept in the agent.
+         * Rewrite the IdentityFile lines naming a key of paths, given as
+         * written in the file, to the path it maps to.
          */
-        fun publicIdentities(text: String, keys: Set<String>): String {
+        fun replaceIdentities(text: String, paths: Map<String, String>): String {
             if (text.isEmpty()) return text
             val lines = text.removeSuffix("\n").split('\n').map { line ->
                 val kv = split(line)
-                if (kv == null || !kv.first.equals("IdentityFile", true) || unquote(kv.second) !in keys) {
+                val to = kv?.let { paths[unquote(it.second)] }
+                if (kv == null || to == null || !kv.first.equals("IdentityFile", true)) {
                     line
                 } else {
-                    val indent = line.takeWhile { it.isWhitespace() }
-                    indent + kv.first + " " + quote(unquote(kv.second) + ".pub")
+                    line.takeWhile { it.isWhitespace() } + kv.first + " " + quote(to)
                 }
             }
             return lines.joinToString("\n") + if (text.endsWith("\n")) "\n" else ""

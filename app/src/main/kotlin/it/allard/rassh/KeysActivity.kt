@@ -23,6 +23,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import java.io.File
 import java.io.IOException
+import java.security.GeneralSecurityException
 
 /** Private keys, generated and converted by ssh-keygen, kept in the vault. */
 class KeysActivity : Activity() {
@@ -264,11 +265,7 @@ class KeysActivity : Activity() {
         if (pub == null) {
             actions.add(R.string.derive_public_key to { derivePublicKey(name) })
         } else {
-            actions.add(R.string.copy_public_key to {
-                getSystemService(ClipboardManager::class.java)
-                    .setPrimaryClip(ClipData.newPlainText(name, pub))
-                toast(getString(R.string.public_key_copied))
-            })
+            actions.add(R.string.show_public_key to { showPublicKey(name, pub) })
             actions.add(R.string.share_public_key to {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pub)
                 startActivity(Intent.createChooser(send, name))
@@ -280,11 +277,92 @@ class KeysActivity : Activity() {
             else
                 run(name, paths.add, listOf("ssh-add", File(paths.sshDir, name).path))
         })
+        actions.add(R.string.rename to { renameKey(name) })
         actions.add(R.string.delete to { deleteKey(name) })
         AlertDialog.Builder(this)
             .setTitle(name)
             .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
             .show()
+    }
+
+    private fun showPublicKey(name: String, pub: String) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(name)
+            .setMessage(pub)
+            .setPositiveButton(R.string.copy) { _, _ ->
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText(name, pub))
+                toast(getString(R.string.public_key_copied))
+            }
+            .setNegativeButton(android.R.string.ok, null)
+            .show()
+        dialog.findViewById<TextView>(android.R.id.message)?.setTextIsSelectable(true)
+    }
+
+    private fun renameKey(name: String) {
+        val field = EditText(this)
+        field.isSingleLine = true
+        field.setText(name)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.rename_key)
+            .setView(field)
+            .setPositiveButton(R.string.rename, null)
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val to = field.text.toString().trim()
+            if (to == name) {
+                dialog.dismiss()
+                return@setOnClickListener
+            }
+            val error = checkName(to)
+            if (error != null) {
+                field.error = error
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            if (name in vaultNames())
+                withVaultKey(vault, getString(R.string.rename_reason)) { key -> renameKey(name, to, key) }
+            else
+                renameKey(name, to, null)
+        }
+    }
+
+    /*
+     * Rename the private key, in the vault when key is given, and its
+     * public key, then the IdentityFile lines naming them.
+     */
+    private fun renameKey(from: String, to: String, key: ByteArray?) {
+        val pubFrom = File(paths.sshDir, "$from.pub")
+        val pubTo = File(paths.sshDir, "$to.pub")
+        if (pubFrom.exists() && !pubFrom.renameTo(pubTo)) {
+            toast(getString(R.string.rename_failed, from))
+            return
+        }
+        try {
+            if (key != null)
+                vault.rename(key, from, to)
+            else if (!File(paths.sshDir, from).renameTo(File(paths.sshDir, to)))
+                throw IOException(getString(R.string.rename_failed, from))
+        } catch (e: IOException) {
+            pubTo.renameTo(pubFrom)
+            toast(getString(R.string.vault_error, e.message))
+            load()
+            return
+        } catch (e: GeneralSecurityException) {
+            pubTo.renameTo(pubFrom)
+            toast(getString(R.string.vault_error, e.message))
+            load()
+            return
+        }
+        try {
+            rewriteIdentities(paths, mapOf(from to to, "$from.pub" to "$to.pub"))
+        } catch (e: IOException) {
+            toast(getString(R.string.config_failed, e.message))
+        } catch (e: ErrnoException) {
+            toast(getString(R.string.config_failed, e.message))
+        }
+        load()
     }
 
     private fun deleteKey(name: String) {

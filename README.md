@@ -57,7 +57,7 @@ encrypted and unlocked with your fingerprint.
 - **Agent** - one `ssh-agent` for every session, so `AddKeysToAgent` and
   agent forwarding work
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
-  keys, import private keys, copy or share public keys
+  keys, import private keys, rename keys, show, copy or share public keys
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Sessions** - several at once, kept alive by a foreground service
