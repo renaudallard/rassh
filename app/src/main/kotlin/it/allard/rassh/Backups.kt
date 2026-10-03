@@ -243,7 +243,11 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         when (name) {
             /* The imported copy replaces the one of the same name. */
             in sealed -> File(dir, name).delete()
-            in clear -> vault.remove(name)
+            /* It came without a public key, the old one is of another key. */
+            in clear -> {
+                vault.remove(name)
+                File(dir, "$name.pub").delete()
+            }
             else -> {
                 vault.remove(name)
                 File(dir, name).delete()
