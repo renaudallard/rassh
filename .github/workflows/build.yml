@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 30.0.16248370
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+              "platforms;android-37.0" "build-tools;36.0.0" "ndk;$NDK_VERSION"
+
+      - name: Build OpenSSH and LibreSSL
+        run: ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" native/build.sh
+
+      - name: Test and build
+        run: ./gradlew --no-daemon :core:test :app:lintDebug :app:assembleDebug :app:assembleRelease
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rassh
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
