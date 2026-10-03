@@ -61,9 +61,13 @@ jobs:
             app/build/outputs/apk/release/*.apk
 
   # Publish the signed APK when versionName has no release yet.
+  # Forks have no signing key, and two pushes of a new version must not race.
   release:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'renaudallard/rassh'
+    concurrency:
+      group: release
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
