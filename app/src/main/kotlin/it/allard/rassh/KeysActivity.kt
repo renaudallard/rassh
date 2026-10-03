@@ -22,6 +22,7 @@ import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
+import kotlin.concurrent.thread
 
 /** Private keys, generated and converted by ssh-keygen, kept in the vault. */
 class KeysActivity : Activity() {
@@ -357,18 +358,31 @@ class KeysActivity : Activity() {
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.delete_key, name))
             .setPositiveButton(R.string.delete) { _, _ ->
-                try {
-                    vault.remove(name)
-                } catch (e: IOException) {
-                    toast(getString(R.string.vault_error, e.message))
-                    return@setPositiveButton
+                /* Out of the agent first, the public key names it there. */
+                val pub = File(paths.sshDir, "$name.pub")
+                val id = if (pub.isFile) pub else File(paths.sshDir, name)
+                thread(name = "agent-delete") {
+                    try {
+                        runProgram(SHELL, addCommand(listOf("-d", id.path)), paths.env, paths.home.path)
+                    } catch (_: IOException) {
+                    }
+                    runOnUiThread { removeKey(name) }
                 }
-                File(paths.sshDir, name).delete()
-                File(paths.sshDir, "$name.pub").delete()
-                load()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun removeKey(name: String) {
+        try {
+            vault.remove(name)
+        } catch (e: IOException) {
+            toast(getString(R.string.vault_error, e.message))
+            return
+        }
+        File(paths.sshDir, name).delete()
+        File(paths.sshDir, "$name.pub").delete()
+        if (!isDestroyed) load()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
