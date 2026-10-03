@@ -27,6 +27,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import it.allard.rassh.terminal.KeyEncoder
 import it.allard.rassh.terminal.KeyEncoder.Key
+import it.allard.rassh.terminal.Terminal
 import it.allard.rassh.terminal.TerminalRow
 import it.allard.rassh.terminal.TextStyle
 import kotlin.math.abs
@@ -130,9 +131,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val s = session ?: return
         val t = s.terminal
         synchronized(t) {
-            val added = t.historyAdded
-            if (scrollOffset > 0) scrollOffset += (added - lastHistoryAdded).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            lastHistoryAdded = added
+            followHistory(t)
             scrollOffset = scrollOffset.coerceIn(0, t.historySize)
             for (r in 0 until t.rows)
                 drawRow(canvas, t.row(r - scrollOffset), t.columns, (r * cellHeight).toFloat())
@@ -263,9 +262,27 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             prefs.edit().putInt(PREF_COLUMNS, columns).putInt(PREF_ROWS, rows).apply()
     }
 
+    /*
+     * Lines going into the history move the text up: keep a scrolled back
+     * view and the selection on the text they showed. Called with t locked.
+     */
+    private fun followHistory(t: Terminal) {
+        val added = (t.historyAdded - lastHistoryAdded).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        lastHistoryAdded = t.historyAdded
+        if (added == 0) return
+        if (scrollOffset > 0) scrollOffset += added
+        if (hasSelection) {
+            anchorY -= added
+            pointY -= added
+        }
+    }
+
     private fun cellAt(e: MotionEvent): Pair<Int, Int> {
         val t = session?.terminal ?: return Pair(0, 0)
-        val (columns, rows) = synchronized(t) { Pair(t.columns, t.rows) }
+        val (columns, rows) = synchronized(t) {
+            followHistory(t)
+            Pair(t.columns, t.rows)
+        }
         val x = (e.x / cellWidth).toInt().coerceIn(0, columns - 1)
         val y = (e.y / cellHeight).toInt().coerceIn(0, rows - 1) - scrollOffset
         return Pair(x, y)
@@ -324,8 +341,11 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun copySelection() {
         val t = session?.terminal ?: return
-        val (sx, sy, ex, ey) = selection()
-        val text = synchronized(t) { t.text(sy, sx, ey, ex) }
+        val text = synchronized(t) {
+            followHistory(t)
+            val (sx, sy, ex, ey) = selection()
+            t.text(sy, sx, ey, ex)
+        }
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), text))
     }
