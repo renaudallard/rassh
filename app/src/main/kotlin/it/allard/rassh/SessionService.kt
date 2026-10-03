@@ -58,6 +58,12 @@ class SessionService : Service() {
         super.onCreate()
         paths = Paths(this)
         agent = Agent(paths)
+        /* ssh-add is run through PATH before any session, the links must be current. */
+        try {
+            paths.linkPrograms()
+        } catch (_: ErrnoException) {
+            /* Tried again by start(). */
+        }
         /* Early, so that the agent is ready when the first session starts. */
         try {
             agent.start()
