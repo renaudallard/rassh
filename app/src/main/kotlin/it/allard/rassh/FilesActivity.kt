@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.text.format.Formatter
-import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -194,16 +193,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setTitle(e.name)
             .setItems(items.map { getString(it.first) }.toTypedArray()) { _, which -> items[which].second() }
             .show()
-    }
-
-    /*
-     * Back goes up a directory. Android 14 and later call the callback,
-     * Android 13 only sends the key.
-     */
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode != KeyEvent.KEYCODE_BACK) return super.onKeyDown(keyCode, event)
-        back()
-        return true
     }
 
     private fun back() {
