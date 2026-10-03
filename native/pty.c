@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #define WINSIZE_MAX	0xffff
+#define MAX_FDS		16
 
 static void
 throw_io(JNIEnv *env, const char *what, int error)
@@ -76,27 +77,32 @@ fail:
 }
 
 static void
-close_fds(int maxfd)
+close_fds(int from, int maxfd)
 {
 	int	fd;
 
 #ifdef __NR_close_range
-	if (syscall(__NR_close_range, 3, ~0U, 0) == 0)
+	if (syscall(__NR_close_range, from, ~0U, 0) == 0)
 		return;
 #endif
-	for (fd = 3; fd < maxfd; fd++)
+	for (fd = from; fd < maxfd; fd++)
 		(void)close(fd);
 }
 
-/* Runs in the forked child, only async-signal-safe calls are allowed. */
+/*
+ * Runs in the forked child, only async-signal-safe calls are allowed.
+ * The nfds descriptors in fds become 3, 4, ... in the program.
+ */
 static void
-child(const char *path, char **argv, char **envp, const char *cwd, int maxfd)
+child(const char *path, char **argv, char **envp, const char *cwd,
+    int *fds, int nfds, int maxfd)
 {
 	static const char	 nodir[] = "rassh: cannot change directory\r\n";
+	static const char	 nofd[] = "rassh: cannot pass descriptor\r\n";
 	static const char	 msg[] = "rassh: cannot execute program\r\n";
 	struct sigaction	 sa;
 	sigset_t		 set;
-	int			 sig;
+	int			 i, sig;
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_DFL;
@@ -104,7 +110,20 @@ child(const char *path, char **argv, char **envp, const char *cwd, int maxfd)
 		(void)sigaction(sig, &sa, NULL);
 	(void)sigemptyset(&set);
 	(void)sigprocmask(SIG_SETMASK, &set, NULL);
-	close_fds(maxfd);
+	/* Move the descriptors above their targets first so none is clobbered. */
+	for (i = 0; i < nfds; i++) {
+		if ((fds[i] = fcntl(fds[i], F_DUPFD, 3 + nfds)) == -1) {
+			(void)write(STDERR_FILENO, nofd, sizeof(nofd) - 1);
+			_exit(127);
+		}
+	}
+	for (i = 0; i < nfds; i++) {
+		if (dup2(fds[i], 3 + i) == -1) {
+			(void)write(STDERR_FILENO, nofd, sizeof(nofd) - 1);
+			_exit(127);
+		}
+	}
+	close_fds(3 + nfds, maxfd);
 	if (chdir(cwd) == -1) {
 		(void)write(STDERR_FILENO, nodir, sizeof(nodir) - 1);
 		_exit(127);
@@ -116,22 +135,31 @@ child(const char *path, char **argv, char **envp, const char *cwd, int maxfd)
 
 JNIEXPORT jintArray JNICALL
 Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
-    jobjectArray jargv, jobjectArray jenvp, jstring jcwd, jint rows, jint cols)
+    jobjectArray jargv, jobjectArray jenvp, jstring jcwd, jintArray jfds,
+    jint rows, jint cols)
 {
 	struct winsize	  ws;
 	const char	 *path, *cwd = NULL;
 	char		**argv = NULL, **envp = NULL;
 	jintArray	  result = NULL;
-	jint		  ret[2];
+	jint		  ret[2], jfd[MAX_FDS];
 	pid_t		  pid;
 	long		  maxfd;
-	int		  master, status, saved;
+	int		  fds[MAX_FDS];
+	int		  i, nfds, master, status, saved;
 
 	(void)cls;
 	if (rows < 1 || cols < 1 || rows > WINSIZE_MAX || cols > WINSIZE_MAX) {
 		throw_io(env, "start", EINVAL);
 		return NULL;
 	}
+	if ((nfds = (*env)->GetArrayLength(env, jfds)) > MAX_FDS) {
+		throw_io(env, "start", EINVAL);
+		return NULL;
+	}
+	(*env)->GetIntArrayRegion(env, jfds, 0, nfds, jfd);
+	for (i = 0; i < nfds; i++)
+		fds[i] = jfd[i];
 	if ((path = (*env)->GetStringUTFChars(env, jpath, NULL)) == NULL)
 		return NULL;
 	if ((cwd = (*env)->GetStringUTFChars(env, jcwd, NULL)) == NULL)
@@ -152,7 +180,7 @@ Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
 		goto out;
 	}
 	if (pid == 0)
-		child(path, argv, envp, cwd, (int)maxfd);
+		child(path, argv, envp, cwd, fds, nfds, (int)maxfd);
 
 	if (fcntl(master, F_SETFD, FD_CLOEXEC) == -1) {
 		saved = errno;

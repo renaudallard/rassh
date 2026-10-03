@@ -91,9 +91,15 @@ class SessionService : Service() {
 
     fun find(id: Int): Session? = _sessions.find { it.id == id }
 
-    /** Start argv[0] from path in cwd on a new terminal. */
+    /** Start argv[0] from path in cwd on a new terminal, fds become 3, 4, ... */
     @Throws(IOException::class)
-    fun start(name: String, path: String, argv: List<String>, cwd: String = paths.home.path): Session {
+    fun start(
+        name: String,
+        path: String,
+        argv: List<String>,
+        cwd: String = paths.home.path,
+        fds: IntArray = IntArray(0),
+    ): Session {
         try {
             paths.linkPrograms()
         } catch (e: ErrnoException) {
@@ -101,7 +107,7 @@ class SessionService : Service() {
         }
         agent.start()
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
-        val session = Session(nextId++, name, path, argv, paths.env, cwd,
+        val session = Session(nextId++, name, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
             { getString(R.string.session_exited, it) }, { changed() })
         _sessions.add(session)

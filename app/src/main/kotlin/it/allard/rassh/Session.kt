@@ -25,6 +25,7 @@ class Session(
     argv: List<String>,
     env: List<String>,
     cwd: String,
+    fds: IntArray,
     columns: Int,
     rows: Int,
     private val exitMessage: (Int) -> String,
@@ -54,7 +55,7 @@ class Session(
     private val updatePending = AtomicBoolean()
 
     init {
-        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, rows, columns)
+        val r = Pty.start(path, argv.toTypedArray(), env.toTypedArray(), cwd, fds, rows, columns)
         pty = ParcelFileDescriptor.adoptFd(r[0])
         pid = r[1]
         output = FileOutputStream(pty.fileDescriptor)
