@@ -27,6 +27,8 @@
     <string name="storage_rationale">scp and sftp need All files access to read and write your files. Without it they only reach the app\'s private directory.</string>
     <string name="open_settings">Open settings</string>
     <string name="continue_anyway">Continue</string>
+    <string name="second_session">A session to %1$s is already open. Open another one?</string>
+    <string name="open_session">Open</string>
 
     <!-- Host editor -->
     <string name="new_host">New host</string>

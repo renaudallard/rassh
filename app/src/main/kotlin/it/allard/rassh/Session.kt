@@ -23,6 +23,8 @@ import kotlin.concurrent.thread
 class Session(
     val id: Int,
     val name: String,
+    /** The server the session reaches, null for local programs. */
+    val server: String?,
     path: String,
     argv: List<String>,
     env: List<String>,

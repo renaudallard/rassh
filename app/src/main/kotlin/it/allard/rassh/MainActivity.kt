@@ -74,7 +74,7 @@ class MainActivity : Activity(), SessionService.Listener {
         list.emptyView = findViewById(R.id.empty)
         list.setOnItemClickListener { _, _, position, _ ->
             val name = hosts[position].name
-            launch(name, paths.ssh, listOf("ssh", name))
+            launch(Launch(name, paths.ssh, listOf("ssh", name), paths.home.path, name))
         }
         list.setOnItemLongClickListener { _, view, position, _ ->
             hostMenu(view, hosts[position].name)
@@ -171,7 +171,30 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.invalid_arguments))
             return
         }
-        launch(text, paths.ssh, listOf("ssh") + args)
+        launch(Launch(text, paths.ssh, listOf("ssh") + args, paths.home.path, text))
+    }
+
+    /* What to start: title, program, arguments, directory and the server it reaches. */
+    private class Launch(
+        val title: String,
+        val path: String,
+        val argv: List<String>,
+        val cwd: String,
+        val server: String,
+    )
+
+    /* Start l, asking first when a session to the same server runs already. */
+    private fun launch(l: Launch) {
+        val service = binding.service ?: return
+        if (service.sessions.none { it.isRunning && it.server == l.server }) {
+            open(service, l)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.second_session, l.server))
+            .setPositiveButton(R.string.open_session) { _, _ -> open(service, l) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     /*
@@ -179,8 +202,7 @@ class MainActivity : Activity(), SessionService.Listener {
      * for a fingerprint and have ssh-add load them first. Without it the
      * program runs anyway, for password logins.
      */
-    private fun launch(title: String, path: String, argv: List<String>, cwd: String = paths.home.path) {
-        val service = binding.service ?: return
+    private fun open(service: SessionService, l: Launch) {
         val names = try {
             vault.names()
         } catch (e: IOException) {
@@ -188,7 +210,7 @@ class MainActivity : Activity(), SessionService.Listener {
             emptyList()
         }
         if (names.isEmpty()) {
-            start(service, title, path, argv, cwd, emptyList())
+            start(service, l, l.path, l.argv, emptyList())
             return
         }
         try {
@@ -201,36 +223,29 @@ class MainActivity : Activity(), SessionService.Listener {
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 if (missing.isEmpty())
-                    start(service, title, path, argv, cwd, emptyList())
+                    start(service, l, l.path, l.argv, emptyList())
                 else
-                    unlockAndStart(service, names, title, path, argv, cwd)
+                    unlockAndStart(service, names, l)
             }
         }
     }
 
-    private fun unlockAndStart(
-        service: SessionService,
-        names: List<String>,
-        title: String,
-        path: String,
-        argv: List<String>,
-        cwd: String,
-    ) {
+    private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
         withVaultKey(vault, getString(R.string.unlock_reason),
-            { start(service, title, path, argv, cwd, emptyList()) }) { key ->
+            { start(service, l, l.path, l.argv, emptyList()) }) { key ->
             val pipes = try {
                 keyPipes(vault, key, names)
             } catch (e: IOException) {
                 /* Connect anyway, like when the fingerprint is refused. */
                 toast(getString(R.string.vault_error, e.message))
-                start(service, title, path, argv, cwd, emptyList())
+                start(service, l, l.path, l.argv, emptyList())
                 return@withVaultKey
             }
             try {
                 /* ssh-add from the pipes, then the program, found in PATH. */
                 val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
                     "; exec \"\$0\" \"\$@\""
-                start(service, title, SHELL, listOf("sh", "-c", script) + clearAfterLogin(argv), cwd, pipes)
+                start(service, l, SHELL, listOf("sh", "-c", script) + clearAfterLogin(l.argv), pipes)
             } finally {
                 pipes.forEach { it.close() }
             }
@@ -239,14 +254,13 @@ class MainActivity : Activity(), SessionService.Listener {
 
     private fun start(
         service: SessionService,
-        title: String,
+        l: Launch,
         path: String,
         argv: List<String>,
-        cwd: String,
         pipes: List<ParcelFileDescriptor>,
     ): Boolean {
         val session = try {
-            service.start(title, path, argv, cwd, pipes.map { it.fd }.toIntArray())
+            service.start(l.title, path, argv, l.cwd, pipes.map { it.fd }.toIntArray(), l.server)
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
             return false
@@ -277,7 +291,7 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun sftp(host: String) {
-        withStorage { cwd -> launch("sftp $host", paths.sftp, listOf("sftp", host), cwd) }
+        withStorage { cwd -> launch(Launch("sftp $host", paths.sftp, listOf("sftp", host), cwd, host)) }
     }
 
     private fun scp(host: String) {
@@ -302,7 +316,7 @@ class MainActivity : Activity(), SessionService.Listener {
                     if (recursive.isChecked) argv.add("-r")
                     argv.add(from.text.toString().trim())
                     argv.add(to.text.toString().trim())
-                    launch("scp $host", paths.scp, argv, cwd)
+                    launch(Launch("scp $host", paths.scp, argv, cwd, host))
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .show()

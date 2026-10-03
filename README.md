@@ -60,7 +60,8 @@ encrypted and unlocked with your fingerprint.
   keys, import private keys, rename keys, show, copy or share public keys
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
-- **Sessions** - several at once, kept alive by a foreground service
+- **Sessions** - several at once, kept alive by a foreground service.
+  Opening a second one to the same server asks first
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, pinch to zoom, long press to select and copy
