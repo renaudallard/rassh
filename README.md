@@ -48,8 +48,9 @@ encrypted and unlocked with your fingerprint.
   `TAB`, `HOME`, `END`, arrows and page keys repeat while held
 - **Saved hosts** - kept as `Host` blocks of `~/.ssh/config`: host name,
   user, port, identity file, local, remote and dynamic forwards, plus any
-  other `ssh_config(5)` option. Comments, `Host *` and `Match` blocks are
-  left untouched. A checkbox attaches to the last tmux session or starts
+  other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
+  included, and their comments are left untouched, the comments of an
+  edited host stay among its other options. A checkbox attaches to the last tmux session or starts
   one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
@@ -82,7 +83,8 @@ encrypted and unlocked with your fingerprint.
   same server show when they were opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
-  swipe, pinch to zoom, long press to select and copy
+  swipe, which sends the arrow keys to full screen programs like vim or
+  less, pinch to zoom, long press to select and copy
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
@@ -163,8 +165,8 @@ replace:
   then what the file does not hold is removed.
 
 Storing keys in the vault takes a fingerprint. Keys exported without
-their public key are written in clear, as they were, and move into the
-vault once it is created. Only import files you made: the
+their public key, or over 64 KiB, are written in clear, as they were,
+the former moving into the vault once their public key is made. Only import files you made: the
 hosts of an export can run commands through `ProxyCommand` or
 `LocalCommand`, and its `known_hosts` decides which servers are trusted.
 
