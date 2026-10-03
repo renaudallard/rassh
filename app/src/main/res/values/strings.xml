@@ -51,7 +51,8 @@
     <string name="generate">Generate</string>
     <string name="import_">Import</string>
     <string name="copy">Copy</string>
-    <string name="share">Share</string>
+    <string name="copy_public_key">Copy public key</string>
+    <string name="share_public_key">Share public key</string>
     <string name="public_key_copied">Public key copied</string>
     <string name="public_key_missing">No public key, run ssh-keygen -y to create it</string>
     <string name="derive_public_key">Create public key</string>
@@ -59,6 +60,9 @@
     <string name="error_key_exists">A file with this name already exists</string>
     <string name="import_failed">Cannot import key: %1$s</string>
     <string name="delete_key">Delete key %1$s?</string>
+    <string name="add_to_agent">Add to agent</string>
+    <string name="agent_keys">Agent keys</string>
+    <string name="agent_clear">Remove keys from agent</string>
 
     <!-- Terminal -->
     <string name="paste">Paste</string>

@@ -29,7 +29,10 @@ port forwards on 127.0.0.1 do not need it.
 - Quick connect with plain `ssh` arguments, e.g. `-p 2222 me@example.org`
 - Key management: generate ed25519, ecdsa, rsa or mldsa44-ed25519 keys
   with `ssh-keygen` (passphrases are asked in a terminal), import
-  private keys, show, copy or share public keys
+  private keys, copy or share public keys
+- An `ssh-agent` runs alongside the app and every session gets
+  `SSH_AUTH_SOCK`, so `AddKeysToAgent` and agent forwarding work. Keys
+  are added, listed and removed with `ssh-add` from the keys screen.
 - Several sessions at once, kept alive by a foreground service
 - 256 colors and 24 bit color, alternate screen, scroll regions, wide
   characters, DEC line drawing, bracketed paste
@@ -101,7 +104,7 @@ update signed with the same key, so keep a copy of the keystore.
 
 ## Limitations
 
-- No `ssh-agent`, `scp` or `sftp` yet
+- No `scp` or `sftp` yet
 - No FIDO security keys and no PKCS#11
 - No mouse reporting
 - Combining characters are not rendered

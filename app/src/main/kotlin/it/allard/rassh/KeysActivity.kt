@@ -195,26 +195,28 @@ class KeysActivity : Activity() {
 
     private fun showKey(name: String) {
         val pub = Keys.publicKey(paths.sshDir, name)
-        val builder = AlertDialog.Builder(this)
-            .setTitle(name)
-            .setNeutralButton(R.string.delete) { _, _ -> deleteKey(name) }
+        val actions = mutableListOf<Pair<Int, () -> Unit>>()
         if (pub == null) {
-            builder.setMessage(R.string.public_key_missing)
-                .setPositiveButton(R.string.derive_public_key) { _, _ -> derivePublicKey(name) }
+            actions.add(R.string.derive_public_key to { derivePublicKey(name) })
         } else {
-            builder.setMessage(pub)
-                .setPositiveButton(R.string.copy) { _, _ ->
-                    getSystemService(ClipboardManager::class.java)
-                        .setPrimaryClip(ClipData.newPlainText(name, pub))
-                    toast(getString(R.string.public_key_copied))
-                }
-                .setNegativeButton(R.string.share) { _, _ ->
-                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pub)
-                    startActivity(Intent.createChooser(send, name))
-                }
+            actions.add(R.string.copy_public_key to {
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText(name, pub))
+                toast(getString(R.string.public_key_copied))
+            })
+            actions.add(R.string.share_public_key to {
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pub)
+                startActivity(Intent.createChooser(send, name))
+            })
         }
-        val dialog = builder.show()
-        dialog.findViewById<TextView>(android.R.id.message)?.setTextIsSelectable(true)
+        actions.add(R.string.add_to_agent to {
+            run(name, paths.add, listOf("ssh-add", File(paths.sshDir, name).path))
+        })
+        actions.add(R.string.delete to { deleteKey(name) })
+        AlertDialog.Builder(this)
+            .setTitle(name)
+            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
+            .show()
     }
 
     private fun deleteKey(name: String) {
@@ -232,6 +234,8 @@ class KeysActivity : Activity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_GENERATE, 0, R.string.generate_key)
         menu.add(Menu.NONE, MENU_IMPORT, 1, R.string.import_key)
+        menu.add(Menu.NONE, MENU_AGENT_LIST, 2, R.string.agent_keys)
+        menu.add(Menu.NONE, MENU_AGENT_CLEAR, 3, R.string.agent_clear)
         return true
     }
 
@@ -241,6 +245,8 @@ class KeysActivity : Activity() {
             MENU_IMPORT -> startActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
+            MENU_AGENT_LIST -> run(getString(R.string.agent_keys), paths.add, listOf("ssh-add", "-l"))
+            MENU_AGENT_CLEAR -> run(getString(R.string.agent_clear), paths.add, listOf("ssh-add", "-D"))
             android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)
         }
@@ -250,6 +256,8 @@ class KeysActivity : Activity() {
     companion object {
         private const val MENU_GENERATE = 1
         private const val MENU_IMPORT = 2
+        private const val MENU_AGENT_LIST = 3
+        private const val MENU_AGENT_CLEAR = 4
         private const val REQUEST_IMPORT = 1
         private const val MAX_KEY_SIZE = 65536
         private const val SHELL = "/system/bin/sh"

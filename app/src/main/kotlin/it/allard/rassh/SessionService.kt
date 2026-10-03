@@ -33,6 +33,7 @@ class SessionService : Service() {
     private var nextId = 1
     private var foreground = false
     private lateinit var paths: Paths
+    private lateinit var agent: Agent
 
     val sessions: List<Session>
         get() = _sessions
@@ -40,6 +41,13 @@ class SessionService : Service() {
     override fun onCreate() {
         super.onCreate()
         paths = Paths(this)
+        agent = Agent(paths)
+        /* Early, so that the agent is ready when the first session starts. */
+        try {
+            agent.start()
+        } catch (_: IOException) {
+            /* Tried again by start(). */
+        }
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
             NotificationManager.IMPORTANCE_LOW)
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -69,6 +77,7 @@ class SessionService : Service() {
     override fun onDestroy() {
         for (s in _sessions) s.hangup()
         _sessions.clear()
+        agent.stop()
         super.onDestroy()
     }
 
@@ -90,6 +99,7 @@ class SessionService : Service() {
         } catch (e: ErrnoException) {
             e.rethrowAsIOException()
         }
+        agent.start()
         val session = Session(nextId++, name, path, argv, paths.env,
             { getString(R.string.session_exited, it) }, { changed() })
         _sessions.add(session)

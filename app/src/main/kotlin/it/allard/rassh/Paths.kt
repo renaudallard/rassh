@@ -9,6 +9,7 @@ class Paths(context: Context) {
     val home: File = context.filesDir
     val sshDir = File(home, ".ssh")
     val config = File(sshDir, "config")
+    val agentSocket = File(context.cacheDir, "agent.sock")
     private val bin = File(home, "bin")
     private val lib = context.applicationInfo.nativeLibraryDir
     val ssh = program("ssh")
@@ -23,6 +24,7 @@ class Paths(context: Context) {
         "TERM=xterm-256color",
         "LANG=C.UTF-8",
         "TMPDIR=${context.cacheDir}",
+        "SSH_AUTH_SOCK=$agentSocket",
     )
 
     private fun program(name: String) = "$lib/lib$name.so"
