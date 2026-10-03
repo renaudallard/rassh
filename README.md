@@ -58,9 +58,10 @@ encrypted and unlocked with your fingerprint.
 - **Agent** - each connection gets an `ssh-agent` of its own holding the
   unlocked keys while it logs in, so `ssh`, `scp`, `sftp` and `ProxyJump`
   hosts use them without writing them to disk, and one login emptying
-  its agent cannot leave another without keys. The keys leave it once
-  logged in. Agent forwarding is off, as the server could use the keys
-  while they are loaded, unless asked with `-A`
+  its agent cannot leave another without keys. `ssh` and the file browser
+  remove the keys once logged in, `scp` and `sftp` after 60 seconds.
+  Agent forwarding is off, as the server could use the keys while they
+  are loaded, unless asked with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
   key, show, copy or share public keys
@@ -126,7 +127,8 @@ There is no PIN fallback.
 - Removing or resetting the screen lock always destroys them.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
-  public key sits next to them.
+  public key sits next to them, if the vault has room and the key is not
+  over 64 KiB.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add`
   loads the keys through pipes into an agent started for that connection
@@ -160,7 +162,9 @@ replace:
   the settings of the file in place of yours. They are written first,
   then what the file does not hold is removed.
 
-Storing the keys takes a fingerprint. Only import files you made: the
+Storing keys in the vault takes a fingerprint. Keys exported without
+their public key are written in clear, as they were, and move into the
+vault once it is created. Only import files you made: the
 hosts of an export can run commands through `ProxyCommand` or
 `LocalCommand`, and its `known_hosts` decides which servers are trusted.
 
@@ -245,7 +249,7 @@ vault and decrypts them into the agent during the login. JuiceSSH is no longer o
 - No mouse reporting
 - Combining characters are not rendered
 - The vault holds at most 64 keys, all loaded for each connection, and
-  keys over 64 KiB are refused
+  keys over 64 KiB stay out of it
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
   Play to some app categories
 
