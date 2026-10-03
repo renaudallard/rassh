@@ -9,6 +9,11 @@ Unix box works here, including `~/.ssh/config`.
 
 Targets Android 17 (API 37), runs on Android 14 (API 34) and later.
 
+On Android 17 the app asks for the local network permission at start:
+without it, hosts on the LAN (RFC 1918, CGNAT and link-local addresses)
+cannot be reached. Hosts reached through a VPN or the mobile network and
+port forwards on 127.0.0.1 do not need it.
+
 ## Features
 
 - OpenSSH 10.5p1 `ssh` and `ssh-keygen` built with LibreSSL 4.3.2

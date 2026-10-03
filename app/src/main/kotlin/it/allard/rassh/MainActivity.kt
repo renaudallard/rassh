@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.system.ErrnoException
 import android.view.KeyEvent
@@ -70,8 +71,19 @@ class MainActivity : Activity(), SessionService.Listener {
         }
 
         binding.bind()
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+        requestMissingPermissions()
+    }
+
+    /*
+     * Hosts on the LAN need ACCESS_LOCAL_NETWORK from Android 17 on,
+     * earlier versions grant it with INTERNET.
+     */
+    private fun requestMissingPermissions() {
+        val wanted = mutableListOf(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN)
+            wanted.add(Manifest.permission.ACCESS_LOCAL_NETWORK)
+        val missing = wanted.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 0)
     }
 
     override fun onResume() {
