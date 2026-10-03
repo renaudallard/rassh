@@ -40,14 +40,17 @@ sha256()
 	fi
 }
 
-# fetch url file sha256
+# fetch url file sha256, keeping the file only once verified
 fetch()
 {
-	if [ ! -f "$work/$2" ]; then
-		curl -fsSL -o "$work/$2.part" "$1/$2"
-		mv "$work/$2.part" "$work/$2"
+	[ -f "$work/$2" ] && [ "$(sha256 "$work/$2")" = "$3" ] && return
+	rm -f "$work/$2"
+	curl -fsSL -o "$work/$2.part" "$1/$2"
+	if [ "$(sha256 "$work/$2.part")" != "$3" ]; then
+		rm -f "$work/$2.part"
+		die "$2: checksum mismatch"
 	fi
-	[ "$(sha256 "$work/$2")" = "$3" ] || die "$2: checksum mismatch"
+	mv "$work/$2.part" "$work/$2"
 }
 
 # unpack tarball directory
