@@ -134,10 +134,20 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
  * keys could not be moved.
  */
 fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
-    /* Too large a key would fill its pipe to ssh-add before it reads, see Keys.MAX_SIZE. */
+    /*
+     * Too large a key would fill its pipe to ssh-add before it reads, see
+     * Keys.MAX_SIZE. No fingerprint is asked for keys a full vault would
+     * refuse anyway.
+     */
+    val room = try {
+        Keys.MAX_COUNT - vault.names().size
+    } catch (e: IOException) {
+        toast(getString(R.string.vault_error, e.message))
+        return done(false)
+    }
     val pending = Keys.plaintext(paths.sshDir).filter {
         Keys.publicKey(paths.sshDir, it) != null && File(paths.sshDir, it).length() <= Keys.MAX_SIZE
-    }
+    }.take(maxOf(room, 0))
     if (pending.isEmpty()) return done(true)
     withVaultKey(vault, getString(R.string.protect_reason), { done(false) }) { key ->
         try {
