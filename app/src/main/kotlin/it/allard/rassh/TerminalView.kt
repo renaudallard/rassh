@@ -423,10 +423,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
     }
 
-    override fun onExtraKey(action: ExtraKeysView.Action) {
+    override fun onExtraKey(action: ExtraKeysView.Action, mods: Int) {
         when (action) {
-            is ExtraKeysView.Action.Special -> sendKey(action.key, extraKeys?.consumeModifiers() ?: 0)
-            is ExtraKeysView.Action.Text -> typeText(action.text)
+            is ExtraKeysView.Action.Special -> sendKey(action.key, mods)
+            is ExtraKeysView.Action.Text -> typeText(action.text, mods)
             is ExtraKeysView.Action.Modifier -> {}
         }
     }
@@ -436,8 +436,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         send(KeyEncoder.encode(key, mods, synchronized(t) { t.applicationCursorKeys }))
     }
 
-    private fun typeText(s: String) {
-        val mods = extraKeys?.consumeModifiers() ?: 0
+    private fun typeText(s: String, mods: Int) {
         val sb = StringBuilder()
         var i = 0
         while (i < s.length) {
@@ -493,7 +492,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 val e = editable ?: return
                 val s = e.toString()
                 e.clear()
-                if (s.isNotEmpty()) typeText(s)
+                if (s.isNotEmpty()) typeText(s, extraKeys?.consumeModifiers() ?: 0)
             }
         }
     }

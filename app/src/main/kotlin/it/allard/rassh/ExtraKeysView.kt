@@ -25,7 +25,8 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
     }
 
     fun interface Listener {
-        fun onExtraKey(action: Action)
+        /** action was pressed with mods, the KeyEncoder modifier bits. */
+        fun onExtraKey(action: Action, mods: Int)
     }
 
     var listener: Listener? = null
@@ -101,11 +102,13 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
         }
         /* Keys pressed together each cancel the previous repeat, so none is orphaned. */
         stopRepeat()
-        listener?.onExtraKey(action)
+        /* Repeats keep the modifiers of the first press. */
+        val mods = consumeModifiers()
+        listener?.onExtraKey(action, mods)
         if (action is Action.Special) {
             val r = object : Runnable {
                 override fun run() {
-                    listener?.onExtraKey(action)
+                    listener?.onExtraKey(action, mods)
                     handler.postDelayed(this, REPEAT_INTERVAL)
                 }
             }
