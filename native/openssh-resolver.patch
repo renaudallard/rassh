@@ -1,0 +1,35 @@
+--- a/openbsd-compat/getrrsetbyname.c
++++ b/openbsd-compat/getrrsetbyname.c
+@@ -67,7 +67,7 @@
+ #endif
+ #define _THREAD_PRIVATE(a,b,c) (c)
+ 
+-#ifndef HAVE__RES_EXTERN
++#if !defined(HAVE__RES_EXTERN) && !defined(__ANDROID__)
+ struct __res_state _res;
+ #endif
+ 
+@@ -192,7 +192,9 @@
+     unsigned int rdtype, unsigned int flags,
+     struct rrsetinfo **res)
+ {
++#ifndef __ANDROID__
+ 	struct __res_state *_resp = _THREAD_PRIVATE(_res, _res, &_res);
++#endif
+ 	int result;
+ 	struct rrsetinfo *rrset = NULL;
+ 	struct dns_response *response = NULL;
+@@ -220,8 +222,12 @@
+ 		goto fail;
+ 	}
+ 
+-	/* initialize resolver */
++	/* initialize resolver, bionic keeps its state private */
++#ifdef __ANDROID__
++	if (res_init() == -1) {
++#else
+ 	if ((_resp->options & RES_INIT) == 0 && res_init() == -1) {
++#endif
+ 		result = ERRSET_FAIL;
+ 		goto fail;
+ 	}

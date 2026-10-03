@@ -1,0 +1,220 @@
+/*
+ * JNI helpers to run a program on a pseudo-terminal.
+ */
+
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <jni.h>
+#include <pty.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+
+#define WINSIZE_MAX	0xffff
+
+static void
+throw_io(JNIEnv *env, const char *what, int error)
+{
+	char	 msg[256];
+	jclass	 cls;
+
+	if ((*env)->ExceptionCheck(env))
+		return;
+	(void)snprintf(msg, sizeof(msg), "%s: %s", what, strerror(error));
+	if ((cls = (*env)->FindClass(env, "java/io/IOException")) != NULL)
+		(void)(*env)->ThrowNew(env, cls, msg);
+}
+
+static void
+free_strings(char **v)
+{
+	char	**p;
+
+	if (v == NULL)
+		return;
+	for (p = v; *p != NULL; p++)
+		free(*p);
+	free(v);
+}
+
+/* Convert a String[] to a NULL terminated array of C strings. */
+static char **
+to_strings(JNIEnv *env, jobjectArray array)
+{
+	char		**v;
+	const char	 *utf;
+	jstring		  s;
+	jsize		  i, n;
+
+	n = (*env)->GetArrayLength(env, array);
+	if ((v = calloc((size_t)n + 1, sizeof(*v))) == NULL)
+		return NULL;
+	for (i = 0; i < n; i++) {
+		if ((s = (*env)->GetObjectArrayElement(env, array, i)) == NULL)
+			goto fail;
+		utf = (*env)->GetStringUTFChars(env, s, NULL);
+		if (utf != NULL) {
+			v[i] = strdup(utf);
+			(*env)->ReleaseStringUTFChars(env, s, utf);
+		}
+		(*env)->DeleteLocalRef(env, s);
+		if (v[i] == NULL)
+			goto fail;
+	}
+	return v;
+fail:
+	free_strings(v);
+	return NULL;
+}
+
+static void
+close_fds(int maxfd)
+{
+	int	fd;
+
+#ifdef __NR_close_range
+	if (syscall(__NR_close_range, 3, ~0U, 0) == 0)
+		return;
+#endif
+	for (fd = 3; fd < maxfd; fd++)
+		(void)close(fd);
+}
+
+/* Runs in the forked child, only async-signal-safe calls are allowed. */
+static void
+child(const char *path, char **argv, char **envp, int maxfd)
+{
+	static const char	 msg[] = "rassh: cannot execute program\r\n";
+	struct sigaction	 sa;
+	sigset_t		 set;
+	int			 sig;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_DFL;
+	for (sig = 1; sig < NSIG; sig++)
+		(void)sigaction(sig, &sa, NULL);
+	(void)sigemptyset(&set);
+	(void)sigprocmask(SIG_SETMASK, &set, NULL);
+	close_fds(maxfd);
+	(void)execve(path, argv, envp);
+	(void)write(STDERR_FILENO, msg, sizeof(msg) - 1);
+	_exit(127);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_it_allard_rassh_Pty_start(JNIEnv *env, jclass cls, jstring jpath,
+    jobjectArray jargv, jobjectArray jenvp, jint rows, jint cols)
+{
+	struct winsize	  ws;
+	const char	 *path;
+	char		**argv = NULL, **envp = NULL;
+	jintArray	  result = NULL;
+	jint		  ret[2];
+	pid_t		  pid;
+	long		  maxfd;
+	int		  master, status, saved;
+
+	(void)cls;
+	if (rows < 1 || cols < 1 || rows > WINSIZE_MAX || cols > WINSIZE_MAX) {
+		throw_io(env, "start", EINVAL);
+		return NULL;
+	}
+	if ((path = (*env)->GetStringUTFChars(env, jpath, NULL)) == NULL)
+		return NULL;
+	if ((argv = to_strings(env, jargv)) == NULL ||
+	    (envp = to_strings(env, jenvp)) == NULL) {
+		throw_io(env, "start", ENOMEM);
+		goto out;
+	}
+	if ((maxfd = sysconf(_SC_OPEN_MAX)) < 0 || maxfd > 65536)
+		maxfd = 65536;
+
+	memset(&ws, 0, sizeof(ws));
+	ws.ws_row = (unsigned short)rows;
+	ws.ws_col = (unsigned short)cols;
+	if ((pid = forkpty(&master, NULL, NULL, &ws)) == -1) {
+		throw_io(env, "forkpty", errno);
+		goto out;
+	}
+	if (pid == 0)
+		child(path, argv, envp, (int)maxfd);
+
+	if (fcntl(master, F_SETFD, FD_CLOEXEC) == -1) {
+		saved = errno;
+		goto kill;
+	}
+	if ((result = (*env)->NewIntArray(env, 2)) == NULL) {
+		saved = ENOMEM;
+		goto kill;
+	}
+	ret[0] = master;
+	ret[1] = pid;
+	(*env)->SetIntArrayRegion(env, result, 0, 2, ret);
+	goto out;
+kill:
+	(void)close(master);
+	(void)kill(pid, SIGKILL);
+	while (waitpid(pid, &status, 0) == -1 && errno == EINTR)
+		;
+	throw_io(env, "start", saved);
+out:
+	free_strings(argv);
+	free_strings(envp);
+	(*env)->ReleaseStringUTFChars(env, jpath, path);
+	return result;
+}
+
+JNIEXPORT void JNICALL
+Java_it_allard_rassh_Pty_setWindowSize(JNIEnv *env, jclass cls, jint fd,
+    jint rows, jint cols)
+{
+	struct winsize	ws;
+
+	(void)cls;
+	if (rows < 1 || cols < 1 || rows > WINSIZE_MAX || cols > WINSIZE_MAX) {
+		throw_io(env, "setWindowSize", EINVAL);
+		return;
+	}
+	memset(&ws, 0, sizeof(ws));
+	ws.ws_row = (unsigned short)rows;
+	ws.ws_col = (unsigned short)cols;
+	if (ioctl(fd, TIOCSWINSZ, &ws) == -1)
+		throw_io(env, "setWindowSize", errno);
+}
+
+JNIEXPORT jint JNICALL
+Java_it_allard_rassh_Pty_waitFor(JNIEnv *env, jclass cls, jint pid)
+{
+	int	status;
+
+	(void)cls;
+	while (waitpid(pid, &status, 0) == -1) {
+		if (errno != EINTR) {
+			throw_io(env, "waitpid", errno);
+			return -1;
+		}
+	}
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return 128 + WTERMSIG(status);
+	return -1;
+}
+
+JNIEXPORT void JNICALL
+Java_it_allard_rassh_Pty_sendSignal(JNIEnv *env, jclass cls, jint pid,
+    jint sig)
+{
+	(void)env;
+	(void)cls;
+	if (pid > 0)
+		(void)kill(pid, sig);
+}
