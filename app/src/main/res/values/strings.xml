@@ -142,7 +142,7 @@
     <string name="passphrase_again">Passphrase again</string>
     <string name="passphrase_short">At least %1$d characters</string>
     <string name="passphrase_mismatch">The passphrases differ</string>
-    <string name="import_question">Append adds the hosts and keys whose names are not used yet. Replace removes your hosts, keys and settings first.</string>
+    <string name="import_question">Append adds the hosts and keys whose names are not used yet. Replace puts the whole configuration, known hosts, keys and settings of the file in place of yours.</string>
     <string name="import_append">Append</string>
     <string name="import_replace">Replace</string>
     <string name="import_reason">Store the imported keys</string>

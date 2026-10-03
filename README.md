@@ -44,8 +44,8 @@ encrypted and unlocked with your fingerprint.
   and `sftp` from OpenSSH 10.5p1, built with LibreSSL 4.3.2
 - **Extra keys** - a row above the soft keyboard with `ESC` `/` `|` `-`
   `HOME` `↑` `END` `PGUP` and `TAB` `CTRL` `ALT` `~` `←` `↓` `→` `PGDN`.
-  `CTRL` and `ALT` apply to the next key, typed or tapped, and arrows and
-  page keys repeat while held
+  `CTRL` and `ALT` apply to the next key, typed or tapped, and `ESC`,
+  `TAB`, `HOME`, `END`, arrows and page keys repeat while held
 - **Saved hosts** - kept as `Host` blocks of `~/.ssh/config`: host name,
   user, port, identity file, local, remote and dynamic forwards, plus any
   other `ssh_config(5)` option. Comments, `Host *` and `Match` blocks are
@@ -62,7 +62,8 @@ encrypted and unlocked with your fingerprint.
   logged in. Agent forwarding is off, as the server could use the keys
   while they are loaded, unless asked with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
-  keys, import private keys, rename keys, show, copy or share public keys
+  keys, import, rename or delete private keys, create a missing public
+  key, show, copy or share public keys
 - **File browser** - from the menu of a saved host: browse, download,
   upload, rename, delete and create folders over SFTP, through `ssh`, so
   the host's options, jump hosts and keys apply
@@ -74,7 +75,8 @@ encrypted and unlocked with your fingerprint.
   a warning offers to remove the old key, then connecting again shows the
   fingerprint of the new one to confirm. The host is resolved from the
   local configuration with `ssh -G`, so only its own keys are removed
-- **Sessions** - several at once, kept alive by a foreground service.
+- **Sessions** - several at once, kept alive by a foreground service and
+  reached from its notification or from Sessions in the main menu.
   Opening a second one to the same server asks first, and sessions to the
   same server show when they were opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
@@ -125,7 +127,8 @@ There is no PIN fallback.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them.
-- Connecting, `sftp` and `scp` ask for the fingerprint, then `ssh-add`
+- Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
+  whenever the vault holds keys, then `ssh-add`
   loads the keys through pipes into an agent started for that connection
   alone, so the decrypted keys never touch the disk. `ssh` removes them
   from it as soon as it is logged in, through `LocalCommand`. Otherwise,
@@ -140,7 +143,7 @@ pointed at its `.pub`, and the host editor offers them that way.
 
 ## Moving to another phone
 
-Export, in the menu, writes the hosts of `~/.ssh/config`, `known_hosts`,
+Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
 the keys and the settings to a file sealed with a passphrase of at least
 8 characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
 with 600,000 iterations. Reading the keys takes a fingerprint. Android
@@ -153,7 +156,9 @@ replace:
   the missing `known_hosts` lines and the settings not set yet. Global
   options, wildcard `Host` and `Match` blocks of the file are left out,
   as they could change the hosts already there.
-- Replace removes the hosts, keys and settings first.
+- Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
+  the settings of the file in place of yours. They are written first,
+  then what the file does not hold is removed.
 
 Storing the keys takes a fingerprint. Only import files you made: the
 hosts of an export can run commands through `ProxyCommand` or
@@ -194,8 +199,8 @@ or only the ABIs given as arguments. The programs go to
 `app/src/main/jniLibs`, with the license files shown in the About dialog.
 
 The workflow in `.github/workflows/build.yml` does the same on every push
-and keeps the APKs as artifacts. Local and pull request release builds
-are unsigned.
+and keeps the APKs as artifacts. Local release builds, and those of pull
+requests from forks, are unsigned.
 
 ## Releases
 
