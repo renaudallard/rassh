@@ -427,9 +427,10 @@ class Terminal(
             'T'.code -> if (nparams <= 1) screen.scrollDown(top, bottom, count(0), eraseStyle())
             'X'.code -> eraseCells(cursorX, minOf(columns, cursorX + count(0)))
             'Z'.code -> tabBackward(count(0))
+            /* More than a screenful looks the same and costs the host nothing to ask. */
             'b'.code -> if (lastChar != 0) {
                 val ch = lastChar
-                repeat(minOf(count(0), MAX_PARAM_VALUE)) { print(ch) }
+                repeat(minOf(count(0), columns * rows)) { print(ch) }
             }
             'c'.code -> if (arg(0, 0) == 0) reply("\u001b[?62;22c")
             'd'.code -> setCursor(cursorX, count(0) - 1)

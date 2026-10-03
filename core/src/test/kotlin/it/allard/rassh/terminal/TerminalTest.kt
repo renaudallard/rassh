@@ -246,6 +246,15 @@ class TerminalTest {
     }
 
     @Test
+    fun repeatIsBoundedByTheScreen() {
+        val t = term(columns = 4, rows = 2)
+        t.put("x\r\n\u001b[1;1Ha\u001b[65535b")
+        /* At most 4 x 2 more cells were printed, the rest scrolled away. */
+        assertEquals(1, t.historySize)
+        assertEquals("aaaa", t.line(0))
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")
