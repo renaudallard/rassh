@@ -211,6 +211,13 @@ fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<Parcel
     return pipes
 }
 
+/* Shell code giving the agent 100 short waits to create its socket, it may have just started. */
+const val AGENT_WAIT = "i=0; while [ ! -S \"\$SSH_AUTH_SOCK\" ] && [ \$i -lt 100 ]; do sleep 0.01; i=\$((i + 1)); done; "
+
+/** Arguments for SHELL running ssh-add with args once the agent is up. */
+fun addCommand(args: List<String>): List<String> =
+    listOf("sh", "-c", AGENT_WAIT + "exec ssh-add \"\$@\"", "sh") + args
+
 /** ssh-add arguments loading the keys of keyPipes() for KEY_LIFETIME. */
 fun addArgs(count: Int): List<String> =
     listOf("-t", KEY_LIFETIME.toString()) + (0 until count).map { "/dev/fd/${3 + it}" }

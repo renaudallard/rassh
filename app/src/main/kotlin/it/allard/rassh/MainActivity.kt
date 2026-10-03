@@ -201,7 +201,8 @@ class MainActivity : Activity(), SessionService.Listener {
             }
             try {
                 /* ssh-add from the pipes, then the program, found in PATH. */
-                val script = "ssh-add " + addArgs(names.size).joinToString(" ") + "; exec \"\$0\" \"\$@\""
+                val script = AGENT_WAIT + "ssh-add " + addArgs(names.size).joinToString(" ") +
+                    "; exec \"\$0\" \"\$@\""
                 if (start(service, title, SHELL, listOf("sh", "-c", script) + argv, cwd, pipes))
                     service.keysUnlocked()
             } finally {

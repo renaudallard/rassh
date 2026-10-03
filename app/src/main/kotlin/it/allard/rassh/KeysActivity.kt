@@ -138,7 +138,7 @@ class KeysActivity : Activity() {
                 return@withVaultKey
             }
             try {
-                if (run(title, paths.add, listOf("ssh-add") + addArgs(names.size), pipes) && all)
+                if (run(title, SHELL, addCommand(addArgs(names.size)), pipes) && all)
                     binding.service?.keysUnlocked()
             } finally {
                 pipes.forEach { it.close() }
@@ -266,7 +266,7 @@ class KeysActivity : Activity() {
             if (name in vaultNames())
                 unlock(name, listOf(name), false)
             else
-                run(name, paths.add, listOf("ssh-add", File(paths.sshDir, name).path))
+                run(name, SHELL, addCommand(listOf(File(paths.sshDir, name).path)))
         })
         actions.add(R.string.rename to { renameKey(name) })
         actions.add(R.string.delete to { deleteKey(name) })
@@ -388,10 +388,10 @@ class KeysActivity : Activity() {
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
             MENU_UNLOCK -> unlock(getString(R.string.unlock_keys), vaultNames(), true)
-            MENU_AGENT_LIST -> run(getString(R.string.agent_keys), paths.add, listOf("ssh-add", "-l"))
+            MENU_AGENT_LIST -> run(getString(R.string.agent_keys), SHELL, addCommand(listOf("-l")))
             MENU_AGENT_CLEAR -> {
                 binding.service?.lockKeys()
-                run(getString(R.string.agent_clear), paths.add, listOf("ssh-add", "-D"))
+                run(getString(R.string.agent_clear), SHELL, addCommand(listOf("-D")))
             }
             android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)

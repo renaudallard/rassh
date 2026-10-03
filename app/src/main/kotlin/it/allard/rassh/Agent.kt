@@ -16,8 +16,8 @@ class Agent(private val paths: Paths) {
     private var child: Child? = null
 
     /*
-     * Start the agent unless it runs and wait for its socket so clients
-     * find it. Returns true when a new, empty, agent was started.
+     * Start the agent unless it runs. Clients wait for its socket, see
+     * AGENT_WAIT. Returns true when a new, empty, agent was started.
      */
     @Throws(IOException::class)
     fun start(): Boolean {
@@ -35,10 +35,6 @@ class Agent(private val paths: Paths) {
             } catch (_: IOException) {
             }
             handler.post { if (child === c) child = null }
-        }
-        for (i in 0 until SOCKET_TRIES) {
-            if (paths.agentSocket.exists()) break
-            Thread.sleep(SOCKET_DELAY)
         }
         return true
     }
@@ -66,7 +62,5 @@ class Agent(private val paths: Paths) {
         private const val ROWS = 24
         private const val COLUMNS = 80
         private const val SIGTERM = 15
-        private const val SOCKET_TRIES = 100
-        private const val SOCKET_DELAY = 10L
     }
 }
