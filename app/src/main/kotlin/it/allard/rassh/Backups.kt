@@ -230,6 +230,8 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
      */
     val keys = items.filter { it.type == Backup.KEY }
     val sealed = keys.map { it.name }.filter { hasPublicKey(items, it) }.toSet()
+    /* Checked first, not to stop with only part of the file written. */
+    if (sealed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
