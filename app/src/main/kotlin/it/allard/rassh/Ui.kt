@@ -6,11 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.BaseAdapter
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 
@@ -37,6 +40,28 @@ fun Context.themeColor(attr: Int): Int {
         a.recycle()
     }
 }
+
+/** A single line field for a file name or path, without suggestions. */
+fun Context.pathField(text: String): EditText {
+    val field = EditText(this)
+    field.isSingleLine = true
+    field.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI or
+        InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+    field.setText(text)
+    return field
+}
+
+/** Views stacked and padded like the text of a dialog. */
+fun Context.dialogLayout(vararg views: View): LinearLayout {
+    val layout = LinearLayout(this)
+    layout.orientation = LinearLayout.VERTICAL
+    val pad = (resources.displayMetrics.density * DIALOG_PADDING).toInt()
+    layout.setPadding(pad, pad / 2, pad, 0)
+    for (v in views) layout.addView(v)
+    return layout
+}
+
+private const val DIALOG_PADDING = 20
 
 fun Context.toast(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_LONG).show()

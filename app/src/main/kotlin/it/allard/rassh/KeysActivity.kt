@@ -16,8 +16,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
@@ -156,22 +154,14 @@ class KeysActivity : Activity() {
     }
 
     private fun generate() {
-        val layout = LinearLayout(this)
-        layout.orientation = LinearLayout.VERTICAL
-        val pad = (resources.displayMetrics.density * 20).toInt()
-        layout.setPadding(pad, pad / 2, pad, 0)
         val typeLabel = TextView(this)
         typeLabel.setText(R.string.key_type)
         val type = Spinner(this)
         type.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, KEY_TYPES)
         val nameLabel = TextView(this)
         nameLabel.setText(R.string.key_name)
-        val name = EditText(this)
-        name.isSingleLine = true
-        layout.addView(typeLabel)
-        layout.addView(type)
-        layout.addView(nameLabel)
-        layout.addView(name)
+        val name = pathField("")
+        val layout = dialogLayout(typeLabel, type, nameLabel, name)
         type.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 name.setText("id_" + KEY_TYPES[position].replace('-', '_'))
@@ -213,13 +203,11 @@ class KeysActivity : Activity() {
         } ?: "id_imported"
 
     private fun importKey(uri: Uri) {
-        val name = EditText(this)
-        name.isSingleLine = true
-        name.setText(displayName(uri))
+        val name = pathField(displayName(uri))
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.import_key)
             .setMessage(R.string.key_name)
-            .setView(name)
+            .setView(dialogLayout(name))
             .setPositiveButton(R.string.import_, null)
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -300,12 +288,10 @@ class KeysActivity : Activity() {
     }
 
     private fun renameKey(name: String) {
-        val field = EditText(this)
-        field.isSingleLine = true
-        field.setText(name)
+        val field = pathField(name)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.rename_key)
-            .setView(field)
+            .setView(dialogLayout(field))
             .setPositiveButton(R.string.rename, null)
             .setNegativeButton(R.string.cancel, null)
             .show()

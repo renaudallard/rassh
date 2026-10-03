@@ -12,7 +12,6 @@ import android.os.ParcelFileDescriptor
 import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.Settings
-import android.text.InputType
 import android.system.ErrnoException
 import android.view.KeyEvent
 import android.view.Menu
@@ -22,7 +21,6 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.PopupMenu
 import android.widget.TextView
@@ -257,27 +255,17 @@ class MainActivity : Activity(), SessionService.Listener {
 
     private fun scp(host: String) {
         withStorage { cwd ->
-            val layout = LinearLayout(this)
-            layout.orientation = LinearLayout.VERTICAL
-            val pad = (resources.displayMetrics.density * 20).toInt()
-            layout.setPadding(pad, pad / 2, pad, 0)
             val hint = TextView(this)
             hint.setText(R.string.scp_hint)
             val fromLabel = TextView(this)
             fromLabel.setText(R.string.scp_from)
-            val from = EditText(this)
-            from.isSingleLine = true
-            from.inputType = PATH_INPUT
-            from.setText(if (cwd == paths.home.path) "" else "Download/")
+            val from = pathField(if (cwd == paths.home.path) "" else "Download/")
             val toLabel = TextView(this)
             toLabel.setText(R.string.scp_to)
-            val to = EditText(this)
-            to.isSingleLine = true
-            to.inputType = PATH_INPUT
-            to.setText(getString(R.string.scp_remote, host))
+            val to = pathField(getString(R.string.scp_remote, host))
             val recursive = CheckBox(this)
             recursive.setText(R.string.scp_recursive)
-            for (v in listOf(hint, fromLabel, from, toLabel, to, recursive)) layout.addView(v)
+            val layout = dialogLayout(hint, fromLabel, from, toLabel, to, recursive)
 
             AlertDialog.Builder(this)
                 .setTitle(R.string.scp)
@@ -390,7 +378,5 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_DELETE = 6
         private const val MENU_SFTP = 7
         private const val MENU_SCP = 8
-        private const val PATH_INPUT = InputType.TYPE_CLASS_TEXT or
-            InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
     }
 }
