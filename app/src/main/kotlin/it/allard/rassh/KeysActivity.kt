@@ -221,10 +221,10 @@ class KeysActivity : Activity() {
             dialog.dismiss()
             try {
                 /* Kept in a byte array, zeroed after use, never in a String. */
-                val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(MAX_KEY_SIZE + 1) }
+                val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(Keys.MAX_SIZE + 1) }
                     ?: throw IOException("cannot open $uri")
                 try {
-                    if (key.size > MAX_KEY_SIZE) throw IOException("file too large")
+                    if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
                     if (!key.startsWith(PEM_START)) throw IOException("not a private key")
                     paths.ensureSshDir()
                     paths.writePrivate(File(paths.sshDir, n), key)
@@ -416,7 +416,6 @@ class KeysActivity : Activity() {
         private const val MENU_AGENT_CLEAR = 4
         private const val MENU_UNLOCK = 5
         private const val REQUEST_IMPORT = 1
-        private const val MAX_KEY_SIZE = 65536
         private val PEM_START = "-----BEGIN ".toByteArray()
 
         private fun ByteArray.startsWith(prefix: ByteArray): Boolean =

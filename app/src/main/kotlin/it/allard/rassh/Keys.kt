@@ -5,6 +5,13 @@ import java.io.IOException
 
 /** Private keys, in the vault or in clear in ~/.ssh until moved there. */
 object Keys {
+    /*
+     * The largest private key accepted, far above any real one. Keys go
+     * to ssh-add through pipes written before it reads, a key must fit
+     * in the 64 KiB pipe buffer or the writer blocks.
+     */
+    const val MAX_SIZE = 65536
+
     private val RESERVED = setOf("config", "known_hosts", "known_hosts2", "authorized_keys", Vault.FILE)
 
     @Throws(IOException::class)

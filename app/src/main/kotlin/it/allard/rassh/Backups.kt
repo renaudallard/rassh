@@ -171,7 +171,7 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
             item.name.endsWith(".pub") && Keys.isValidName(item.name.removeSuffix(".pub"))
-        Backup.KEY -> Keys.isValidName(item.name)
+        Backup.KEY -> Keys.isValidName(item.name) && item.data.size <= Keys.MAX_SIZE
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
         else -> false
