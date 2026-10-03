@@ -44,10 +44,12 @@ class Paths(context: Context) {
      */
     fun linkPrograms() {
         if (!bin.isDirectory) bin.mkdirs()
+        /* Replaced by a rename, so that a running ssh always finds them. */
         for (name in PROGRAMS) {
-            val link = File(bin, name)
-            link.delete()
-            Os.symlink(program(name), link.path)
+            val tmp = File(bin, "$name.tmp")
+            tmp.delete()
+            Os.symlink(program(name), tmp.path)
+            Os.rename(tmp.path, File(bin, name).path)
         }
     }
 
