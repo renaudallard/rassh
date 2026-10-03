@@ -99,6 +99,8 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
             refresh()
             return
         }
+        /* Keys pressed together each cancel the previous repeat, so none is orphaned. */
+        stopRepeat()
         listener?.onExtraKey(action)
         if (action is Action.Special) {
             val r = object : Runnable {
