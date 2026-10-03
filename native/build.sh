@@ -78,6 +78,8 @@ build_abi()
 	    RANLIB="$toolchain/bin/llvm-ranlib" \
 	    STRIP="$toolchain/bin/llvm-strip"
 
+	# A previous LibreSSL must not leave headers or libraries behind.
+	rm -rf "$prefix"
 	unpack "$work/libressl-$LIBRESSL_VERSION.tar.gz" "$dir/libressl"
 	(
 		cd "$dir/libressl"
