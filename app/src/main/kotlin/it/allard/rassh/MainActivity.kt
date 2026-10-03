@@ -308,7 +308,7 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun sftp(host: String) {
-        withStorage { cwd -> launch(Launch("sftp $host", paths.sftp, listOf("sftp", host), cwd, host)) }
+        withStorage { cwd -> launch(Launch("sftp $host", paths.sftp, listOf("sftp") + NO_COMMAND + host, cwd, host)) }
     }
 
     private fun scp(host: String) {
@@ -350,7 +350,7 @@ class MainActivity : Activity(), SessionService.Listener {
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 MENU_FILES -> launch(Launch(getString(R.string.files_title, name), paths.ssh,
-                    SSH + listOf("-s", name, "sftp"), paths.home.path, null))
+                    SSH + NO_COMMAND + listOf("-s", name, "sftp"), paths.home.path, null))
                 MENU_SFTP -> sftp(name)
                 MENU_SCP -> scp(name)
                 MENU_EDIT -> startActivity(Intent(this, HostActivity::class.java).putExtra(EXTRA_HOST, name))
@@ -457,6 +457,13 @@ class MainActivity : Activity(), SessionService.Listener {
          * wins over the config, -A typed in quick connect still wins.
          */
         private val SSH = listOf("ssh", "-o", "ForwardAgent=no")
+
+        /*
+         * A RemoteCommand of the host, tmux for instance, makes ssh refuse
+         * the sftp subsystem, and a tty would garble it. scp passes these
+         * itself, sftp does not.
+         */
+        private val NO_COMMAND = listOf("-o", "RemoteCommand=none", "-o", "RequestTTY=no")
         private const val MENU_ADD = 1
         private const val MENU_SESSIONS = 2
         private const val MENU_KEYS = 3
