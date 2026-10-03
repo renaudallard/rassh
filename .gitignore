@@ -1,0 +1,8 @@
+.gradle/
+build/
+local.properties
+/native/build/
+/app/src/main/jniLibs/
+/app/src/main/assets/licenses/
+/tmp/
+*.apk
