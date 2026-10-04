@@ -452,6 +452,17 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
     }
 
+    /*
+     * Android names the accent of a dead key with a modifier letter, ˆ for
+     * the ^ key, which typed alone means the ASCII one, as for ~ and `.
+     */
+    private fun plainAccent(c: Int): Int = when (c) {
+        0x02c6 -> '^'.code
+        0x02dc -> '~'.code
+        0x02cb -> '`'.code
+        else -> c
+    }
+
     private fun sendKey(key: Key, mods: Int) {
         val t = session?.terminal ?: return
         send(KeyEncoder.encode(key, mods, synchronized(t) { t.applicationCursorKeys }))
@@ -556,14 +567,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val modified = mods and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
         if (c and KeyCharacterMap.COMBINING_ACCENT != 0) {
             if (modified) {
-                c = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+                c = plainAccent(c and KeyCharacterMap.COMBINING_ACCENT_MASK)
             } else {
                 /* A second one combines with the first, ^^ gives ^, or sends it and waits itself. */
                 val accent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
                 val pending = deadAccent
                 if (pending != 0) {
                     val composed = KeyCharacterMap.getDeadChar(pending, accent)
-                    send(KeyEncoder.encode(if (composed != 0) composed else pending, 0))
+                    send(KeyEncoder.encode(plainAccent(if (composed != 0) composed else pending), 0))
                     if (composed != 0) return true
                 }
                 deadAccent = accent
@@ -572,7 +583,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
         if (deadAccent != 0 && !modified) {
             val composed = KeyCharacterMap.getDeadChar(deadAccent, c)
-            if (composed != 0) c = composed else send(KeyEncoder.encode(deadAccent, 0))
+            if (composed != 0) c = plainAccent(composed) else send(KeyEncoder.encode(plainAccent(deadAccent), 0))
             deadAccent = 0
         }
         mods = (mods or (extraKeys?.consumeModifiers() ?: 0)) and KeyEncoder.SHIFT.inv()
