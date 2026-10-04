@@ -207,6 +207,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Synchronized
     @Throws(IOException::class)
     fun upload(input: InputStream, path: String, progress: (Long) -> Boolean = { true }) {
+        /* Stopped before it began, as between the files of an upload, it must not truncate one. */
+        if (!progress(0)) throw SftpCancelledException()
         val existed = try {
             lstat(path)
             true

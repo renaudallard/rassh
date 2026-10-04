@@ -78,6 +78,15 @@ class SftpClientTest {
     }
 
     @Test
+    fun cancelledBeforeItBegins() {
+        File(dir, "b").writeText("kept")
+        assertFailsWith<SftpCancelledException> {
+            sftp.upload(ByteArrayInputStream(ByteArray(100_000)), "$dir/b") { false }
+        }
+        assertEquals("kept", File(dir, "b").readText())
+    }
+
+    @Test
     fun listsAndEdits() {
         sftp.mkdir("$dir/sub")
         File(dir, "a").writeText("x")
