@@ -192,7 +192,7 @@ fun useKeyNames(paths: Paths, names: List<String>) {
     rewriteIdentities(paths, names.associate { "$it.pub" to it })
 }
 
-/** Rewrite IdentityFile lines naming files of ~/.ssh, mapped old to new. */
+/** Rewrite IdentityFile and CertificateFile lines naming files of ~/.ssh, mapped old to new. */
 @Throws(IOException::class)
 fun rewriteIdentities(paths: Paths, files: Map<String, String>) {
     if (!paths.config.isFile || files.isEmpty()) return

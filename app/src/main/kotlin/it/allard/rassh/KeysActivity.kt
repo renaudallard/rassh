@@ -121,7 +121,7 @@ class KeysActivity : Activity() {
     /* A vault key may have no file left, its name is taken all the same. */
     private fun checkName(name: String): String? = when {
         !Keys.isValidName(name) -> getString(R.string.error_key_name)
-        File(paths.sshDir, name).exists() || File(paths.sshDir, "$name.pub").exists() ||
+        File(paths.sshDir, name).exists() || Keys.SUFFIXES.any { File(paths.sshDir, name + it).exists() } ||
             name in vaultNames() -> getString(R.string.error_key_exists)
         else -> null
     }
@@ -303,15 +303,24 @@ class KeysActivity : Activity() {
     }
 
     /*
-     * Rename the private key, in the vault when key is given, and its
-     * public key, then the IdentityFile lines naming them.
+     * Rename the private key, in the vault when key is given, and the
+     * files that go with it, then the config lines naming them.
      */
     private fun renameKey(from: String, to: String, key: ByteArray?) {
-        val pubFrom = File(paths.sshDir, "$from.pub")
-        val pubTo = File(paths.sshDir, "$to.pub")
-        if (pubFrom.exists() && !pubFrom.renameTo(pubTo)) {
-            toast(getString(R.string.rename_failed, from))
-            return
+        val moved = mutableListOf<Pair<File, File>>()
+        fun undo() {
+            for ((a, b) in moved) b.renameTo(a)
+        }
+        for (suffix in Keys.SUFFIXES) {
+            val a = File(paths.sshDir, from + suffix)
+            val b = File(paths.sshDir, to + suffix)
+            if (!a.exists()) continue
+            if (!a.renameTo(b)) {
+                undo()
+                toast(getString(R.string.rename_failed, from))
+                return
+            }
+            moved.add(Pair(a, b))
         }
         /* A key in clear has nothing to do with the vault, nor its error. */
         val error = if (key == null) {
@@ -327,13 +336,13 @@ class KeysActivity : Activity() {
             }
         }
         if (error != null) {
-            pubTo.renameTo(pubFrom)
+            undo()
             toast(error)
             load()
             return
         }
         try {
-            rewriteIdentities(paths, mapOf(from to to, "$from.pub" to "$to.pub"))
+            rewriteIdentities(paths, mapOf(from to to) + Keys.SUFFIXES.associate { from + it to to + it })
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
         } catch (e: ErrnoException) {
@@ -358,7 +367,7 @@ class KeysActivity : Activity() {
             return
         }
         File(paths.sshDir, name).delete()
-        File(paths.sshDir, "$name.pub").delete()
+        for (suffix in Keys.SUFFIXES) File(paths.sshDir, name + suffix).delete()
         if (!isDestroyed) load()
     }
 

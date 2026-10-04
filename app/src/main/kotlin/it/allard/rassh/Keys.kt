@@ -17,6 +17,9 @@ object Keys {
 
     private val RESERVED = setOf("config", "known_hosts", "known_hosts2", "authorized_keys", Vault.FILE)
 
+    /** The files named after a key that go with it: its public key and the certificate ssh looks for. */
+    val SUFFIXES = listOf(".pub", "-cert.pub")
+
     @Throws(IOException::class)
     fun list(dir: File, vault: Vault): List<String> = (vault.names() + plaintext(dir)).distinct().sorted()
 

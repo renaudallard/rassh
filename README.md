@@ -133,7 +133,7 @@ There is no PIN fallback.
   fingerprint should destroy the keys. Destroying them stops someone who learns the PIN from
   adding a finger to use them, at the cost of every stored key.
 - Removing or resetting the screen lock always destroys them. Resetting
-  the key storage then also removes their public keys.
+  the key storage then also removes their public keys and certificates.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them, if the vault has room and the key is not
@@ -154,6 +154,7 @@ Public keys stay in clear next to the vault. For an `IdentityFile` whose
 private key is gone, `ssh` takes the public key next to it and finds the
 private one in the agent, so `IdentityFile` lines name vault keys as
 usual, and a certificate next to the key, `<key>-cert.pub`, is used too.
+Renaming or deleting a key in the app takes both along.
 Lines naming the `.pub` of a vault key, as older versions wrote them,
 are pointed back at the key.
 

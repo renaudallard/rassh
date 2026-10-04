@@ -143,6 +143,8 @@ class SshConfigTest {
         assertEquals("Host b", SshConfig.replaceIdentities("Host b", keys))
         assertEquals("IdentityFile ~/.ssh/new.pub\n",
             SshConfig.replaceIdentities("IdentityFile ~/.ssh/old.pub\n", mapOf("~/.ssh/old.pub" to "~/.ssh/new.pub")))
+        assertEquals("CertificateFile ~/.ssh/new-cert.pub\n",
+            SshConfig.replaceIdentities("CertificateFile ~/.ssh/old-cert.pub\n", mapOf("~/.ssh/old-cert.pub" to "~/.ssh/new-cert.pub")))
     }
 
     @Test

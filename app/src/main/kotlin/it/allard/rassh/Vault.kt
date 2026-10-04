@@ -71,9 +71,8 @@ class Vault(private val paths: Paths) {
     }
 
     /**
-     * Forget the Keystore key and every stored key, with their public
-     * keys: left, they would keep the names from new keys and ssh would
-     * take them for the private keys, which it cannot load.
+     * Forget the Keystore key and every stored key, with the files that
+     * go with them: left, they would keep their names from new keys.
      */
     fun reset() {
         val names = try {
@@ -83,8 +82,10 @@ class Vault(private val paths: Paths) {
         }
         keyStore().deleteEntry(ALIAS)
         file.delete()
-        for (name in names)
-            if (!File(paths.sshDir, name).exists()) File(paths.sshDir, "$name.pub").delete()
+        for (name in names) {
+            if (File(paths.sshDir, name).exists()) continue
+            for (suffix in Keys.SUFFIXES) File(paths.sshDir, name + suffix).delete()
+        }
     }
 
     /**
