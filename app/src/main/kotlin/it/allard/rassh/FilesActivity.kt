@@ -21,6 +21,7 @@ import it.allard.rassh.sftp.SftpAttrs
 import it.allard.rassh.sftp.SftpCancelledException
 import it.allard.rassh.sftp.SftpClient
 import it.allard.rassh.sftp.SftpEntry
+import it.allard.rassh.sftp.shownName
 import it.allard.rassh.sftp.SftpException
 import java.io.IOException
 import java.text.DateFormat
@@ -169,7 +170,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             /* Uploads still go there when it cannot be listed, a drop folder for one. */
             if (cwd == null) {
                 cwd = start
-                pathView.text = start
+                pathView.text = shownName(start)
             }
             showTerminal(false)
             load(cwd ?: start)
@@ -216,7 +217,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             if (client() != null && (!listed || up)) {
                 cwd = path
                 entries = emptyList()
-                pathView.text = path
+                pathView.text = shownName(path)
                 status.text = getString(R.string.files_failed, e.message)
                 adapter.items = emptyList()
             }
@@ -224,7 +225,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             listed = true
             cwd = dir
             entries = found
-            pathView.text = dir
+            pathView.text = shownName(dir)
             status.setText(R.string.files_empty)
             adapter.items = found.map { Pair(label(it), describe(it.attrs)) }
             list.setSelection(0)
@@ -232,9 +233,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     private fun label(e: SftpEntry): String = when {
-        e.attrs.isDirectory -> e.name + "/"
-        e.attrs.isLink -> e.name + "@"
-        else -> e.name
+        e.attrs.isDirectory -> shownName(e.name) + "/"
+        e.attrs.isLink -> shownName(e.name) + "@"
+        else -> shownName(e.name)
     }
 
     private fun describe(a: SftpAttrs): String {
@@ -270,7 +271,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         items.add(R.string.rename to { rename(e, dir) })
         items.add(R.string.delete to { delete(e, dir) })
         AlertDialog.Builder(this)
-            .setTitle(e.name)
+            .setTitle(shownName(e.name))
             .setItems(items.map { getString(it.first) }.toTypedArray()) { _, which -> items[which].second() }
             .show()
     }
@@ -290,7 +291,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         startActivityForResult(
             Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                 .setType(type ?: "application/octet-stream")
-                .putExtra(Intent.EXTRA_TITLE, e.name),
+                .putExtra(Intent.EXTRA_TITLE, shownName(e.name)),
             REQUEST_DOWNLOAD)
     }
 
@@ -336,7 +337,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun saveTo(remote: String, uri: Uri) {
         val c = client() ?: return
-        val name = remote.substringAfterLast('/')
+        val name = shownName(remote.substringAfterLast('/'))
         transfer(getString(R.string.downloading, name), { progress ->
             try {
                 val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
@@ -409,7 +410,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun rename(e: SftpEntry, dir: String) {
         val c = client() ?: return
-        val field = pathField(e.name)
+        val shown = shownName(e.name)
+        val field = pathField(shown)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.rename)
             .setView(dialogLayout(field))
@@ -423,14 +425,15 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
-            run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
+            /* Unchanged, a name that is not UTF-8 would otherwise get U+FFFD for good. */
+            if (to != shown) run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
         }
     }
 
     private fun delete(e: SftpEntry, dir: String) {
         val c = client() ?: return
         AlertDialog.Builder(this)
-            .setMessage(getString(R.string.delete_file, e.name))
+            .setMessage(getString(R.string.delete_file, shownName(e.name)))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val p = path(dir, e.name)
                 run({ if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p) }) { load(dir) }

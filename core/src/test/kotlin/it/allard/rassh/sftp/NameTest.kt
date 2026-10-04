@@ -32,6 +32,12 @@ class NameTest {
     }
 
     @Test
+    fun showsNoSurrogates() {
+        assertEquals("c\ufffd", shownName(decodeName(bytes(0x63, 0xe9))))
+        assertEquals("\u00e9t\u00e9 \ud83d\ude00", shownName("\u00e9t\u00e9 \ud83d\ude00"))
+    }
+
+    @Test
     fun decodesUtf8() {
         assertEquals("été", decodeName("été".toByteArray()))
         assertEquals("c\udce9", decodeName(bytes(0x63, 0xe9)))

@@ -314,7 +314,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun statusOf(r: Reply): SftpException {
         expect(r, FXP_STATUS)
         val code = r.body.u32()
-        val message = r.body.text()
+        /* Only shown, never sent back. */
+        val message = String(r.body.bytes(), Charsets.UTF_8)
         return SftpException(code, message.ifEmpty { "error $code" })
     }
 
@@ -507,6 +508,12 @@ private fun sequence(b: ByteArray, i: Int): Int {
     }
     return n
 }
+
+/**
+ * name, or a path, as shown: lone surrogates make Android's accessibility
+ * services fail, the bytes that are not UTF-8 show as U+FFFD instead.
+ */
+fun shownName(name: String): String = String(encodeName(name), Charsets.UTF_8)
 
 internal fun encodeName(s: String): ByteArray {
     val out = ByteArrayOutputStream(s.length)
