@@ -216,6 +216,16 @@ class SshConfigTest {
     }
 
     @Test
+    fun hostLineWithAComment() {
+        val config = SshConfig.parse("Host web # office\n    User a\n")
+        assertEquals(listOf("web"), config.hosts.map { it.name })
+        config.put("web", Host("web", user = "b"))
+        assertTrue(config.toString().startsWith("Host web # office\n    User b\n"))
+        config.put("web", Host("www", user = "b"))
+        assertTrue(config.toString().startsWith("Host www\n"))
+    }
+
+    @Test
     fun keepsBlockLinesAsWritten() {
         val text = "Host==foo\n    User x\n  host  =  a  \nMatch=all\n"
         val config = SshConfig.parse(text)

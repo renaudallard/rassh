@@ -61,8 +61,13 @@ class SshConfig private constructor(
         val lines: List<String>,
         val line: String? = null,
     ) {
+        /* The one host a Host line names, a comment after it allowed, or null. */
+        val name: String? =
+            if (!keyword.equals("Host", ignoreCase = true)) null
+            else arguments(value)?.singleOrNull()?.takeIf { Host.isValidName(it) }
+
         val isHost: Boolean
-            get() = keyword.equals("Host", ignoreCase = true) && Host.isValidName(value)
+            get() = name != null
     }
 
     /*
@@ -70,10 +75,10 @@ class SshConfig private constructor(
      * it finds, edits change that block and remove() takes them all.
      */
     val hosts: List<Host>
-        get() = blocks.filter { it.isHost }.distinctBy { it.value }.map { toHost(it) }
+        get() = blocks.filter { it.isHost }.distinctBy { it.name }.map { toHost(it) }
 
     fun find(name: String): Host? =
-        blocks.find { it.isHost && it.value == name }?.let { toHost(it) }
+        blocks.find { it.name == name }?.let { toHost(it) }
 
     /**
      * Whether a Host line names name, alone or with others. ssh matches
@@ -92,9 +97,11 @@ class SshConfig private constructor(
      * options take precedence.
      */
     fun put(old: String?, host: Host) {
-        val i = if (old == null) -1 else blocks.indexOfFirst { it.isHost && it.value == old }
+        val i = if (old == null) -1 else blocks.indexOfFirst { it.name == old }
         if (i >= 0) {
-            blocks[i] = Block(blocks[i].leading, "Host", host.name, render(host))
+            /* The Host line stays as written while the name does, with its comment. */
+            val line = if (host.name == old) blocks[i].line else null
+            blocks[i] = Block(blocks[i].leading, "Host", host.name, render(host), line)
         } else {
             val at = blocks.indexOfFirst { !it.isHost }
             blocks.add(if (at < 0) blocks.size else at, Block(emptyList(), "Host", host.name, render(host)))
@@ -102,7 +109,7 @@ class SshConfig private constructor(
     }
 
     fun remove(name: String) {
-        blocks.removeAll { it.isHost && it.value == name }
+        blocks.removeAll { it.name == name }
     }
 
     /**
@@ -112,10 +119,10 @@ class SshConfig private constructor(
      * added.
      */
     fun addMissing(other: SshConfig): List<String> {
-        val added = other.blocks.filter { it.isHost && !isUsed(it.value) }
+        val added = other.blocks.filter { b -> b.name?.let { !isUsed(it) } == true }
         val at = blocks.indexOfFirst { !it.isHost }
         blocks.addAll(if (at < 0) blocks.size else at, added)
-        return added.map { it.value }.distinct()
+        return added.mapNotNull { it.name }.distinct()
     }
 
     override fun toString(): String {
@@ -151,7 +158,7 @@ class SshConfig private constructor(
                 line.isNotBlank() -> other.add(line.trim())
             }
         }
-        return Host(block.value, hostName.orEmpty(), user.orEmpty(), port.orEmpty(),
+        return Host(block.name.orEmpty(), hostName.orEmpty(), user.orEmpty(), port.orEmpty(),
             identity.orEmpty(), local, remote, dynamic, other)
     }
 

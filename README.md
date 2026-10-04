@@ -50,7 +50,8 @@ fingerprint is enrolled, private keys are encrypted and unlocked with it.
   user, port, identity file, local, remote and dynamic forwards, plus any
   other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
   included, and their comments are left untouched, the comments of an
-  edited host stay among its other options. ssh checks the file before
+  edited host stay among its other options, but not one ending its host
+  name, user, port or identity file line. ssh checks the file before
   it is saved, since one bad line would stop every host. A checkbox
   attaches to the last tmux session or starts one, with
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`
