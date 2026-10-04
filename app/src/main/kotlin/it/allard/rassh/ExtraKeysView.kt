@@ -10,6 +10,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import it.allard.rassh.terminal.KeyEncoder
@@ -36,6 +37,8 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
     private val modifierViews = mutableMapOf<Int, TextView>()
     private val handler = Handler(Looper.getMainLooper())
     private var repeater: Runnable? = null
+    /* The key whose repeat runs, only lifting it stops the repeat. */
+    private var repeatView: View? = null
 
     init {
         orientation = VERTICAL
@@ -96,24 +99,24 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
                 MotionEvent.ACTION_DOWN -> {
                     view.isPressed = true
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    press(action)
+                    press(action, view)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     view.isPressed = false
-                    stopRepeat()
+                    if (repeatView === view) stopRepeat()
                 }
             }
             true
         }
         /* Touches never reach this, accessibility services click instead. */
         v.setOnClickListener {
-            press(action)
+            press(action, v)
             stopRepeat()
         }
         return v
     }
 
-    private fun press(action: Action) {
+    private fun press(action: Action, view: View) {
         if (action is Action.Modifier) {
             modifiers = modifiers xor action.mask
             refresh()
@@ -132,6 +135,7 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
                 }
             }
             repeater = r
+            repeatView = view
             handler.postDelayed(r, REPEAT_DELAY)
         }
     }
@@ -139,6 +143,7 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
     private fun stopRepeat() {
         repeater?.let { handler.removeCallbacks(it) }
         repeater = null
+        repeatView = null
     }
 
     private fun refresh() {
