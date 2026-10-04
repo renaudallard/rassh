@@ -171,7 +171,6 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
                 }
                 file.delete()
             }
-            usePublicKeys(paths, pending)
         } catch (e: IOException) {
             /* Like a refusal, not to ask again at once for the same keys. */
             toast(getString(R.string.vault_error, e.message))
@@ -182,13 +181,15 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
 }
 
 /*
- * ssh skips an IdentityFile whose private key is gone but takes a public
- * key and finds the private one in the agent, so point the config at
- * the public keys of the keys moved into the vault.
+ * Point IdentityFile lines naming the public key of a vault key, as
+ * older versions wrote them, back at the key. ssh takes the public key
+ * next to a private key that is gone and finds the latter in the agent,
+ * and it looks for a certificate as <key>-cert.pub, which the name of the
+ * public key hid.
  */
 @Throws(IOException::class)
-fun usePublicKeys(paths: Paths, names: List<String>) {
-    rewriteIdentities(paths, names.associateWith { "$it.pub" })
+fun useKeyNames(paths: Paths, names: List<String>) {
+    rewriteIdentities(paths, names.associate { "$it.pub" to it })
 }
 
 /** Rewrite IdentityFile lines naming files of ~/.ssh, mapped old to new. */

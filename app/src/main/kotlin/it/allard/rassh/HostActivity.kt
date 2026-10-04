@@ -66,12 +66,11 @@ class HostActivity : Activity() {
         val host = original?.let { config.find(it) } ?: Host("")
         actionBar?.setTitle(if (original == null) R.string.new_host else R.string.edit_host)
 
-        /* Keys in the vault are named by their public key, see usePublicKeys(). */
-        identities = Keys.plaintext(paths.sshDir).map { "~/.ssh/$it" } + try {
-            Vault(paths).names().map { "~/.ssh/$it.pub" }
+        identities = (Keys.plaintext(paths.sshDir) + try {
+            Vault(paths).names()
         } catch (_: IOException) {
             emptyList()
-        }
+        }).map { "~/.ssh/$it" }
         if (host.identityFile.isNotEmpty() && host.identityFile !in identities)
             identities = identities + host.identityFile
         val labels = listOf(getString(R.string.identity_default)) + identities

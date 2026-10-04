@@ -137,11 +137,11 @@ class MainActivity : Activity(), SessionService.Listener {
 
     /*
      * Move keys left in clear into the vault, not asking twice for the
-     * same ones, and point IdentityFile lines at the vault public keys.
+     * same ones, and name vault keys in IdentityFile lines, see useKeyNames().
      */
     private fun protect() {
         try {
-            usePublicKeys(paths, vault.names())
+            useKeyNames(paths, vault.names())
         } catch (e: IOException) {
             toast(getString(R.string.vault_error, e.message))
         } catch (e: ErrnoException) {

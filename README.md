@@ -150,10 +150,12 @@ There is no PIN fallback.
   confirmed, goes on without them. Cancelling connects without them,
   for password logins.
 
-Public keys stay in clear next to the vault. Since `ssh` skips an
-`IdentityFile` whose private key is gone, but takes a public key and finds
-the private one in the agent, `IdentityFile` lines naming a vault key are
-pointed at its `.pub`, and the host editor offers them that way.
+Public keys stay in clear next to the vault. For an `IdentityFile` whose
+private key is gone, `ssh` takes the public key next to it and finds the
+private one in the agent, so `IdentityFile` lines name vault keys as
+usual, and a certificate next to the key, `<key>-cert.pub`, is used too.
+Lines naming the `.pub` of a vault key, as older versions wrote them,
+are pointed back at the key.
 
 ## Moving to another phone
 

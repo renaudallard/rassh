@@ -243,7 +243,7 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     }
     vault.replaceAll(key, keys.filter { it.name in sealed }.map { it.name to it.data })
     for (item in publicKeys) paths.writePrivate(File(dir, item.name), item.data)
-    usePublicKeys(paths, sealed.toList())
+    useKeyNames(paths, sealed.toList())
     val clear = keys.map { it.name }.toSet() - sealed
     for (item in keys) {
         if (item.name in sealed) continue
@@ -303,7 +303,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)
-    usePublicKeys(paths, keys.filter { sealable(items, it) }.map { it.name })
+    useKeyNames(paths, keys.filter { sealable(items, it) }.map { it.name })
     return Pair(hosts, keys.size)
 }
 
