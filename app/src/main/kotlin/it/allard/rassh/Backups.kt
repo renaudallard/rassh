@@ -262,7 +262,9 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
             File(dir, name).delete()
         } else if (name !in clear) {
             File(dir, name).delete()
-            for (suffix in Keys.suffixes(name, names)) File(dir, name + suffix).delete()
+            /* Not one the file brings: x-cert.pub of an old key x-cert may be the certificate of x. */
+            for (suffix in Keys.suffixes(name, names))
+                if (name + suffix !in files) File(dir, name + suffix).delete()
         }
     }
     for (name in listOf(CONFIG, KNOWN_HOSTS))
