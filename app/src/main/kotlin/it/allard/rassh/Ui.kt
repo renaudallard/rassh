@@ -16,6 +16,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import java.io.IOException
 
 const val EXTRA_SESSION = "it.allard.rassh.SESSION"
 const val EXTRA_HOST = "it.allard.rassh.HOST"
@@ -117,3 +118,12 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
         return v
     }
 }
+
+/*
+ * Whether e is a failure of a file or a content provider, which may also
+ * refuse with SecurityException or IllegalArgumentException, a revoked
+ * permission for instance. Uncaught in a thread, those would end the
+ * app and its sessions.
+ */
+fun isFileError(e: Exception): Boolean =
+    e is IOException || e is SecurityException || e is IllegalArgumentException

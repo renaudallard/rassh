@@ -52,7 +52,8 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                     val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
                     out.use { it.write(sealed) }
                     null
-                } catch (e: IOException) {
+                } catch (e: Exception) {
+                    if (!isFileError(e)) throw e
                     discard()
                     e.message
                 } finally {
@@ -146,7 +147,8 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 null
             } catch (_: GeneralSecurityException) {
                 getString(R.string.wrong_passphrase)
-            } catch (e: IOException) {
+            } catch (e: Exception) {
+                if (!isFileError(e)) throw e
                 e.message
             } finally {
                 pass.fill('\u0000')

@@ -219,9 +219,10 @@ class KeysActivity : Activity() {
                         key.fill(0)
                     }
                     null
-                } catch (e: IOException) {
-                    e.message
                 } catch (e: ErrnoException) {
+                    e.message
+                } catch (e: Exception) {
+                    if (!isFileError(e)) throw e
                     e.message
                 }
                 runOnUiThread {
