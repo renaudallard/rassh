@@ -344,7 +344,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             try {
                 val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
                 out.use { c.download(remote, it, progress) }
-            } catch (e: IOException) {
+            } catch (e: Exception) {
+                if (!isFileError(e)) throw e
                 /* Not to leave a partial or empty file behind. */
                 try {
                     DocumentsContract.deleteDocument(contentResolver, uri)
