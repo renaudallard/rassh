@@ -66,6 +66,10 @@ class Session(
     private var closed = false
     private val handler = Handler(Looper.getMainLooper())
     private val updatePending = AtomicBoolean()
+    /* The last title the program set, shown by one post however many come. */
+    @Volatile
+    private var newTitle = ""
+    private val titlePending = AtomicBoolean()
     private val pending = AtomicInteger()
     private val readerDone = CountDownLatch(1)
 
@@ -200,9 +204,13 @@ class Session(
     }
 
     override fun titleChanged(title: String) {
-        handler.post {
-            this.title = title.ifEmpty { name }
-            listener?.onTitleChanged()
+        newTitle = title
+        if (titlePending.compareAndSet(false, true)) {
+            handler.post {
+                titlePending.set(false)
+                this.title = newTitle.ifEmpty { name }
+                listener?.onTitleChanged()
+            }
         }
     }
 
