@@ -143,7 +143,7 @@ class Session(
                 terminal.resetParser()
                 terminal.feed(message.toByteArray())
             }
-            handler.post { finished() }
+            handler.post { finished(status) }
         }
     }
 
@@ -259,9 +259,11 @@ class Session(
         tailLength += keep
     }
 
-    private fun finished() {
+    private fun finished(status: Int) {
         isRunning = false
-        changedHostKey = synchronized(terminal) { HOST_KEY_CHANGED.find(String(tail, 0, tailLength))?.groupValues?.get(1) }
+        /* ssh gave up and these are its last lines, not output that went by. */
+        if (status == SSH_FAILED)
+            changedHostKey = synchronized(terminal) { HOST_KEY_CHANGED.find(String(tail, 0, tailLength))?.groupValues?.get(1) }
         try {
             dataOutput?.close()
             dataInput?.close()
@@ -274,9 +276,15 @@ class Session(
     companion object {
         private const val BUFFER_SIZE = 8192
         private const val TAIL_SIZE = 4096
-        /* ssh's warning, before it gives up with "Host key verification failed". */
-        /* ssh's last words then, see check_host_key() in sshconnect.c. */
-        private val HOST_KEY_CHANGED = Regex("""Host key for (\S+) has changed and you have requested strict checking""")
+        /*
+         * What ssh writes last when it refuses a changed key, see
+         * check_host_key() in sshconnect.c and verify_host_key_callback()
+         * in sshconnect2.c.
+         */
+        private val HOST_KEY_CHANGED = Regex(
+            """Host key for (\S+) has changed and you have requested strict checking\.\r*\n""" +
+                """Host key verification failed\.\r*\n?$""")
+        private const val SSH_FAILED = 255
         private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
         private const val CLOSE_MILLIS = 2000L
