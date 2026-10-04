@@ -26,8 +26,8 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
     val cipher = try {
         vault.cipher()
     } catch (_: KeyPermanentlyInvalidatedException) {
-        vaultInvalidated(vault)
-        failed()
+        /* Once read: a connection would otherwise open over the dialog without keys. */
+        vaultInvalidated(vault, failed)
         return
     } catch (e: GeneralSecurityException) {
         toast(getString(R.string.vault_error, e.message))
@@ -82,13 +82,15 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
         })
 }
 
-private fun Activity.vaultInvalidated(vault: Vault) {
+/* closed is called once the dialog is gone. */
+private fun Activity.vaultInvalidated(vault: Vault, closed: () -> Unit = {}) {
     AlertDialog.Builder(this)
         /* Not telling of keys lost when there were none, as after deleting them all. */
         .setMessage(if (holdsKeys(vault)) R.string.vault_invalidated else R.string.vault_invalidated_empty)
         /* A new vault is set up from the main screen, see MainActivity.setUp(). */
         .setPositiveButton(R.string.vault_reset) { _, _ -> vault.reset() }
         .setNegativeButton(R.string.cancel, null)
+        .setOnDismissListener { closed() }
         .show()
 }
 
