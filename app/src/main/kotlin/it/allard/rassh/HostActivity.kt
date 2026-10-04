@@ -158,14 +158,21 @@ class HostActivity : Activity() {
         checking = true
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
-            val refused = try {
-                refusal(text, n)
+            var refused: String? = null
+            /* Not ssh's verdict, the check itself could not run. */
+            var failed: String? = null
+            try {
+                refused = refusal(text, n)
             } catch (e: IOException) {
-                e.message
+                failed = e.message
             }
             runOnUiThread {
                 checking = false
                 if (isDestroyed) return@runOnUiThread
+                if (failed != null) {
+                    toast(getString(R.string.config_check_failed, failed))
+                    return@runOnUiThread
+                }
                 if (refused != null) {
                     /* A dialog, a toast would cut ssh's lines short. */
                     AlertDialog.Builder(this)

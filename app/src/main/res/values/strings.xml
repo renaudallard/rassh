@@ -17,6 +17,7 @@
     <string name="start_failed">Cannot start %1$s: %2$s</string>
     <string name="config_failed">Cannot write ssh config: %1$s</string>
     <string name="config_refused">ssh refuses this configuration: %1$s</string>
+    <string name="config_check_failed">Cannot check the configuration: %1$s</string>
     <string name="sftp">sftp</string>
     <string name="scp">scp</string>
     <string name="scp_from">From</string>
