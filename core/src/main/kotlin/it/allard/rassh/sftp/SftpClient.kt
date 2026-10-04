@@ -193,7 +193,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
      * Copy input to the file path, created or truncated, in place like
      * OpenSSH's sftp: the file keeps its owner, group, permissions and
      * links. A stopped upload of a new file removes it, one replacing a
-     * file leaves it cut short. progress works as in download().
+     * file leaves it cut short, as one through a link, even a dangling
+     * one. progress works as in download().
      */
     @Synchronized
     @Throws(IOException::class)
