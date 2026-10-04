@@ -18,8 +18,10 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.Rassh">
 
+        <!-- Not recreated on rotation, which would drop an export or import in progress. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
