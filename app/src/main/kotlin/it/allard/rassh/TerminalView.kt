@@ -201,12 +201,15 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (count > 0) canvas.drawText(runChars, 0, count, start * cellWidth, y, paint)
     }
 
-    private fun drawCursor(canvas: Canvas, row: TerminalRow, x: Int, y: Int) {
-        if (x >= row.columns) return
+    private fun drawCursor(canvas: Canvas, row: TerminalRow, cursorX: Int, y: Int) {
+        if (cursorX >= row.columns) return
+        /* On a wide character, the cursor covers both its cells, as in xterm. */
+        val x = if (cursorX > 0 && row.text[cursorX] == TerminalRow.WIDE_TAIL) cursorX - 1 else cursorX
+        val cells = if (x + 1 < row.columns && row.text[x + 1] == TerminalRow.WIDE_TAIL) 2 else 1
         val left = x * cellWidth
         val top = (y * cellHeight).toFloat()
         setPaint(foreground, 0)
-        canvas.drawRect(left, top, left + cellWidth, top + cellHeight, paint)
+        canvas.drawRect(left, top, left + cells * cellWidth, top + cellHeight, paint)
         val c = row.text[x]
         if (c > 0x20) {
             setPaint(background, 0)
