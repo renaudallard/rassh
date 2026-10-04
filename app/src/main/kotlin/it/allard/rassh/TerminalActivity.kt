@@ -127,7 +127,9 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
             .setTitle(R.string.sessions)
             .setItems(labels.toTypedArray()) { _, which ->
                 if (which < sessions.size) show(sessions[which])
-                else startActivity(Intent(this, MainActivity::class.java))
+                /* The main screen already open rather than another, without closing a file browser above it. */
+                else startActivity(Intent(this, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
             }
             .show()
     }
