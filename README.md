@@ -35,8 +35,8 @@
 
 There is no SSH reimplementation: `ssh`, `sftp`, `scp`, `ssh-agent`,
 `ssh-add` and `ssh-keygen` are the OpenSSH programs, so what works with
-`ssh` on a Unix box works here, `~/.ssh/config` included. Private keys are
-encrypted and unlocked with your fingerprint.
+`ssh` on a Unix box works here, `~/.ssh/config` included. Once a
+fingerprint is enrolled, private keys are encrypted and unlocked with it.
 
 ## Features
 
@@ -79,8 +79,8 @@ encrypted and unlocked with your fingerprint.
   local configuration with `ssh -G`, so only its own keys are removed
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
-  Opening a second one to the same server asks first, and sessions to the
-  same server show when they were opened
+  Opening a second one to the same saved host, or with the same quick
+  connect text, asks first, and such sessions show when they were opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, which sends the arrow keys to full screen programs like vim or
@@ -123,8 +123,9 @@ the Android Keystore, kept in StrongBox when the phone has one, that only
 works after a strong biometric check and while the phone is unlocked.
 There is no PIN fallback.
 
-- At first start the app asks whether enrolling a new fingerprint should
-  destroy the keys. Destroying them stops someone who learns the PIN from
+- Until a fingerprint is enrolled, keys stay in clear in `~/.ssh`. Once
+  one is, at first start or later, the app asks whether enrolling a new
+  fingerprint should destroy the keys. Destroying them stops someone who learns the PIN from
   adding a finger to use them, at the cost of every stored key.
 - Removing or resetting the screen lock always destroys them.
 - Private keys found in clear in `~/.ssh`, existing, generated or

@@ -84,7 +84,7 @@
     <string name="save">Save</string>
     <string name="error_name">Name is required, must not start with - nor contain spaces, wildcards or characters like @ / ; $ | ( )</string>
     <string name="error_name_used">This name is already used</string>
-    <string name="error_word">Must not contain spaces or quotes</string>
+    <string name="error_word">Must not contain spaces, quotes or #</string>
     <string name="error_port">Port must be between 1 and 65535</string>
     <string name="error_option">Host and Match lines are not allowed here</string>
 
