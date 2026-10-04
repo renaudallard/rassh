@@ -19,11 +19,12 @@ data class Host(
          * ssh as a destination: ssh_valid_hostname() in readconf.c refuses
          * a leading - and these characters, a - would also make an option.
          * ssh reads a destination with @ as user@host and one starting with
-         * ssh:// as a URI, before it looks for the Host block.
+         * ssh:// as a URI, before it looks for the Host block. sftp and
+         * scp take the host out of [ ], which a name thus cannot hold.
          */
         fun isValidName(name: String): Boolean =
             name.isNotEmpty() && !name.startsWith("-") &&
-                name.none { it.isWhitespace() || it.isISOControl() || it in "*?!,\"'#=`$\\;&<>|(){}@/" }
+                name.none { it.isWhitespace() || it.isISOControl() || it in "*?!,\"'#=`$\\;&<>|(){}@/[]" }
 
         /** A single word usable as a HostName or User value. */
         fun isValidWord(value: String): Boolean =

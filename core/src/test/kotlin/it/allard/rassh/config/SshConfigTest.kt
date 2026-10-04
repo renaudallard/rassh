@@ -150,6 +150,7 @@ class SshConfigTest {
         assertTrue(Host.isValidName("my-host.example"))
         assertFalse(Host.isValidName(""))
         assertFalse(Host.isValidName("a b"))
+        assertFalse(Host.isValidName("[web]"))
         assertFalse(Host.isValidName("*.lan"))
         assertFalse(Host.isValidName("!a"))
         assertTrue(Host.isValidPort(""))

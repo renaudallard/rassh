@@ -317,8 +317,13 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun sftp(host: String) {
-        withStorage { cwd -> launch(Launch("sftp $host", paths.sftp, listOf("sftp") + NO_COMMAND + host, cwd, host)) }
+        withStorage { cwd ->
+            launch(Launch("sftp $host", paths.sftp, listOf("sftp") + NO_COMMAND + remote(host), cwd, host))
+        }
     }
+
+    /* sftp and scp take what follows a : as a path, unless the host is in [ ]. */
+    private fun remote(host: String): String = if (':' in host) "[$host]" else host
 
     private fun scp(host: String) {
         withStorage { cwd ->
@@ -329,7 +334,7 @@ class MainActivity : Activity(), SessionService.Listener {
             val from = pathField(if (cwd == paths.home.path) "" else "Download/")
             val toLabel = TextView(this)
             toLabel.setText(R.string.scp_to)
-            val to = pathField(getString(R.string.scp_remote, host))
+            val to = pathField(getString(R.string.scp_remote, remote(host)))
             val recursive = CheckBox(this)
             recursive.setText(R.string.scp_recursive)
             val layout = dialogLayout(hint, fromLabel, from, toLabel, to, recursive)
