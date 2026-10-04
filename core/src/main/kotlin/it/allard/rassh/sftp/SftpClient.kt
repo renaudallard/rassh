@@ -304,7 +304,12 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         }
         if (length < 1 || length > MAX_PACKET) throw IOException("bad packet length $length")
         val packet = ByteArray(length)
-        input.readFully(packet)
+        /* Cut in the middle as well, the end would otherwise show as "null". */
+        try {
+            input.readFully(packet)
+        } catch (_: EOFException) {
+            throw IOException("connection closed")
+        }
         val body = Reader(packet, 1)
         return Reply(packet[0].toInt() and 0xff, body)
     }

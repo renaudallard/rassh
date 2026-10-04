@@ -123,6 +123,19 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun cutInAPacket() {
+        val toClient = java.io.PipedOutputStream()
+        val input = java.io.PipedInputStream(toClient, 1 shl 16)
+        val out = java.io.DataOutputStream(toClient)
+        /* A VERSION packet announced as 9 bytes, of which 5 come. */
+        out.writeInt(9)
+        out.write(byteArrayOf(2, 0, 0, 0, 3))
+        out.close()
+        val e = assertFailsWith<java.io.IOException> { SftpClient(input, java.io.ByteArrayOutputStream()) }
+        assertEquals("connection closed", e.message)
+    }
+
+    @Test(timeout = TIMEOUT)
     fun longPathRefused() {
         val fake = FakeServer { type, id ->
             when (type) {
