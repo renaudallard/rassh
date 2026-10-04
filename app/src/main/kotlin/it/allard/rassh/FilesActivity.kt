@@ -429,14 +429,18 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setNegativeButton(R.string.cancel, null)
             .show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            /* Unchanged as shown, before trimming: a name that is not UTF-8 would get U+FFFD for good. */
+            if (field.text.toString() == shown) {
+                dialog.dismiss()
+                return@setOnClickListener
+            }
             val to = field.text.toString().trim()
             if (to.isEmpty() || '/' in to || to == "." || to == "..") {
                 field.error = getString(R.string.error_file_name)
                 return@setOnClickListener
             }
             dialog.dismiss()
-            /* Unchanged, a name that is not UTF-8 would otherwise get U+FFFD for good. */
-            if (to != shown) run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
+            run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
         }
     }
 
