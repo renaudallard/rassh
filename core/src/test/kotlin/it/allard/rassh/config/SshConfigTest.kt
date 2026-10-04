@@ -228,6 +228,17 @@ class SshConfigTest {
     }
 
     @Test
+    fun commentApartGoesWithTheBlockBelow() {
+        val text = "# my config\n\nHost a\n    HostName x\n\n# Defaults for every host\n\nHost *\n    User me\n"
+        val config = SshConfig.parse(text)
+        config.remove("a")
+        assertEquals("# my config\n\n# Defaults for every host\n\nHost *\n    User me\n", config.toString())
+        val edited = SshConfig.parse(text)
+        edited.put("a", Host("a", hostName = "y"))
+        assertTrue(edited.toString().contains("    HostName y\n\n# Defaults for every host\n\nHost *"))
+    }
+
+    @Test
     fun hostLineWithAComment() {
         val config = SshConfig.parse("Host web # office\n    User a\n")
         assertEquals(listOf("web"), config.hosts.map { it.name })

@@ -197,12 +197,17 @@ class SshConfig private constructor(
                     /*
                      * Comments right above a block describe it, not the one
                      * before, unless indented beyond its line, as the options
-                     * of that one are.
+                     * of that one are. After a block, blank lines between
+                     * them are taken too, from the first comment on: in the
+                     * header, a comment so apart is about the whole file.
                      */
                     val above = if (keyword == null) header else lines
-                    val comments = above.takeLastWhile {
-                        it.trim().startsWith("#") && line.startsWith(it.takeWhile { c -> c.isWhitespace() })
-                    }
+                    fun comment(l: String) =
+                        l.trim().startsWith("#") && line.startsWith(l.takeWhile { c -> c.isWhitespace() })
+                    val run = if (keyword == null) above.takeLastWhile { comment(it) }
+                        else above.takeLastWhile { it.isBlank() || comment(it) }
+                    val start = run.indexOfFirst { it.isNotBlank() }
+                    val comments = if (start < 0) emptyList() else run.subList(start, run.size).toList()
                     repeat(comments.size) { above.removeAt(above.size - 1) }
                     if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
                     leading = comments
