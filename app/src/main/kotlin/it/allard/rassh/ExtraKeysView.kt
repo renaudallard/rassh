@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
@@ -38,12 +39,26 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
 
     init {
         orientation = VERTICAL
+        build()
+    }
+
+    /* Sizes are in pixels once made, the rows are made again for a new display size. */
+    private fun build() {
+        modifierViews.clear()
         for (row in ROWS) {
             val line = LinearLayout(context)
             line.orientation = HORIZONTAL
             for ((label, action) in row) line.addView(key(label, action), LayoutParams(0, dp(44), 1f))
             addView(line, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        stopRepeat()
+        removeAllViews()
+        build()
+        refresh()
     }
 
     /** Return the pending modifiers and release them. */

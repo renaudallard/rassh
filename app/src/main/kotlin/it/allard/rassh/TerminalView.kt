@@ -3,6 +3,7 @@ package it.allard.rassh
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -236,6 +237,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         c == TextStyle.COLOR_DEFAULT -> default
         c and TextStyle.COLOR_RGB != 0 -> Color.BLACK or (c and 0xffffff)
         else -> PALETTE[c and 0xff]
+    }
+
+    /* The cell size is in pixels, a new display size changes it. */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateMetrics()
+        resizeTerminal()
+        invalidate()
     }
 
     private fun updateMetrics() {
