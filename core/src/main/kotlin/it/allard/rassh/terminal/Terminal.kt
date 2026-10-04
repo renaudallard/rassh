@@ -7,8 +7,6 @@ interface TerminalClient {
     fun write(data: ByteArray)
 
     fun titleChanged(title: String) {}
-
-    fun bell() {}
 }
 
 /**
@@ -40,8 +38,6 @@ class Terminal(
     var cursorVisible = true
         private set
     var applicationCursorKeys = false
-        private set
-    var applicationKeypad = false
         private set
     var bracketedPaste = false
         private set
@@ -225,7 +221,6 @@ class Terminal(
                 state = ESCAPE
             }
             CAN, SUB -> state = GROUND
-            BEL -> client.bell()
             0x08 -> {
                 wrapPending = false
                 if (cursorX > 0) cursorX--
@@ -343,8 +338,6 @@ class Terminal(
             'M'.code -> reverseIndex()
             'H'.code -> tabStops[cursorX] = true
             'c'.code -> reset()
-            '='.code -> applicationKeypad = true
-            '>'.code -> applicationKeypad = false
         }
     }
 
@@ -492,7 +485,6 @@ class Terminal(
             7 -> autowrap = on
             25 -> cursorVisible = on
             47 -> useAltScreen(on)
-            66 -> applicationKeypad = on
             1047 -> {
                 if (!on && screen === alt) eraseDisplay(2)
                 useAltScreen(on)
@@ -776,7 +768,6 @@ class Terminal(
         originMode = false
         autowrap = true
         applicationCursorKeys = false
-        applicationKeypad = false
         top = 0
         bottom = rows
         g0Graphics = false

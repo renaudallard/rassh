@@ -41,7 +41,6 @@ class SftpException(val status: Int, message: String) : IOException(message) {
         const val EOF = 1
         const val NO_SUCH_FILE = 2
         const val PERMISSION_DENIED = 3
-        const val FAILURE = 4
     }
 }
 
