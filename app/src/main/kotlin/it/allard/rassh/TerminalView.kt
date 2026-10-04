@@ -38,6 +38,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     var extraKeys: ExtraKeysView? = null
     var onCloseRequest: (() -> Unit)? = null
 
+    /* The terminal screen sets the size of new sessions, a smaller view does not. */
+    var savesSize = true
+
     var session: Session? = null
         set(value) {
             field = value
@@ -258,7 +261,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val rows = maxOf(1, height / cellHeight)
         session?.resize(columns, rows)
         /* New sessions start at this size, see SessionService. */
-        if (prefs.getInt(PREF_COLUMNS, 0) != columns || prefs.getInt(PREF_ROWS, 0) != rows)
+        if (savesSize && (prefs.getInt(PREF_COLUMNS, 0) != columns || prefs.getInt(PREF_ROWS, 0) != rows))
             prefs.edit().putInt(PREF_COLUMNS, columns).putInt(PREF_ROWS, rows).apply()
     }
 

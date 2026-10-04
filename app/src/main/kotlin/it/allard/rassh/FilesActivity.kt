@@ -73,6 +73,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         terminal = findViewById(R.id.terminal)
         /* "press Enter to close" once ssh is gone, as in the terminal screen. */
         terminal.onCloseRequest = { finish() }
+        terminal.savesSize = false
         list.adapter = adapter
         list.emptyView = status
         list.setOnItemClickListener { _, _, position, _ -> open(entries[position]) }
