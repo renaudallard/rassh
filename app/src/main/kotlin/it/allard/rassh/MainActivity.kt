@@ -151,6 +151,10 @@ class MainActivity : Activity(), SessionService.Listener {
             setUp()
             return
         }
+        /* A vault lost later, its key invalidated, gets its questions again. */
+        askedReset = false
+        toldNoBiometric = false
+        askedSetUp = false
         if (protecting) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
