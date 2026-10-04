@@ -1,8 +1,10 @@
 package it.allard.rassh.sftp
 
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /*
  * Replies a real server does not easily give, from a scripted one. It
@@ -12,7 +14,7 @@ import kotlin.test.assertFailsWith
 class SftpFakeTest {
     @Test(timeout = TIMEOUT)
     fun listReportsTheServerError() {
-        val fake = FakeServer { type, id ->
+        val fake = FakeServer { type, id, _ ->
             when (type) {
                 1 -> FakeServer.packet(2) { writeInt(3) }
                 11 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
@@ -34,7 +36,7 @@ class SftpFakeTest {
 
     @Test(timeout = TIMEOUT)
     fun emptyReadsEnd() {
-        val fake = FakeServer { type, id ->
+        val fake = FakeServer { type, id, _ ->
             when (type) {
                 1 -> FakeServer.packet(2) { writeInt(3) }
                 3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
@@ -55,7 +57,7 @@ class SftpFakeTest {
     }
 
     /* A server answering every READDIR with count entries, never with the end. */
-    private fun endless(count: Int) = FakeServer { type, id ->
+    private fun endless(count: Int) = FakeServer { type, id, _ ->
         when (type) {
             1 -> FakeServer.packet(2) { writeInt(3) }
             11 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
@@ -93,7 +95,7 @@ class SftpFakeTest {
     @Test(timeout = TIMEOUT)
     fun fileGrowingAfterTheEnd() {
         var reads = 0
-        val fake = FakeServer { type, id ->
+        val fake = FakeServer { type, id, _ ->
             when (type) {
                 1 -> FakeServer.packet(2) { writeInt(3) }
                 3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
@@ -136,8 +138,55 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun shortReadsKeepThePipeline() {
+        val size = 100_000
+        var reads = 0
+        val fake = FakeServer { type, id, packet ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+                5 -> {
+                    reads++
+                    /* type, id, handle "h", offset, length */
+                    val buf = java.nio.ByteBuffer.wrap(packet, 10, 12)
+                    val offset = buf.long
+                    val length = buf.int
+                    /* A server answering at most 10000 bytes a read. */
+                    val n = minOf(length, 10_000, size - offset.toInt())
+                    if (n <= 0) FakeServer.packet(101) {
+                        writeInt(id)
+                        writeInt(SftpException.EOF)
+                        with(FakeServer) {
+                            string("")
+                            string("")
+                        }
+                    } else FakeServer.packet(103) {
+                        writeInt(id)
+                        writeInt(n)
+                        write(ByteArray(n) { ((offset + it) % 251).toByte() })
+                    }
+                }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        val out = java.io.ByteArrayOutputStream()
+        client.download("/f", { out })
+        assertContentEquals(ByteArray(size) { (it % 251).toByte() }, out.toByteArray())
+        /* Each short read asks the rest only, the requests in flight are not thrown away. */
+        assertTrue(reads < 60, "$reads reads")
+    }
+
+    @Test(timeout = TIMEOUT)
     fun longPathRefused() {
-        val fake = FakeServer { type, id ->
+        val fake = FakeServer { type, id, _ ->
             when (type) {
                 1 -> FakeServer.packet(2) { writeInt(3) }
                 else -> FakeServer.packet(104) {

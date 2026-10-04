@@ -156,27 +156,33 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Throws(IOException::class)
     fun download(path: String, open: () -> OutputStream, progress: (Long) -> Boolean = { true }) {
         val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(FXF_READ).u32(0)))
-        val pending = ArrayDeque<Pair<Int, Long>>()
+        val pending = ArrayDeque<Read>()
         try {
             open().use { out -> copy(handle, out, pending, progress) }
         } finally {
-            drain(pending)
+            drain(pending.map { it.id })
             closeHandle(handle)
         }
     }
 
-    private fun copy(handle: ByteArray, out: OutputStream, pending: ArrayDeque<Pair<Int, Long>>,
+    /* A READ in flight, of length bytes at offset. */
+    private class Read(val id: Int, val offset: Long, val length: Int)
+
+    private fun read(handle: ByteArray, offset: Long, length: Int) =
+        Read(send(Writer(FXP_READ).bytes(handle).u64(offset).u32(length)), offset, length)
+
+    private fun copy(handle: ByteArray, out: OutputStream, pending: ArrayDeque<Read>,
         progress: (Long) -> Boolean) {
         var offset = 0L
         var done = 0L
         var eof = false
         while (true) {
             while (!eof && pending.size < MAX_REQUESTS) {
-                pending.addLast(Pair(send(Writer(FXP_READ).bytes(handle).u64(offset).u32(CHUNK)), offset))
+                pending.addLast(read(handle, offset, CHUNK))
                 offset += CHUNK
             }
-            val (id, at) = pending.removeFirstOrNull() ?: break
-            val r = reply(id)
+            val asked = pending.removeFirstOrNull() ?: break
+            val r = reply(asked.id)
             /*
              * Past the end, the replies still due are dropped: a file
              * growing meanwhile answers with data beyond it, the copy
@@ -192,14 +198,15 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             expect(r, FXP_DATA)
             val data = r.body.bytes()
             /* The end comes as a status, empty data would ask the same again forever. */
-            if (at != done || data.size > CHUNK || data.isEmpty()) throw IOException("unexpected data")
+            if (asked.offset != done || data.size > asked.length || data.isEmpty()) throw IOException("unexpected data")
             out.write(data)
             done += data.size
-            /* A short read: the requests after it start at the wrong offset. */
-            if (data.size < CHUNK) {
-                drain(pending)
-                offset = done
-            }
+            /*
+             * A short read, the rest of that range is asked first, the
+             * requests after it still hold, as OpenSSH's sftp does: a
+             * server answering less each time keeps its pipeline full.
+             */
+            if (data.size < asked.length) pending.addFirst(read(handle, done, asked.length - data.size))
             if (!progress(done)) throw SftpCancelledException()
         }
     }
@@ -257,7 +264,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             while (pending.isNotEmpty()) ok(reply(pending.removeFirst()))
             failed = false
         } finally {
-            drain(pending.map { Pair(it, 0L) })
+            drain(pending)
             /* Closing reports errors of the last writes, they matter then. */
             if (failed) closeHandle(handle) else ok(request(Writer(FXP_CLOSE).bytes(handle)))
         }
@@ -272,9 +279,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     }
 
     /* Read and drop the replies still due, to keep the stream in step. */
-    private fun drain(pending: Collection<Pair<Int, Long>>) {
-        for ((id, _) in pending) reply(id)
-        if (pending is MutableCollection) pending.clear()
+    /* Read the replies to the requests ids, the stream must stay in step. */
+    private fun drain(ids: Iterable<Int>) {
+        for (id in ids) reply(id)
     }
 
     private fun closeHandle(handle: ByteArray) {
