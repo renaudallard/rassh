@@ -28,6 +28,7 @@ class KeysActivity : Activity() {
     private lateinit var paths: Paths
     private lateinit var vault: Vault
     private var declined = emptySet<String>()
+    private var toldVault = false
     private var protecting = false
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
@@ -96,9 +97,11 @@ class KeysActivity : Activity() {
 
     private fun load() {
         keys = try {
-            Keys.list(paths.sshDir, vault)
+            Keys.list(paths.sshDir, vault).also { toldVault = false }
         } catch (e: IOException) {
-            toast(getString(R.string.vault_error, e.message))
+            /* Loaded at each focus, the same error is said once. */
+            if (!toldVault) toast(getString(R.string.vault_error, e.message))
+            toldVault = true
             Keys.plaintext(paths.sshDir)
         }
         adapter.items = keys.map { name ->
