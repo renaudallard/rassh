@@ -154,7 +154,9 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 if (opened == null) {
                     toast(getString(R.string.restore_failed, error))
                 } else if (isDestroyed) {
+                    /* Adding keys needs a fingerprint prompt, which only a live screen shows. */
                     opened.forEach { it.data.fill(0) }
+                    applicationContext.toast(getString(R.string.restore_failed, getString(R.string.import_interrupted)))
                 } else {
                     store(paths, vault, opened, replace, done)
                 }
