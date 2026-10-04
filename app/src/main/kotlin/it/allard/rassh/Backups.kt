@@ -132,19 +132,14 @@ fun Activity.importFrom(uri: Uri, paths: Paths, vault: Vault, done: () -> Unit) 
 }
 
 private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: Boolean, done: () -> Unit) {
-    val sealed = try {
-        val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
-        val b = input.use { it.readNBytes(MAX_EXPORT_SIZE + 1) }
-        if (b.size > MAX_EXPORT_SIZE) throw IOException("file too large")
-        b
-    } catch (e: IOException) {
-        toast(getString(R.string.restore_failed, e.message))
-        return
-    }
     askPassphrase(R.string.import_, false) { pass ->
+        /* In the thread, a provider may have to download the file first. */
         thread(name = "import") {
             var items: List<Backup.Item>? = null
             val error = try {
+                val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
+                val sealed = input.use { it.readNBytes(MAX_EXPORT_SIZE + 1) }
+                if (sealed.size > MAX_EXPORT_SIZE) throw IOException("file too large")
                 items = checked(Backup.open(sealed, pass))
                 null
             } catch (_: GeneralSecurityException) {
