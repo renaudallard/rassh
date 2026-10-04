@@ -364,4 +364,11 @@ class TerminalTest {
         t.put("foo bar")
         assertEquals("foo bar", t.text(0, 0, 1, 3))
     }
+
+    @Test
+    fun copyAddsNoSpaceBeforeAWrappedWideCharacter() {
+        val t = term(columns = 4, rows = 4)
+        t.put("abc\u4e2d")
+        assertEquals("abc\u4e2d", t.text(0, 0, 1, 3))
+    }
 }
