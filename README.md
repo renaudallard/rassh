@@ -131,7 +131,8 @@ There is no PIN fallback.
   one is, at first start or later, the app asks whether enrolling a new
   fingerprint should destroy the keys. Destroying them stops someone who learns the PIN from
   adding a finger to use them, at the cost of every stored key.
-- Removing or resetting the screen lock always destroys them.
+- Removing or resetting the screen lock always destroys them. Resetting
+  the key storage then also removes their public keys.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them, if the vault has room and the key is not

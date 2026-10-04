@@ -70,10 +70,21 @@ class Vault(private val paths: Paths) {
         generator.generateKey()
     }
 
-    /** Forget the Keystore key and every stored key. */
+    /**
+     * Forget the Keystore key and every stored key, with their public
+     * keys: left, they would keep the names from new keys and ssh would
+     * take them for the private keys, which it cannot load.
+     */
     fun reset() {
+        val names = try {
+            names()
+        } catch (_: IOException) {
+            emptyList()
+        }
         keyStore().deleteEntry(ALIAS)
         file.delete()
+        for (name in names)
+            if (!File(paths.sshDir, name).exists()) File(paths.sshDir, "$name.pub").delete()
     }
 
     /**
