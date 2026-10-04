@@ -106,6 +106,9 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
             val size = prefs.getFloat(TerminalView.PREF_FONT_SIZE, 0f).toString()
             items.add(Backup.Item(Backup.SETTING, TerminalView.PREF_FONT_SIZE, size.toByteArray()))
         }
+    } catch (e: GeneralSecurityException) {
+        items.forEach { it.data.fill(0) }
+        throw IOException(e)
     } catch (e: IOException) {
         items.forEach { it.data.fill(0) }
         throw e
