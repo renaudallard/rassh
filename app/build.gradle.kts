@@ -10,8 +10,8 @@ android {
         applicationId = "it.allard.rassh"
         minSdk = 33
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.1.11"
+        versionCode = 13
+        versionName = "0.1.12"
     }
 
     /* Release builds are signed only when the CI provides the keystore. */
