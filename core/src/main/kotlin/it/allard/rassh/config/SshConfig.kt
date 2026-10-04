@@ -50,12 +50,16 @@ class SshConfig private constructor(
     private val header: List<String>,
     private val blocks: MutableList<Block>,
 ) {
-    /* leading holds the comment lines right above the Host or Match line. */
+    /*
+     * leading holds the comment lines right above the Host or Match line,
+     * line that line as read, null for a block put() wrote.
+     */
     private class Block(
         val leading: List<String>,
         val keyword: String,
         val value: String,
         val lines: List<String>,
+        val line: String? = null,
     ) {
         val isHost: Boolean
             get() = keyword.equals("Host", ignoreCase = true) && Host.isValidName(value)
@@ -119,7 +123,7 @@ class SshConfig private constructor(
         for (line in header) sb.append(line).append('\n')
         for (block in blocks) {
             for (line in block.leading) sb.append(line).append('\n')
-            sb.append(block.keyword).append(' ').append(block.value).append('\n')
+            sb.append(block.line ?: "${block.keyword} ${block.value}").append('\n')
             for (line in block.lines) sb.append(line).append('\n')
         }
         return sb.toString()
@@ -177,6 +181,7 @@ class SshConfig private constructor(
             var leading = emptyList<String>()
             var keyword: String? = null
             var value = ""
+            var first = ""
             var lines = mutableListOf<String>()
             val all = if (text.isEmpty()) emptyList() else text.removeSuffix("\n").split('\n')
             for (line in all) {
@@ -186,10 +191,11 @@ class SshConfig private constructor(
                     val above = if (keyword == null) header else lines
                     val comments = above.takeLastWhile { it.trim().startsWith("#") }
                     repeat(comments.size) { above.removeAt(above.size - 1) }
-                    if (keyword != null) blocks.add(Block(leading, keyword, value, lines))
+                    if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
                     leading = comments
                     keyword = kv.first
                     value = kv.second
+                    first = line
                     lines = mutableListOf()
                 } else if (keyword == null) {
                     header.add(line)
@@ -197,7 +203,7 @@ class SshConfig private constructor(
                     lines.add(line)
                 }
             }
-            if (keyword != null) blocks.add(Block(leading, keyword, value, lines))
+            if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
             return SshConfig(header, blocks)
         }
 

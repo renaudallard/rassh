@@ -214,6 +214,15 @@ class SshConfigTest {
     }
 
     @Test
+    fun keepsBlockLinesAsWritten() {
+        val text = "Host==foo\n    User x\n  host  =  a  \nMatch=all\n"
+        val config = SshConfig.parse(text)
+        config.put(null, Host("b"))
+        assertTrue(config.toString().startsWith("Host b\n"))
+        assertTrue(config.toString().endsWith(text))
+    }
+
+    @Test
     fun readsKeywordsLikeSsh() {
         assertEquals(Pair("Host", "*"), SshConfig.keyword("\"Host\"*"))
         assertEquals(Pair("Host", "x"), SshConfig.keyword("Ho\"st\" x"))
