@@ -99,6 +99,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     fun list(path: String): List<SftpEntry> {
         val handle = handleOf(request(Writer(FXP_OPENDIR).string(path)))
         val entries = mutableListOf<SftpEntry>()
+        var chars = 0L
         try {
             while (true) {
                 val r = request(Writer(FXP_READDIR).bytes(handle))
@@ -108,12 +109,18 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                     throw e
                 }
                 expect(r, FXP_NAME)
-                repeat(r.body.u32()) {
+                /* The end comes as a status, nothing more would ask the same again forever. */
+                val count = r.body.u32()
+                if (count < 1) throw IOException("empty reply")
+                repeat(count) {
                     val name = r.body.text()
                     r.body.text()
                     val attrs = r.body.attrs()
                     if (name != "." && name != "..") entries.add(SftpEntry(name, attrs))
+                    chars += name.length
                 }
+                /* Nor may a listing that never ends take all the memory. */
+                if (entries.size > MAX_ENTRIES || chars > MAX_CHARS) throw IOException("too many files")
             }
         } finally {
             closeHandle(handle)
@@ -416,6 +423,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val MAX_REQUESTS = 16
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
+        private const val MAX_ENTRIES = 200_000
+        private const val MAX_CHARS = 16L * 1024 * 1024
         private const val MAX_EARLY = 64
 
         private const val FXP_INIT = 1

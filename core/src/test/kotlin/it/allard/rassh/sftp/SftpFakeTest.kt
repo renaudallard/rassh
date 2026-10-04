@@ -48,4 +48,40 @@ class SftpFakeTest {
         val client = SftpClient(fake.clientIn, fake.clientOut)
         assertFailsWith<java.io.IOException> { client.download("/f", java.io.ByteArrayOutputStream()) }
     }
+
+    /* A server answering every READDIR with count entries, never with the end. */
+    private fun endless(count: Int) = FakeServer { type, id ->
+        when (type) {
+            1 -> FakeServer.packet(2) { writeInt(3) }
+            11 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+            12 -> FakeServer.packet(104) {
+                writeInt(id)
+                writeInt(count)
+                repeat(count) {
+                    with(FakeServer) {
+                        string("f$it")
+                        string("")
+                    }
+                    writeInt(0)
+                }
+            }
+            else -> FakeServer.packet(101) {
+                writeInt(id)
+                writeInt(0)
+                with(FakeServer) {
+                    string("")
+                    string("")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun listEnds() {
+        for ((count, error) in listOf(0 to "empty reply", 1000 to "too many files")) {
+            val fake = endless(count)
+            val client = SftpClient(fake.clientIn, fake.clientOut)
+            assertEquals(error, assertFailsWith<java.io.IOException> { client.list("/d") }.message)
+        }
+    }
 }
