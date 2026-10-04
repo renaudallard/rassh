@@ -14,6 +14,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.system.ErrnoException
+import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
 
@@ -59,6 +60,8 @@ class SessionService : Service() {
         }
         /* No session runs yet, sockets of agents are left by a killed app. */
         for (socket in agentSockets(paths)) socket.delete()
+        /* The socket of the agent shared by all sessions in older versions. */
+        File(paths.tmp, "agent.sock").delete()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
             NotificationManager.IMPORTANCE_LOW)
