@@ -548,12 +548,21 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             }
         }
         if (c == 0) return super.onKeyDown(keyCode, event)
-        /* A dead key, ^ on many layouts, combines with the next one, a space giving it alone. */
+        /*
+         * A dead key, ^ on many layouts, combines with the next one, a
+         * space giving it alone. With Ctrl or Alt it is the accent itself,
+         * and a key with them is not combined: Ctrl-C stays an interrupt.
+         */
+        val modified = mods and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
         if (c and KeyCharacterMap.COMBINING_ACCENT != 0) {
-            deadAccent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
-            return true
+            if (modified) {
+                c = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+            } else {
+                deadAccent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+                return true
+            }
         }
-        if (deadAccent != 0) {
+        if (deadAccent != 0 && !modified) {
             val composed = KeyCharacterMap.getDeadChar(deadAccent, c)
             if (composed != 0) c = composed else send(KeyEncoder.encode(deadAccent, 0))
             deadAccent = 0
