@@ -70,7 +70,8 @@ fingerprint is enrolled, private keys are encrypted and unlocked with it.
   key, show, copy or share public keys
 - **File browser** - from the menu of a saved host: browse, download,
   upload, rename, delete and create folders over SFTP, through `ssh`, so
-  the host's options, jump hosts and keys apply
+  the host's options, jump hosts and keys apply, but not its port
+  forwards, as with `sftp`
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with
