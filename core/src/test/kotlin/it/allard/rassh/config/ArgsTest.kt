@@ -14,12 +14,14 @@ class ArgsTest {
         assertEquals(listOf("", "a"), Args.split("'' a"))
         assertEquals(listOf("ab"), Args.split("a\"\"b"))
         assertEquals(emptyList(), Args.split("   "))
+        assertEquals(listOf("h", "printf 'a\\nb'"), Args.split("h \"printf 'a\\nb'\""))
+        assertEquals(listOf("a\"b\\c\$d"), Args.split("\"a\\\"b\\\\c\\\$d\""))
+        assertEquals(listOf("trailing\\"), Args.split("trailing\\"))
     }
 
     @Test
     fun rejectsUnbalanced() {
         assertNull(Args.split("'open"))
         assertNull(Args.split("\"open"))
-        assertNull(Args.split("trailing\\"))
     }
 }

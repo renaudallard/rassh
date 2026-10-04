@@ -2,9 +2,11 @@ package it.allard.rassh.config
 
 object Args {
     /**
-     * Split a command line in words. Whitespace separates words, single
-     * and double quotes group them and a backslash escapes the next
-     * character outside single quotes. Returns null on unbalanced quotes.
+     * Split a command line in words as sh does. Whitespace separates
+     * words, single and double quotes group them, a backslash escapes the
+     * next character outside quotes and only " \ $ ` within double
+     * quotes. A backslash at the end stays. Returns null on unbalanced
+     * quotes.
      */
     fun split(s: String): List<String>? {
         val words = mutableListOf<String>()
@@ -16,12 +18,15 @@ object Args {
             val c = s[i++]
             when {
                 quote == '\'' -> if (c == '\'') quote = 0.toChar() else word.append(c)
+                quote == '"' -> when {
+                    c == '"' -> quote = 0.toChar()
+                    c == '\\' && i < s.length && s[i] in "\"\\$`" -> word.append(s[i++])
+                    else -> word.append(c)
+                }
                 c == '\\' -> {
-                    if (i == s.length) return null
-                    word.append(s[i++])
+                    word.append(if (i < s.length) s[i++] else c)
                     inWord = true
                 }
-                quote == '"' -> if (c == '"') quote = 0.toChar() else word.append(c)
                 c == '\'' || c == '"' -> {
                     quote = c
                     inWord = true
