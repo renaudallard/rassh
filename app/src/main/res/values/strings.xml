@@ -103,7 +103,7 @@
     <string name="public_key_copied">Public key copied</string>
     <string name="public_key_missing">No public key</string>
     <string name="derive_public_key">Create public key</string>
-    <string name="error_key_name">Use letters, digits, dot, dash and underscore, not starting with a dot, not ending in .pub or .tmp, not a reserved name</string>
+    <string name="error_key_name">Use letters, digits, dot, dash and underscore, not starting with a dot, not ending in .pub, .tmp or -cert, not a reserved name</string>
     <string name="error_key_exists">A key or file with this name already exists</string>
     <string name="import_failed">Cannot import key: %1$s</string>
     <string name="delete_key">Delete key %1$s?</string>

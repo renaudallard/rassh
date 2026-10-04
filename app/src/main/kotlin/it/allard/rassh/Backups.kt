@@ -170,7 +170,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
 private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
-            item.name.endsWith(".pub") && Keys.isValidName(item.name.removeSuffix(".pub"))
+            Keys.SUFFIXES.any { item.name.endsWith(it) && Keys.isValidName(item.name.removeSuffix(it)) }
         Backup.KEY -> Keys.isValidName(item.name)
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
