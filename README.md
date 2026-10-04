@@ -34,9 +34,12 @@
 ---
 
 There is no SSH reimplementation: `ssh`, `sftp`, `scp`, `ssh-agent`,
-`ssh-add` and `ssh-keygen` are the OpenSSH programs, so what works with
-`ssh` on a Unix box works here, `~/.ssh/config` included. Once a
-fingerprint is enrolled, private keys are encrypted and unlocked with it.
+`ssh-add` and `ssh-keygen` are the OpenSSH programs, built with LibreSSL
+and upstream defaults, without distribution patches or a system-wide
+`ssh_config`, so what works with `ssh` on an OpenBSD box works here,
+`~/.ssh/config` included. FIDO security keys and PKCS#11 are left out,
+see [Limitations](#limitations). Once a fingerprint is enrolled, private
+keys are encrypted and unlocked with it.
 
 ## Features
 
