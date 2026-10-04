@@ -235,8 +235,7 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            /* In clear as it was, see sealable(). */
-            Backup.KEY -> if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
+            Backup.KEY -> if (item.name !in sealed) writeClear(paths, items, item)
             Backup.SETTING -> putSetting(item)
         }
     }
@@ -245,15 +244,12 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     val clear = keys.map { it.name }.toSet() - sealed
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
     for (name in present) {
-        when (name) {
-            /* The imported copy replaces the one of the same name. */
-            in sealed -> File(dir, name).delete()
-            /* An old public key the file did not replace is of another key. */
-            in clear -> if ("$name.pub" !in files) File(dir, "$name.pub").delete()
-            else -> {
-                File(dir, name).delete()
-                File(dir, "$name.pub").delete()
-            }
+        /* The imported copy replaces the one of the same name. */
+        if (name in sealed) {
+            File(dir, name).delete()
+        } else if (name !in clear) {
+            File(dir, name).delete()
+            File(dir, "$name.pub").delete()
         }
     }
     for (name in listOf(CONFIG, KNOWN_HOSTS))
@@ -317,7 +313,18 @@ private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Ba
     if (sealable(items, item))
         vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
     else
-        paths.writePrivate(File(paths.sshDir, item.name), item.data)
+        writeClear(paths, items, item)
+}
+
+/*
+ * In clear, as on the phone it comes from, see sealable(). A public key
+ * the file does not bring is of another key.
+ */
+@Throws(IOException::class)
+private fun writeClear(paths: Paths, items: List<Backup.Item>, item: Backup.Item) {
+    paths.writePrivate(File(paths.sshDir, item.name), item.data)
+    if (items.none { it.type == Backup.FILE && it.name == "${item.name}.pub" })
+        File(paths.sshDir, "${item.name}.pub").delete()
 }
 
 /* Settings out of range or unknown are skipped. */
