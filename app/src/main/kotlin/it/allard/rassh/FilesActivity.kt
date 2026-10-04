@@ -135,6 +135,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         terminal.session = s
         actionBar?.title = s.name
         connect(s)
+        /* ssh may have given up before this screen listened, sessionsChanged() then never came. */
+        if (!s.isRunning) offerNewHostKey(Paths(this), s)
     }
 
     /* Start SFTP once ssh is through, it may first ask in the terminal. */
