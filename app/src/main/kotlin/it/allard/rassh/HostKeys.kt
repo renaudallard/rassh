@@ -64,7 +64,8 @@ private fun removeLines(paths: Paths, file: File, numbers: List<Int>) {
  * confirm, as for a new host.
  */
 fun Activity.offerNewHostKey(paths: Paths, session: Session) {
-    if (!session.hostKeyChanged || session.hostKeyOffered) return
+    val changed = session.changedHostKey ?: return
+    if (session.hostKeyOffered) return
     val target = session.target ?: return
     session.hostKeyOffered = true
     thread(name = "host-key") {
@@ -76,7 +77,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             return@thread
         }
         runOnUiThread {
-            if (isDestroyed || found.second.isEmpty()) return@runOnUiThread
+            /* A jump host's key may be the one refused, never offer to drop another. */
+            if (isDestroyed || found.first != changed || found.second.isEmpty()) return@runOnUiThread
             AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
                 .setMessage(getString(R.string.host_key_changed_text, found.first))

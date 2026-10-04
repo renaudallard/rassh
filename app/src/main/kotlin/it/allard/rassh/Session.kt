@@ -90,8 +90,11 @@ class Session(
     private val tail = ByteArray(TAIL_SIZE)
     private var tailLength = 0
 
-    /** ssh refused to connect as the host key is not the one known. */
-    var hostKeyChanged = false
+    /*
+     * The host, as named in known_hosts, whose key ssh refused as not the
+     * one known, or null. With a jump host it may be that one.
+     */
+    var changedHostKey: String? = null
         private set
 
     /** The user was offered to replace the key, once is enough. */
@@ -258,7 +261,7 @@ class Session(
 
     private fun finished() {
         isRunning = false
-        hostKeyChanged = synchronized(terminal) { String(tail, 0, tailLength).contains(HOST_KEY_CHANGED) }
+        changedHostKey = synchronized(terminal) { HOST_KEY_CHANGED.find(String(tail, 0, tailLength))?.groupValues?.get(1) }
         try {
             dataOutput?.close()
             dataInput?.close()
@@ -272,7 +275,8 @@ class Session(
         private const val BUFFER_SIZE = 8192
         private const val TAIL_SIZE = 4096
         /* ssh's warning, before it gives up with "Host key verification failed". */
-        private const val HOST_KEY_CHANGED = "REMOTE HOST IDENTIFICATION HAS CHANGED"
+        /* ssh's last words then, see check_host_key() in sshconnect.c. */
+        private val HOST_KEY_CHANGED = Regex("""Host key for (\S+) has changed and you have requested strict checking""")
         private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
         private const val CLOSE_MILLIS = 2000L
