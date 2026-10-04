@@ -283,8 +283,15 @@ class MainActivity : Activity(), SessionService.Listener {
         pipes: List<ParcelFileDescriptor>,
     ): Boolean {
         val session = try {
-            /* ssh and sftp take ssh's options and destination, scp takes paths. */
-            val target = if (l.argv[0] == "ssh" || l.argv[0] == "sftp") l.argv.drop(1) else null
+            /*
+             * ssh and sftp take ssh's options and destination, scp takes
+             * paths. sftp strips the [ ] remote() may have added, ssh would not.
+             */
+            val target = when (l.argv[0]) {
+                "ssh" -> l.argv.drop(1)
+                "sftp" -> l.argv.drop(1).dropLast(1) + l.argv.last().removeSurrounding("[", "]")
+                else -> null
+            }
             service.start(l.title, path, argv, l.cwd, pipes.map { it.fd }.toIntArray(), l.server, l.browse, target)
         } catch (e: IOException) {
             toast(getString(R.string.start_failed, argv[0], e.message))
