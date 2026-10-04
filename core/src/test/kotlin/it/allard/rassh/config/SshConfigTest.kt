@@ -222,6 +222,9 @@ class SshConfigTest {
         val config = SshConfig.parse("Host *\n    User u\n    # ForwardAgent yes\n# the work host\nHost work\n    HostName w\n")
         config.remove("work")
         assertEquals("Host *\n    User u\n    # ForwardAgent yes\n", config.toString())
+        val tabs = SshConfig.parse("  Host a\n\tUser u\n\t# a option\n  Host b\n\tUser v\n")
+        tabs.remove("b")
+        assertEquals("  Host a\n\tUser u\n\t# a option\n", tabs.toString())
     }
 
     @Test

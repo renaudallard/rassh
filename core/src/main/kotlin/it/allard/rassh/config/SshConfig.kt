@@ -196,13 +196,12 @@ class SshConfig private constructor(
                 if (kv != null && (kv.first.equals("Host", true) || kv.first.equals("Match", true))) {
                     /*
                      * Comments right above a block describe it, not the one
-                     * before, unless indented deeper than its line, as the
-                     * options of that one are.
+                     * before, unless indented beyond its line, as the options
+                     * of that one are.
                      */
                     val above = if (keyword == null) header else lines
-                    val indent = line.takeWhile { it.isWhitespace() }.length
                     val comments = above.takeLastWhile {
-                        it.trim().startsWith("#") && it.takeWhile { c -> c.isWhitespace() }.length <= indent
+                        it.trim().startsWith("#") && line.startsWith(it.takeWhile { c -> c.isWhitespace() })
                     }
                     repeat(comments.size) { above.removeAt(above.size - 1) }
                     if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
