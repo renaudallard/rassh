@@ -82,12 +82,21 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
 }
 
 private fun Activity.vaultInvalidated(vault: Vault) {
+    /* Nothing to lose, nothing to tell: MainActivity.setUp() then asks for a new vault. */
+    if (!holdsKeys(vault)) return vault.reset()
     AlertDialog.Builder(this)
         .setMessage(R.string.vault_invalidated)
         /* A new vault is set up from the main screen, see MainActivity.setUp(). */
         .setPositiveButton(R.string.vault_reset) { _, _ -> vault.reset() }
         .setNegativeButton(R.string.cancel, null)
         .show()
+}
+
+/* Whether the vault file holds keys, as it does when it cannot be read. */
+private fun holdsKeys(vault: Vault): Boolean = try {
+    vault.names().isNotEmpty()
+} catch (_: IOException) {
+    true
 }
 
 /** A strong biometric is enrolled, the vault can be used. */
@@ -102,7 +111,10 @@ fun Context.hasStrongBiometric(): Boolean =
 fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
     if (vault.isSetUp) return done()
     /* A new Keystore key could never read the keys left by the old one. */
-    if (vault.exists) return vaultInvalidated(vault)
+    if (vault.exists) {
+        if (holdsKeys(vault)) return vaultInvalidated(vault)
+        vault.reset()
+    }
     if (!hasStrongBiometric()) {
         AlertDialog.Builder(this)
             .setTitle(R.string.vault_title)
