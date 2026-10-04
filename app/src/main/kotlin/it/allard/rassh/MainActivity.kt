@@ -38,8 +38,9 @@ class MainActivity : Activity(), SessionService.Listener {
     private var protecting = false
 
     /* The vault questions are asked once per screen, see setUp(). */
-    private var settingUp = false
+    private var askedReset = false
     private var toldNoBiometric = false
+    private var askedSetUp = false
     private lateinit var adapter: TwoLineAdapter
     private lateinit var quick: EditText
     private var hosts: List<Host> = emptyList()
@@ -118,28 +119,26 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     /*
+     * Set the vault up when the screen shows, so that a fingerprint
+     * enrolled since the app started is taken too. Each question is asked
+     * once per screen. The screen gets the focus back when one is
+     * answered, which leads to the next one.
+     */
+    private fun setUp() {
+        val question = when {
+            vault.exists -> ::askedReset
+            !hasStrongBiometric() -> ::toldNoBiometric
+            else -> ::askedSetUp
+        }
+        if (question.get()) return
+        question.set(true)
+        setUpVault(vault) { protect() }
+    }
+
+    /*
      * Move keys left in clear into the vault, not asking twice for the
      * same ones, and point IdentityFile lines at the vault public keys.
      */
-    /*
-     * Set the vault up when the screen shows, so that a fingerprint
-     * enrolled since the app started is taken too. Each question is asked
-     * once, the one saying no fingerprint is enrolled included.
-     */
-    private fun setUp() {
-        if (settingUp) return
-        if (!vault.exists && !hasStrongBiometric()) {
-            if (toldNoBiometric) return
-            toldNoBiometric = true
-        } else {
-            settingUp = true
-        }
-        setUpVault(vault) {
-            settingUp = false
-            protect()
-        }
-    }
-
     private fun protect() {
         try {
             usePublicKeys(paths, vault.names())

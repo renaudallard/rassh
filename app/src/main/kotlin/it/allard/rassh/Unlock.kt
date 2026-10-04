@@ -84,10 +84,8 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
 private fun Activity.vaultInvalidated(vault: Vault) {
     AlertDialog.Builder(this)
         .setMessage(R.string.vault_invalidated)
-        .setPositiveButton(R.string.vault_reset) { _, _ ->
-            vault.reset()
-            setUpVault(vault) {}
-        }
+        /* A new vault is set up from the main screen, see MainActivity.setUp(). */
+        .setPositiveButton(R.string.vault_reset) { _, _ -> vault.reset() }
         .setNegativeButton(R.string.cancel, null)
         .show()
 }
