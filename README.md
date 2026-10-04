@@ -50,8 +50,10 @@ fingerprint is enrolled, private keys are encrypted and unlocked with it.
   user, port, identity file, local, remote and dynamic forwards, plus any
   other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
   included, and their comments are left untouched, the comments of an
-  edited host stay among its other options. A checkbox attaches to the last tmux session or starts
-  one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`
+  edited host stay among its other options. ssh checks the file before
+  it is saved, since one bad line would stop every host. A checkbox
+  attaches to the last tmux session or starts one, with
+  `RemoteCommand tmux a || tmux` and `RequestTTY yes`
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Encrypted keys** - private keys live in a vault sealed by the Android

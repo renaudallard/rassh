@@ -85,7 +85,12 @@ class Child(private val pid: Int) {
 
 /** Run a program to completion and return what it printed. */
 @Throws(IOException::class)
-fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String): String {
+fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String): String =
+    execute(path, argv, env, cwd).first
+
+/** Run a program to completion and return what it printed and its status. */
+@Throws(IOException::class)
+fun execute(path: String, argv: List<String>, env: List<String>, cwd: String): Pair<String, Int> {
     val r = Pty.start(path, cStrings(argv), cStrings(env), cwd, IntArray(0), IntArray(0), 24, 80)
     val out = java.io.ByteArrayOutputStream()
     android.os.ParcelFileDescriptor.adoptFd(r[0]).use { pty ->
@@ -101,8 +106,8 @@ fun runProgram(path: String, argv: List<String>, env: List<String>, cwd: String)
             /* EIO when the program exits. */
         }
     }
-    Child(r[1]).waitFor()
-    return out.toString(Charsets.UTF_8).replace("\r\n", "\n").trim()
+    val status = Child(r[1]).waitFor()
+    return Pair(out.toString(Charsets.UTF_8).replace("\r\n", "\n").trim(), status)
 }
 
 /* Strings for C, in UTF-8. A NUL would end one early without a word. */

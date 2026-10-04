@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.os.Bundle
 import android.system.ErrnoException
 import android.view.Menu
@@ -12,11 +13,15 @@ import android.widget.EditText
 import android.widget.Spinner
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
+import java.io.File
 import java.io.IOException
+import kotlin.concurrent.thread
 
 /** Edit a Host block of ~/.ssh/config. */
 class HostActivity : Activity() {
     private lateinit var paths: Paths
+    /* A save waiting for ssh to check the file. */
+    private var checking = false
     private var original: String? = null
     private var identities: List<String> = emptyList()
 
@@ -96,6 +101,7 @@ class HostActivity : Activity() {
         e.text.lines().map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun save() {
+        if (checking) return
         val n = name.text.toString().trim()
         val h = hostName.text.toString().trim()
         val u = user.text.toString().trim()
@@ -147,18 +153,57 @@ class HostActivity : Activity() {
             dynamicForwards = lines(dynamic),
             other = lines(other) + if (tmux.isChecked) TMUX_LINES else emptyList(),
         )
-        try {
-            config.put(original, host)
-            paths.ensureSshDir()
-            paths.writePrivate(paths.config, config.toString())
-        } catch (e: IOException) {
-            toast(getString(R.string.config_failed, e.message))
-            return
-        } catch (e: ErrnoException) {
-            toast(getString(R.string.config_failed, e.message))
-            return
+        config.put(original, host)
+        val text = config.toString()
+        checking = true
+        /* ssh may look names up or run Match exec, not on the UI thread. */
+        thread(name = "check-config") {
+            val refused = try {
+                refusal(text, n)
+            } catch (e: IOException) {
+                e.message
+            }
+            runOnUiThread {
+                checking = false
+                if (isDestroyed) return@runOnUiThread
+                if (refused != null) {
+                    /* A dialog, a toast would cut ssh's lines short. */
+                    AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.config_refused, refused))
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                    return@runOnUiThread
+                }
+                try {
+                    paths.ensureSshDir()
+                    paths.writePrivate(paths.config, text)
+                } catch (e: IOException) {
+                    toast(getString(R.string.config_failed, e.message))
+                    return@runOnUiThread
+                } catch (e: ErrnoException) {
+                    toast(getString(R.string.config_failed, e.message))
+                    return@runOnUiThread
+                }
+                finish()
+            }
         }
-        finish()
+    }
+
+    /*
+     * What ssh says of text as its configuration for name, null when it
+     * takes it. One bad line makes ssh refuse the whole file, every host
+     * would then fail, and HostName or User expand % tokens.
+     */
+    @Throws(IOException::class)
+    private fun refusal(text: String, name: String): String? {
+        val file = File(paths.tmp, "config.check")
+        try {
+            paths.writePrivate(file, text)
+            val (out, status) = execute(paths.ssh, listOf("ssh", "-G", "-F", file.path, name), paths.env, paths.home.path)
+            return if (status == 0) null else out.replace(file.path, "config")
+        } finally {
+            file.delete()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
