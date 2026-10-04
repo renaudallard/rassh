@@ -31,7 +31,8 @@ class TerminalRow(columns: Int, style: Long) {
     }
 
     /** Text of the cells in [from, to), without trailing blanks. */
-    fun text(from: Int, to: Int): String {
+    /* Trailing blanks are dropped unless trim is false, for a row going on in the next. */
+    fun text(from: Int, to: Int, trim: Boolean = true): String {
         val sb = StringBuilder()
         for (x in from until minOf(to, text.size)) {
             when (val c = text[x]) {
@@ -40,9 +41,11 @@ class TerminalRow(columns: Int, style: Long) {
                 else -> sb.appendCodePoint(c)
             }
         }
-        var end = sb.length
-        while (end > 0 && sb[end - 1] == ' ') end--
-        sb.setLength(end)
+        if (trim) {
+            var end = sb.length
+            while (end > 0 && sb[end - 1] == ' ') end--
+            sb.setLength(end)
+        }
         return sb.toString()
     }
 

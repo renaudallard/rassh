@@ -357,4 +357,11 @@ class TerminalTest {
         assertTrue(lines.none { 'S' in it })
         assertTrue(lines.any { it.startsWith("R") })
     }
+
+    @Test
+    fun copyKeepsSpacesAtWraps() {
+        val t = term(columns = 4, rows = 4)
+        t.put("foo bar")
+        assertEquals("foo bar", t.text(0, 0, 1, 3))
+    }
 }

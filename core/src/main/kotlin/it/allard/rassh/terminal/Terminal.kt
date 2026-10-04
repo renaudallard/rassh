@@ -163,8 +163,10 @@ class Terminal(
             val row = row(y)
             val from = if (y == startY) startX else 0
             val to = if (y == endY) endX + 1 else row.columns
-            sb.append(row.text(from, to))
-            if (y != endY && !row.wrapped) sb.append('\n')
+            /* A space at a wrap is in the middle of the line, it stays. */
+            val goesOn = y != endY && row.wrapped
+            sb.append(row.text(from, to, trim = !goesOn))
+            if (y != endY && !goesOn) sb.append('\n')
         }
         return sb.toString()
     }
