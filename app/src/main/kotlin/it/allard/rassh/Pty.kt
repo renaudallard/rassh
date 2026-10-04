@@ -51,21 +51,25 @@ object Pty {
 }
 
 /*
- * A child process. Its pid is only signalled before it is reaped, as
- * afterwards the kernel may give the pid to another process.
+ * A child process. Its pid, and the group it leads, are only signalled
+ * before it is reaped, as afterwards the kernel may give the pid to
+ * another process. Until then, exited, it keeps the pid as a zombie.
  */
 class Child(private val pid: Int) {
     private var reaped = false
 
-    /** Wait for the exit and reap the process, returns its status. */
+    /** Wait for the exit, returns the status. The pid stays taken until reap(). */
     @Throws(IOException::class)
-    fun waitFor(): Int {
-        val status = Pty.waitFor(pid)
+    fun waitFor(): Int = Pty.waitFor(pid)
+
+    /** Free the pid of the child, which must have exited. */
+    @Throws(IOException::class)
+    fun reap() {
         synchronized(this) {
+            if (reaped) return
             reaped = true
             Pty.reap(pid)
         }
-        return status
     }
 
     fun signal(signal: Int) {
@@ -75,11 +79,14 @@ class Child(private val pid: Int) {
     }
 
     /*
-     * Signal the process group the child leads, its pid stays in use
-     * while any member lives, even once the child itself is reaped.
+     * Signal the process group the child leads. A member may have left
+     * it for a session of its own, as a daemon does, the group then
+     * holds the child alone and only its zombie keeps the id.
      */
     fun signalGroup(signal: Int) {
-        Pty.signalGroup(pid, signal)
+        synchronized(this) {
+            if (!reaped) Pty.signalGroup(pid, signal)
+        }
     }
 }
 
@@ -106,7 +113,9 @@ fun execute(path: String, argv: List<String>, env: List<String>, cwd: String): P
             /* EIO when the program exits. */
         }
     }
-    val status = Child(r[1]).waitFor()
+    val child = Child(r[1])
+    val status = child.waitFor()
+    child.reap()
     return Pair(out.toString(Charsets.UTF_8).replace("\r\n", "\n").trim(), status)
 }
 
