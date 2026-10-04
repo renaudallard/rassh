@@ -37,7 +37,7 @@ class MainActivity : Activity(), SessionService.Listener {
     private var declined = emptySet<String>()
     private var protecting = false
 
-    /* The vault questions are asked once per screen, see setUp(). */
+    /* Each vault question is asked once while the vault is missing, see setUp(). */
     private var askedReset = false
     private var toldNoBiometric = false
     private var askedSetUp = false
@@ -121,8 +121,8 @@ class MainActivity : Activity(), SessionService.Listener {
     /*
      * Set the vault up when the screen shows, so that a fingerprint
      * enrolled since the app started is taken too. Each question is asked
-     * once per screen. The screen gets the focus back when one is
-     * answered, which leads to the next one.
+     * once while the vault is missing. The screen gets the focus back when
+     * one is answered, which leads to the next one.
      */
     private fun setUp() {
         val question = when {
@@ -148,6 +148,8 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.vault_error, e.message))
         }
         if (!vault.isSetUp) {
+            /* Keys refused by a vault that is gone are offered to the next one. */
+            declined = emptySet()
             setUp()
             return
         }
