@@ -37,6 +37,11 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
         toast(getString(R.string.vault_error, e.message))
         failed()
         return
+    } catch (e: ProviderException) {
+        /* The Keystore busy or failing, unchecked, would end the app and its sessions. */
+        toast(getString(R.string.vault_error, e.message))
+        failed()
+        return
     }
     /* The cancel button and the error callback may both report the end. */
     var finished = false
@@ -62,6 +67,9 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
                     toast(getString(R.string.vault_error, e.message))
                     return fail()
                 } catch (e: IOException) {
+                    toast(getString(R.string.vault_error, e.message))
+                    return fail()
+                } catch (e: ProviderException) {
                     toast(getString(R.string.vault_error, e.message))
                     return fail()
                 }
