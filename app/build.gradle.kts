@@ -42,7 +42,7 @@ android {
     }
 
     /*
-     * ssh and ssh-keygen are shipped as lib*.so so that the package
+     * The OpenSSH programs are shipped as lib*.so so that the package
      * manager extracts them to nativeLibraryDir, the only app location
      * the system allows to execute.
      */

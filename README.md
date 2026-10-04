@@ -158,8 +158,9 @@ Import reads the file on the other phone and asks whether to append or
 replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
-  the missing `known_hosts` lines and the settings not set yet. Global
-  options, wildcard `Host` and `Match` blocks of the file are left out,
+  the missing `known_hosts` lines and the settings not set yet. Only
+  `Host` blocks naming a single host are taken: global options, `Match`
+  blocks and `Host` blocks with wildcards or several names are left out,
   as they could change the hosts already there.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the settings of the file in place of yours. They are written first,
@@ -175,7 +176,7 @@ hosts of an export can run commands through `ProxyCommand` or
 
 ```
 native/   build script for LibreSSL and OpenSSH, JNI pty helper
-core/     terminal emulator, ssh_config editor and export format, plain Kotlin/JVM
+core/     terminal emulator, ssh_config editor, SFTP client and export format, plain Kotlin/JVM
 app/      Android application
 ```
 
