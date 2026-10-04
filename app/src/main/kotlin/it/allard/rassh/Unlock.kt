@@ -139,9 +139,9 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
 
 /*
  * Move the private keys left in clear in ~/.ssh into the vault, which
- * must be set up, those with a public key next to them. done is called
- * when it finished, with false if the fingerprint was refused or the
- * keys could not be moved.
+ * must be set up, those with a public key next to them and a name the
+ * vault does not hold already. done is called when it finished, with
+ * false if the fingerprint was refused or the keys could not be moved.
  */
 fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
     /*
@@ -149,23 +149,37 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
      * Keys.MAX_SIZE. No fingerprint is asked for keys a full vault would
      * refuse anyway.
      */
-    val room = try {
-        Keys.MAX_COUNT - vault.names().size
+    val stored = try {
+        vault.names().toSet()
     } catch (e: IOException) {
         toast(getString(R.string.vault_error, e.message))
         return done(false)
     }
-    val pending = Keys.plaintext(paths.sshDir).filter {
+    val (taken, fresh) = Keys.plaintext(paths.sshDir).filter {
         Keys.publicKey(paths.sshDir, it) != null && File(paths.sshDir, it).length() <= Keys.MAX_SIZE
-    }.take(maxOf(room, 0))
+    }.partition { it in stored }
+    val pending = taken + fresh.take(maxOf(Keys.MAX_COUNT - stored.size, 0))
     if (pending.isEmpty()) return done(true)
     withVaultKey(vault, getString(R.string.protect_reason), { done(false) }) { key ->
+        /* Named as a stored key, a different one, as copied by scp, must not replace it. */
+        val kept = mutableListOf<String>()
         try {
             for (name in pending) {
                 val file = File(paths.sshDir, name)
                 val secret = file.readBytes()
                 try {
-                    vault.add(key, name, secret)
+                    if (name in stored) {
+                        /* The same key is left by a move cut short. */
+                        val sealed = vault.read(key, name)
+                        val same = sealed.contentEquals(secret)
+                        sealed.fill(0)
+                        if (!same) {
+                            kept.add(name)
+                            continue
+                        }
+                    } else {
+                        vault.add(key, name, secret)
+                    }
                 } finally {
                     secret.fill(0)
                 }
@@ -174,6 +188,14 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
         } catch (e: IOException) {
             /* Like a refusal, not to ask again at once for the same keys. */
             toast(getString(R.string.vault_error, e.message))
+            return@withVaultKey done(false)
+        } catch (e: GeneralSecurityException) {
+            toast(getString(R.string.vault_error, e.message))
+            return@withVaultKey done(false)
+        }
+        if (kept.isNotEmpty()) {
+            toast(getString(R.string.vault_name_taken, kept.joinToString(", ")))
+            /* Not asked again for them, as for a refusal. */
             return@withVaultKey done(false)
         }
         done(true)

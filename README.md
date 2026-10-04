@@ -137,7 +137,8 @@ There is no PIN fallback.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them, if the vault has room and the key is not
-  over 64 KiB.
+  over 64 KiB. One named as a key of the vault never replaces it, it
+  stays in clear unless it is the same key.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add` loads the keys through
   pipes into an agent started for that connection alone, so the

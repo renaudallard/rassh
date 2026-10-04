@@ -124,6 +124,7 @@
     <string name="vault_invalidated">The fingerprints or the screen lock changed, so the stored keys cannot be decrypted anymore and are lost. Reset the key storage to protect new keys.</string>
     <string name="vault_invalidated_empty">The fingerprints or the screen lock changed, the key storage cannot be used anymore. Reset it to protect new keys.</string>
     <string name="vault_reset">Reset</string>
+    <string name="vault_name_taken">Left in clear, the key storage holds another key of the same name: %1$s</string>
     <string name="vault_full">The vault holds at most %1$d keys, delete one first</string>
     <string name="vault_error">Key storage error: %1$s</string>
 
