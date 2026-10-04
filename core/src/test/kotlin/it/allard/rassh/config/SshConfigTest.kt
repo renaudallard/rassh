@@ -143,6 +143,8 @@ class SshConfigTest {
         assertEquals("Host b", SshConfig.replaceIdentities("Host b", keys))
         assertEquals("IdentityFile ~/.ssh/new.pub\n",
             SshConfig.replaceIdentities("IdentityFile ~/.ssh/old.pub\n", mapOf("~/.ssh/old.pub" to "~/.ssh/new.pub")))
+        assertEquals("    IdentityFile ~/.ssh/new # work key\n",
+            SshConfig.replaceIdentities("    IdentityFile \"~/.ssh/old\" # work key\n", mapOf("~/.ssh/old" to "~/.ssh/new")))
         assertEquals("CertificateFile ~/.ssh/new-cert.pub\n",
             SshConfig.replaceIdentities("CertificateFile ~/.ssh/old-cert.pub\n", mapOf("~/.ssh/old-cert.pub" to "~/.ssh/new-cert.pub")))
     }
@@ -296,7 +298,7 @@ class SshConfigTest {
     @Test
     fun replacesCommentedIdentities() {
         val text = "Host a\n    IdentityFile ~/.ssh/k # old\n"
-        assertEquals("Host a\n    IdentityFile ~/.ssh/k.pub\n",
+        assertEquals("Host a\n    IdentityFile ~/.ssh/k.pub # old\n",
             SshConfig.replaceIdentities(text, mapOf("~/.ssh/k" to "~/.ssh/k.pub")))
     }
 

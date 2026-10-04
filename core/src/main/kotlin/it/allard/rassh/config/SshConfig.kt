@@ -228,7 +228,9 @@ class SshConfig private constructor(
                     !(certificates && kv.first.equals("CertificateFile", true))) {
                     line
                 } else {
-                    line.takeWhile { it.isWhitespace() } + kv.first + " " + quote(to)
+                    /* What follows the path, a comment for one, stays. */
+                    val rest = argument(kv.second, 0)?.let { kv.second.substring(it.second) }.orEmpty()
+                    line.takeWhile { it.isWhitespace() } + kv.first + " " + quote(to) + rest
                 }
             }
             return lines.joinToString("\n") + if (text.endsWith("\n")) "\n" else ""
@@ -282,33 +284,36 @@ class SshConfig private constructor(
         fun arguments(s: String): List<String>? {
             val args = mutableListOf<String>()
             var i = 0
-            while (i < s.length) {
-                if (s[i] == ' ' || s[i] == '\t') {
-                    i++
-                    continue
-                }
-                if (s[i] == '#') break
-                val arg = StringBuilder()
-                var quote: Char? = null
-                while (i < s.length) {
-                    val c = s[i]
-                    val next = s.getOrNull(i + 1)
-                    when {
-                        c == '\\' && next != null && (next in "'\"\\" || quote == null && next == ' ') -> {
-                            arg.append(next)
-                            i++
-                        }
-                        quote == null && (c == ' ' || c == '\t') -> break
-                        quote == null && (c == '"' || c == '\'') -> quote = c
-                        quote != null && c == quote -> quote = null
-                        else -> arg.append(c)
-                    }
-                    i++
-                }
-                if (quote != null) return null
-                args.add(arg.toString())
+            while (true) {
+                while (i < s.length && (s[i] == ' ' || s[i] == '\t')) i++
+                if (i == s.length || s[i] == '#') return args
+                val (arg, end) = argument(s, i) ?: return null
+                args.add(arg)
+                i = end
             }
-            return args
+        }
+
+        /* The argument starting at s[from] and where it ends, null at an unmatched quote. */
+        private fun argument(s: String, from: Int): Pair<String, Int>? {
+            val arg = StringBuilder()
+            var quote: Char? = null
+            var i = from
+            while (i < s.length) {
+                val c = s[i]
+                val next = s.getOrNull(i + 1)
+                when {
+                    c == '\\' && next != null && (next in "'\"\\" || quote == null && next == ' ') -> {
+                        arg.append(next)
+                        i++
+                    }
+                    quote == null && (c == ' ' || c == '\t') -> break
+                    quote == null && (c == '"' || c == '\'') -> quote = c
+                    quote != null && c == quote -> quote = null
+                    else -> arg.append(c)
+                }
+                i++
+            }
+            return if (quote != null) null else Pair(arg.toString(), i)
         }
 
         /* The first argument, or the text as is when ssh would refuse it. */
