@@ -10,8 +10,6 @@ import java.io.EOFException
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.ByteBuffer
-import java.nio.CharBuffer
 
 /** Attributes of a remote file, null for those the server left out. */
 class SftpAttrs(
@@ -470,17 +468,44 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
  * that they go back to the server as they came.
  */
 internal fun decodeName(b: ByteArray): String {
-    val decoder = Charsets.UTF_8.newDecoder()
-    val input = ByteBuffer.wrap(b)
-    /* A byte gives at most one char. */
-    val out = CharBuffer.allocate(b.size)
-    while (true) {
-        val r = decoder.decode(input, out, true)
-        if (!r.isError) break
-        repeat(r.length()) { out.put((ESCAPE + (input.get().toInt() and 0xff)).toChar()) }
+    val sb = StringBuilder(b.size)
+    var i = 0
+    while (i < b.size) {
+        val n = sequence(b, i)
+        if (n == 0) {
+            sb.append((ESCAPE + (b[i].toInt() and 0xff)).toChar())
+            i++
+        } else {
+            sb.append(String(b, i, n, Charsets.UTF_8))
+            i += n
+        }
     }
-    decoder.flush(out)
-    return out.flip().toString()
+    return sb.toString()
+}
+
+/*
+ * The length of the well-formed UTF-8 sequence at b[i], 0 if there is
+ * none, after table 3-7 of the Unicode standard. Checked here, decoders
+ * differ on what they take, Android's from the JVM's.
+ */
+private fun sequence(b: ByteArray, i: Int): Int {
+    val (n, low, high) = when (b[i].toInt() and 0xff) {
+        in 0x00..0x7f -> return 1
+        in 0xc2..0xdf -> Triple(2, 0x80, 0xbf)
+        0xe0 -> Triple(3, 0xa0, 0xbf)
+        0xed -> Triple(3, 0x80, 0x9f)
+        in 0xe1..0xef -> Triple(3, 0x80, 0xbf)
+        0xf0 -> Triple(4, 0x90, 0xbf)
+        in 0xf1..0xf3 -> Triple(4, 0x80, 0xbf)
+        0xf4 -> Triple(4, 0x80, 0x8f)
+        else -> return 0
+    }
+    if (i + n > b.size) return 0
+    for (k in 1 until n) {
+        val c = b[i + k].toInt() and 0xff
+        if (c !in (if (k == 1) low..high else 0x80..0xbf)) return 0
+    }
+    return n
 }
 
 internal fun encodeName(s: String): ByteArray {
