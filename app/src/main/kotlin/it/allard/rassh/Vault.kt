@@ -82,9 +82,10 @@ class Vault(private val paths: Paths) {
         }
         keyStore().deleteEntry(ALIAS)
         file.delete()
+        val keys = names + Keys.plaintext(paths.sshDir)
         for (name in names) {
             if (File(paths.sshDir, name).exists()) continue
-            for (suffix in Keys.SUFFIXES) File(paths.sshDir, name + suffix).delete()
+            for (suffix in Keys.suffixes(name, keys)) File(paths.sshDir, name + suffix).delete()
         }
     }
 

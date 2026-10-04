@@ -93,17 +93,16 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
             if (f.isFile) items.add(Backup.Item(Backup.FILE, name, f.readBytes()))
         }
         val sealed = vault.names()
-        for (name in Keys.list(paths.sshDir, vault)) {
+        val names = Keys.list(paths.sshDir, vault)
+        for (name in names) {
             val secret = if (name in sealed)
                 vault.read(key ?: throw IOException("keys locked"), name)
             else
                 File(paths.sshDir, name).readBytes()
             items.add(Backup.Item(Backup.KEY, name, secret))
-            for (suffix in Keys.SUFFIXES) {
+            for (suffix in Keys.suffixes(name, names)) {
                 val file = File(paths.sshDir, name + suffix)
-                /* Once, x-cert.pub may be both the certificate of x and the public key of an old x-cert. */
-                if (file.isFile && items.none { it.type == Backup.FILE && it.name == file.name })
-                    items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
+                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
             }
         }
         val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
@@ -251,8 +250,9 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     for (item in publicKeys) paths.writePrivate(File(dir, item.name), item.data)
     useKeyNames(paths, sealed.toList())
     val clear = keys.map { it.name }.toSet() - sealed
+    val names = keys.map { it.name }
     for (item in keys) {
-        dropStrayFiles(paths, items, item.name)
+        dropStrayFiles(paths, items, item.name, names)
         if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
     }
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
@@ -262,7 +262,7 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
             File(dir, name).delete()
         } else if (name !in clear) {
             File(dir, name).delete()
-            for (suffix in Keys.SUFFIXES) File(dir, name + suffix).delete()
+            for (suffix in Keys.suffixes(name, names)) File(dir, name + suffix).delete()
         }
     }
     for (name in listOf(CONFIG, KNOWN_HOSTS))
@@ -282,9 +282,10 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     /* Checked first, not to stop with only part of the file added. */
     if (vault.names().size + keys.count { sealable(items, it) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
+    val names = present + keys.map { it.name }
     for (item in keys) {
-        storeKey(paths, vault, key, items, item)
-        for (suffix in Keys.SUFFIXES) {
+        storeKey(paths, vault, key, items, item, names)
+        for (suffix in Keys.suffixes(item.name, names)) {
             items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let {
                 paths.writePrivate(File(dir, it.name), it.data)
             }
@@ -324,17 +325,21 @@ private fun sealable(items: List<Backup.Item>, key: Backup.Item): Boolean =
 
 /* Into the vault or in clear, see sealable(). */
 @Throws(IOException::class)
-private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item) {
-    dropStrayFiles(paths, items, item.name)
+private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item,
+    names: List<String>) {
+    dropStrayFiles(paths, items, item.name, names)
     if (sealable(items, item))
         vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
     else
         paths.writePrivate(File(paths.sshDir, item.name), item.data)
 }
 
-/* A key imported: a public key or certificate of its name the file does not bring is of another key. */
-private fun dropStrayFiles(paths: Paths, items: List<Backup.Item>, name: String) {
-    for (suffix in Keys.SUFFIXES)
+/*
+ * A key imported: a public key or certificate of its name the file does
+ * not bring is of another key. names are the keys there will be.
+ */
+private fun dropStrayFiles(paths: Paths, items: List<Backup.Item>, name: String, names: List<String>) {
+    for (suffix in Keys.suffixes(name, names))
         if (items.none { it.type == Backup.FILE && it.name == name + suffix })
             File(paths.sshDir, name + suffix).delete()
 }

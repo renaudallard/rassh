@@ -20,6 +20,13 @@ object Keys {
     /** The files named after a key that go with it: its public key and the certificate ssh looks for. */
     val SUFFIXES = listOf(".pub", "-cert.pub")
 
+    /*
+     * The suffixes of the files of key name among keys. Older versions
+     * allowed a key x-cert next to x, x-cert.pub is then its public key.
+     */
+    fun suffixes(name: String, keys: Collection<String>): List<String> =
+        if ("$name-cert" in keys) listOf(".pub") else SUFFIXES
+
     @Throws(IOException::class)
     fun list(dir: File, vault: Vault): List<String> = (vault.names() + plaintext(dir)).distinct().sorted()
 

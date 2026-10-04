@@ -314,7 +314,8 @@ class KeysActivity : Activity() {
         fun undo() {
             for ((a, b) in moved) b.renameTo(a)
         }
-        for (suffix in Keys.SUFFIXES) {
+        val suffixes = Keys.suffixes(from, keys)
+        for (suffix in suffixes) {
             val a = File(paths.sshDir, from + suffix)
             val b = File(paths.sshDir, to + suffix)
             if (!a.exists()) continue
@@ -345,7 +346,7 @@ class KeysActivity : Activity() {
             return
         }
         try {
-            rewriteIdentities(paths, mapOf(from to to) + Keys.SUFFIXES.associate { from + it to to + it })
+            rewriteIdentities(paths, mapOf(from to to) + suffixes.associate { from + it to to + it })
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
         } catch (e: ErrnoException) {
@@ -370,7 +371,7 @@ class KeysActivity : Activity() {
             return
         }
         File(paths.sshDir, name).delete()
-        for (suffix in Keys.SUFFIXES) File(paths.sshDir, name + suffix).delete()
+        for (suffix in Keys.suffixes(name, keys)) File(paths.sshDir, name + suffix).delete()
         if (!isDestroyed) load()
     }
 
