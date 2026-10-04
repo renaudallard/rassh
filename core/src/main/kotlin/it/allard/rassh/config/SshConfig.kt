@@ -215,16 +215,17 @@ class SshConfig private constructor(
         }
 
         /**
-         * Rewrite the IdentityFile and CertificateFile lines naming a file
-         * of paths, given as written in the file, to the path it maps to.
+         * Rewrite the IdentityFile lines, and the CertificateFile ones with
+         * certificates, naming a file of paths, given as written in the
+         * file, to the path it maps to.
          */
-        fun replaceIdentities(text: String, paths: Map<String, String>): String {
+        fun replaceIdentities(text: String, paths: Map<String, String>, certificates: Boolean = true): String {
             if (text.isEmpty()) return text
             val lines = text.removeSuffix("\n").split('\n').map { line ->
                 val kv = keyword(line)
                 val to = kv?.let { paths[first(it.second)] }
-                if (kv == null || to == null ||
-                    !kv.first.equals("IdentityFile", true) && !kv.first.equals("CertificateFile", true)) {
+                if (kv == null || to == null || !kv.first.equals("IdentityFile", true) &&
+                    !(certificates && kv.first.equals("CertificateFile", true))) {
                     line
                 } else {
                     line.takeWhile { it.isWhitespace() } + kv.first + " " + quote(to)
