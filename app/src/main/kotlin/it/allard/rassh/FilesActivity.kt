@@ -227,7 +227,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             entries = found
             pathView.text = shownName(dir)
             status.setText(R.string.files_empty)
-            adapter.items = found.map { Pair(label(it), describe(it.attrs)) }
+            /* Made for each listing, a format keeps the time zone it was made in. */
+            val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+            adapter.items = found.map { Pair(label(it), describe(it.attrs, date)) }
             list.setSelection(0)
         }
     }
@@ -238,10 +240,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         else -> shownName(e.name)
     }
 
-    private fun describe(a: SftpAttrs): String {
+    private fun describe(a: SftpAttrs, date: DateFormat): String {
         val parts = mutableListOf<String>()
         if (!a.isDirectory) a.size?.let { parts.add(Formatter.formatShortFileSize(this, it)) }
-        a.mtime?.let { parts.add(DATE.format(Date(it * 1000))) }
+        a.mtime?.let { parts.add(date.format(Date(it * 1000))) }
         a.permissions?.let { parts.add(mode(it)) }
         return parts.joinToString("  ")
     }
@@ -586,7 +588,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_REFRESH = 3
         private const val MENU_TERMINAL = 4
         private const val PROGRESS_NANOS = 200_000_000L
-        private val DATE = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
 
         /* Permissions as ls -l shows them. */
         fun mode(p: Int): String {
