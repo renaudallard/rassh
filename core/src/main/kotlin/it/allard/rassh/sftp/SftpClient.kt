@@ -185,7 +185,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 out.write(data)
                 done += data.size
                 /* A short read: the requests after it start at the wrong offset. */
-                if (data.size < CHUNK && !eof) {
+                if (data.size < CHUNK) {
                     drain(pending)
                     offset = done
                 }
