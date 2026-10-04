@@ -9,6 +9,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import java.text.DateFormat
+import java.util.Date
 
 class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private lateinit var terminal: TerminalView
@@ -100,8 +101,10 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun label(s: Session): String {
         val sessions = binding.service?.sessions ?: return s.title
         if (s.server == null || sessions.count { it.server == s.server } < 2) return s.title
-        val opened = DateUtils.formatSameDayTime(s.opened, System.currentTimeMillis(),
-            DateFormat.SHORT, DateFormat.MEDIUM)
+        /* The time, and the date when not today: sessions opened the same day differ by their time. */
+        val format = if (DateUtils.isToday(s.opened)) DateFormat.getTimeInstance(DateFormat.MEDIUM)
+            else DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
+        val opened = format.format(Date(s.opened))
         return getString(R.string.session_label, s.title, opened)
     }
 
