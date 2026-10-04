@@ -279,11 +279,13 @@ class Session(
         /*
          * What ssh writes last when it refuses a changed key, see
          * check_host_key() in sshconnect.c and verify_host_key_callback()
-         * in sshconnect2.c.
+         * in sshconnect2.c. sftp follows with its own two lines, from
+         * sigchld_handler() in sftp.c and get_msg_extended() in
+         * sftp-client.c.
          */
         private val HOST_KEY_CHANGED = Regex(
             """Host key for (\S+) has changed and you have requested strict checking\.\r*\n""" +
-                """Host key verification failed\.\r*\n?$""")
+                """Host key verification failed\.\r*\n(?:\r?Connection closed\.? *\r*\n){0,2}$""")
         private const val SSH_FAILED = 255
         private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
