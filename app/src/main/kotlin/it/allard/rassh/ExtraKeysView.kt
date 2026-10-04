@@ -61,6 +61,10 @@ class ExtraKeysView(context: Context, attrs: AttributeSet?) : LinearLayout(conte
         refresh()
     }
 
+    /** The pending modifiers, kept. */
+    val latched: Int
+        get() = modifiers
+
     /** Return the pending modifiers and release them. */
     fun consumeModifiers(): Int {
         val m = modifiers

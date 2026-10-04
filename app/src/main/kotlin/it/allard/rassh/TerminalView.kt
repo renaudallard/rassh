@@ -564,7 +564,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
          * space giving it alone. With Ctrl or Alt it is the accent itself,
          * and a key with them is not combined: Ctrl-C stays an interrupt.
          */
-        val modified = mods and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
+        val modified = (mods or (extraKeys?.latched ?: 0)) and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
         if (c and KeyCharacterMap.COMBINING_ACCENT != 0) {
             if (modified) {
                 c = plainAccent(c and KeyCharacterMap.COMBINING_ACCENT_MASK)
