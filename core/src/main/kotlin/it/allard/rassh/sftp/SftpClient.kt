@@ -168,8 +168,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 val r = reply(id)
                 /*
                  * Past the end, the replies still due are dropped: a file
-                 * growing meanwhile answers with data beyond it, as OpenSSH's
-                 * sftp takes it, the copy ends where the end was met.
+                 * growing meanwhile answers with data beyond it, the copy
+                 * ends where the end was met.
                  */
                 if (eof) continue
                 if (r.type == FXP_STATUS) {
