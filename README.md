@@ -163,7 +163,8 @@ are pointed back at the key.
 ## Moving to another phone
 
 Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
-the keys and the settings to a file sealed with a passphrase of at least
+the keys with their public keys and certificates, and the settings to a
+file sealed with a passphrase of at least
 8 characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
 with 600,000 iterations. Reading the keys takes a fingerprint. Android
 backup stays off, since the vault cannot leave the phone that made it.

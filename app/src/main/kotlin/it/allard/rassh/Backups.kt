@@ -98,8 +98,10 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
             else
                 File(paths.sshDir, name).readBytes()
             items.add(Backup.Item(Backup.KEY, name, secret))
-            val pub = File(paths.sshDir, "$name.pub")
-            if (pub.isFile) items.add(Backup.Item(Backup.FILE, pub.name, pub.readBytes()))
+            for (suffix in Keys.SUFFIXES) {
+                val file = File(paths.sshDir, name + suffix)
+                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
+            }
         }
         val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
         if (prefs.contains(TerminalView.PREF_FONT_SIZE)) {
@@ -278,8 +280,10 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         throw IOException("at most ${Keys.MAX_COUNT} keys")
     for (item in keys) {
         storeKey(paths, vault, key, items, item)
-        items.find { it.type == Backup.FILE && it.name == "${item.name}.pub" }?.let {
-            paths.writePrivate(File(dir, it.name), it.data)
+        for (suffix in Keys.SUFFIXES) {
+            items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let {
+                paths.writePrivate(File(dir, it.name), it.data)
+            }
         }
     }
     var hosts = 0
