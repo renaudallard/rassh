@@ -235,13 +235,15 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     for (item in items) {
         when (item.type) {
             Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            Backup.KEY -> if (item.name !in sealed) writeClear(paths, items, item)
+            Backup.KEY -> if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
             Backup.SETTING -> putSetting(item)
         }
     }
     vault.replaceAll(key, keys.filter { it.name in sealed }.map { it.name to it.data })
     usePublicKeys(paths, sealed.toList())
     val clear = keys.map { it.name }.toSet() - sealed
+    /* Only now: had the vault failed, a key kept there would have lost it. */
+    for (name in clear) dropStrayPublicKey(paths, items, name)
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
     for (name in present) {
         /* The imported copy replaces the one of the same name. */
@@ -310,21 +312,18 @@ private fun sealable(items: List<Backup.Item>, key: Backup.Item): Boolean =
 /* Into the vault or in clear, see sealable(). */
 @Throws(IOException::class)
 private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item) {
-    if (sealable(items, item))
+    if (sealable(items, item)) {
         vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
-    else
-        writeClear(paths, items, item)
+    } else {
+        paths.writePrivate(File(paths.sshDir, item.name), item.data)
+        dropStrayPublicKey(paths, items, item.name)
+    }
 }
 
-/*
- * In clear, as on the phone it comes from, see sealable(). A public key
- * the file does not bring is of another key.
- */
-@Throws(IOException::class)
-private fun writeClear(paths: Paths, items: List<Backup.Item>, item: Backup.Item) {
-    paths.writePrivate(File(paths.sshDir, item.name), item.data)
-    if (items.none { it.type == Backup.FILE && it.name == "${item.name}.pub" })
-        File(paths.sshDir, "${item.name}.pub").delete()
+/* A key imported in clear: a public key of its name the file does not bring is of another key. */
+private fun dropStrayPublicKey(paths: Paths, items: List<Backup.Item>, name: String) {
+    if (items.none { it.type == Backup.FILE && it.name == "$name.pub" })
+        File(paths.sshDir, "$name.pub").delete()
 }
 
 /* Settings out of range or unknown are skipped. */
