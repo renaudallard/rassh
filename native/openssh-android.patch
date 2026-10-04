@@ -34,6 +34,25 @@
  		if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) == -1) {
  			error("%s: setresuid %u: %s", tag, (u_int)pw->pw_uid,
  			    strerror(errno));
+--- a/mux.c
++++ b/mux.c
+@@ -1373,7 +1373,16 @@
+ 	}
+ 
+ 	/* Now atomically "move" the mux socket into position */
++#ifdef __ANDROID__
++	/*
++	 * Android refuses link() to apps, a rename that never replaces
++	 * an existing socket does the same.
++	 */
++	if (renameat2(AT_FDCWD, options.control_path, AT_FDCWD,
++	    orig_control_path, RENAME_NOREPLACE) != 0) {
++#else
+ 	if (link(options.control_path, orig_control_path) != 0) {
++#endif
+ 		if (errno != EEXIST) {
+ 			fatal_f("link mux listener %s => %s: %s",
+ 			    options.control_path, orig_control_path,
 --- a/openbsd-compat/explicit_bzero.c
 +++ b/openbsd-compat/explicit_bzero.c
 @@ -33,6 +33,24 @@

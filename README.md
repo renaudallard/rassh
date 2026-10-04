@@ -196,7 +196,7 @@ app/      Android application
 | **PATH** | `~/bin` holds links named after the programs and comes first in `PATH`: `ssh` finds itself there for `ProxyJump`, as do `scp`, `sftp` and `ProxyCommand ssh -W` lines |
 | **getpwuid** | Bionic reports `/data` as the home of app users. The programs are linked with `-Wl,--wrap=getpwuid` and `native/homedir.c` answers `$HOME` |
 | **Files** | The browser runs `ssh -s host sftp` with pipes as its standard input and output and speaks SFTP version 3 to it. ssh keeps the terminal for its messages and questions, shown while connecting |
-| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, initialises the SSHFP resolver without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, and keeps no `known_hosts.old` when ssh adds host keys, since Android refuses `link()` to apps |
+| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, initialises the SSHFP resolver without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, keeps no `known_hosts.old` when ssh adds host keys and moves the `ControlMaster` socket into place with `renameat2()`, since Android refuses `link()` to apps |
 
 ## Building
 
