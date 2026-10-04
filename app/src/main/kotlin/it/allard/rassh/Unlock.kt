@@ -82,10 +82,9 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
 }
 
 private fun Activity.vaultInvalidated(vault: Vault) {
-    /* Nothing to lose, nothing to tell: MainActivity.setUp() then asks for a new vault. */
-    if (!holdsKeys(vault)) return vault.reset()
     AlertDialog.Builder(this)
-        .setMessage(R.string.vault_invalidated)
+        /* Not telling of keys lost when there were none, as after deleting them all. */
+        .setMessage(if (holdsKeys(vault)) R.string.vault_invalidated else R.string.vault_invalidated_empty)
         /* A new vault is set up from the main screen, see MainActivity.setUp(). */
         .setPositiveButton(R.string.vault_reset) { _, _ -> vault.reset() }
         .setNegativeButton(R.string.cancel, null)
@@ -111,10 +110,7 @@ fun Context.hasStrongBiometric(): Boolean =
 fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
     if (vault.isSetUp) return done()
     /* A new Keystore key could never read the keys left by the old one. */
-    if (vault.exists) {
-        if (holdsKeys(vault)) return vaultInvalidated(vault)
-        vault.reset()
-    }
+    if (vault.exists) return vaultInvalidated(vault)
     if (!hasStrongBiometric()) {
         AlertDialog.Builder(this)
             .setTitle(R.string.vault_title)
