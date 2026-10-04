@@ -85,6 +85,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private var anchorY = 0
     private var pointX = 0
     private var pointY = 0
+    /* Made on the alternate screen, whose lines never go into the history. */
+    private var selectionOnAlt = false
     private var actionMode: ActionMode? = null
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -105,6 +107,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             actionMode?.finish()
             val (x, y) = cellAt(e)
+            val t = session?.terminal ?: return
+            selectionOnAlt = synchronized(t) { t.isAltScreen }
             anchorX = x
             anchorY = y
             pointX = x
@@ -295,8 +299,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         lastHistoryAdded = t.historyAdded
         if (added == 0) return
         if (scrollOffset > 0) scrollOffset += added
-        /* Main screen lines, as a resize pushes them: a selection on the alternate screen stays. */
-        if (hasSelection && !t.isAltScreen) {
+        /* Main screen lines, even pushed by a resize on the alternate screen, where a selection stays. */
+        if (hasSelection && !selectionOnAlt) {
             anchorY -= added
             pointY -= added
         }
