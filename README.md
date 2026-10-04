@@ -52,8 +52,10 @@ fingerprint is enrolled, private keys are encrypted and unlocked with it.
   included, and their comments are left untouched, the comments of an
   edited host stay among its other options, but not one ending its host
   name, user, port or identity file line. ssh checks the file before
-  it is saved, since one bad line would stop every host. A file that is
-  not UTF-8 is shown but never rewritten. A checkbox
+  it is saved, since one bad line would stop every host. A config or
+  `known_hosts` that is not UTF-8 is never rewritten: saving or deleting
+  a host, renaming a key, removing a changed host key or an Append import
+  then stops with a message. A checkbox
   attaches to the last tmux session or starts one, with
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
