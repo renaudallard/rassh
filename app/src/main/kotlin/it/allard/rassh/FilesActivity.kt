@@ -204,14 +204,22 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         if (!show) window.insetsController?.hide(WindowInsets.Type.ime())
     }
 
-    private fun load(path: String) {
+    /* up for the parent folder, entered even when it cannot be listed, Back must not get stuck below it. */
+    private fun load(path: String, up: Boolean = false) {
         val c = client() ?: return
         run({
             val dir = c.realpath(path)
             Pair(dir, c.list(dir).sortedWith(compareBy({ !it.attrs.isDirectory }, { it.name.lowercase() })))
         }, { e ->
             failed(e)
-            if (client() != null && !listed) status.text = getString(R.string.files_failed, e.message)
+            /* The folder shows empty with the reason, the status would otherwise stay on connecting. */
+            if (client() != null && (!listed || up)) {
+                cwd = path
+                entries = emptyList()
+                pathView.text = path
+                status.text = getString(R.string.files_failed, e.message)
+                adapter.items = emptyList()
+            }
         }) { (dir, found) ->
             listed = true
             cwd = dir
@@ -269,11 +277,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun back() {
         val dir = cwd
-        if (dir == null || dir == home || dir == "/") {
+        if (dir == null || dir == home || dir == "/" || session?.isRunning != true) {
             finish()
             return
         }
-        load(dir.substringBeforeLast('/').ifEmpty { "/" })
+        load(dir.substringBeforeLast('/').ifEmpty { "/" }, true)
     }
 
     private fun download(e: SftpEntry, dir: String) {
