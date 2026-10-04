@@ -166,6 +166,12 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 }
                 val (id, at) = pending.removeFirstOrNull() ?: break
                 val r = reply(id)
+                /*
+                 * Past the end, the replies still due are dropped: a file
+                 * growing meanwhile answers with data beyond it, as OpenSSH's
+                 * sftp takes it, the copy ends where the end was met.
+                 */
+                if (eof) continue
                 if (r.type == FXP_STATUS) {
                     val e = statusOf(r)
                     if (e.status != SftpException.EOF) throw e

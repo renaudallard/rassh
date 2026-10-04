@@ -91,6 +91,38 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun fileGrowingAfterTheEnd() {
+        var reads = 0
+        val fake = FakeServer { type, id ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+                /* Data, then the end, then data again as the file grows. */
+                5 -> if (++reads == 2) FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(SftpException.EOF)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                } else FakeServer.packet(103) { writeInt(id); writeInt(32768); write(ByteArray(32768)) }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        val out = java.io.ByteArrayOutputStream()
+        client.download("/f", out)
+        assertEquals(32768, out.size())
+    }
+
+    @Test(timeout = TIMEOUT)
     fun longPathRefused() {
         val fake = FakeServer { type, id ->
             when (type) {
