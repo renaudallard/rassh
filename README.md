@@ -92,8 +92,9 @@ fingerprint is enrolled, private keys are encrypted and unlocked with it.
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, which sends the arrow keys to full screen programs like vim or
   less, pinch to zoom, long press to select and copy. As in xterm, a
-  paste turns control characters other than tab and newline into
-  spaces, so that it cannot send ^C or end a bracketed paste
+  paste, also one from the keyboard's clipboard, turns control
+  characters other than tab and newline into spaces, so that it cannot
+  send ^C or end a bracketed paste
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the

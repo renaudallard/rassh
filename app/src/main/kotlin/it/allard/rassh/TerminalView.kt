@@ -388,19 +388,22 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     /** Send the clipboard, bracketed when the program asked for it. */
     fun paste() {
-        /* Nothing goes to an ended session, a lone newline would close it. */
-        if (session?.isRunning != true) return
-        val t = session?.terminal ?: return
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         val clip = clipboard.primaryClip ?: return
         if (clip.itemCount == 0) return
+        pasteText(clip.getItemAt(0).coerceToText(context).toString())
+    }
+
+    private fun pasteText(text: String) {
+        /* Nothing goes to an ended session, a lone newline would close it. */
+        if (session?.isRunning != true) return
+        val t = session?.terminal ?: return
         /*
          * Control characters but tab and newline become spaces, as in
          * xterm: ^C or ^Z would reach the remote terminal as signals, ESC
          * could end a bracketed paste early or start a sequence.
          */
-        var s = clip.getItemAt(0).coerceToText(context).toString()
-            .replace("\r\n", "\r").replace('\n', '\r').replace(PASTE_CONTROLS, " ")
+        var s = text.replace("\r\n", "\r").replace('\n', '\r').replace(PASTE_CONTROLS, " ")
         if (synchronized(t) { t.bracketedPaste })
             s = "\u001b[200~$s\u001b[201~"
         if (!send(s)) context.toast(context.getString(R.string.paste_too_large))
@@ -553,8 +556,18 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 val e = editable ?: return
                 val s = e.toString()
                 e.clear()
-                /* Clipboard text a keyboard commits may end its lines with CR LF, one Enter each. */
-                if (s.isNotEmpty()) typeText(s.replace("\r\n", "\r"), extraKeys?.consumeModifiers() ?: 0)
+                if (s.isEmpty()) return
+                val mods = extraKeys?.consumeModifiers() ?: 0
+                /*
+                 * Lines committed at once come from the keyboard's clipboard,
+                 * they go as a paste. Other text, a word typed by gesture for
+                 * one, has no control character to send either.
+                 */
+                when {
+                    s.length > 1 && (s.contains('\n') || s.contains('\r')) -> pasteText(s)
+                    s.length > 1 -> typeText(s.replace(PASTE_CONTROLS, " "), mods)
+                    else -> typeText(s, mods)
+                }
             }
         }
     }
