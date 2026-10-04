@@ -202,6 +202,17 @@ class SshConfigTest {
     }
 
     @Test
+    fun namesOfSharedBlocksAreUsed() {
+        val config = SshConfig.parse("Host web db\n    User admin\nHost mail # prod\nHost !x *.lan\n")
+        assertTrue(config.isUsed("db"))
+        assertTrue(config.isUsed("Mail"))
+        assertFalse(config.isUsed("x"))
+        assertFalse(config.isUsed("prod"))
+        val other = SshConfig.parse("Host web\n    User root\nHost mail\nHost pi\n")
+        assertEquals(listOf("pi"), config.addMissing(other))
+    }
+
+    @Test
     fun readsKeywordsLikeSsh() {
         assertEquals(Pair("Host", "*"), SshConfig.keyword("\"Host\"*"))
         assertEquals(Pair("Host", "x"), SshConfig.keyword("Ho\"st\" x"))

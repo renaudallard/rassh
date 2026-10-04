@@ -71,6 +71,17 @@ class SshConfig private constructor(
         blocks.find { it.isHost && it.value == name }?.let { toHost(it) }
 
     /**
+     * Whether a Host line names name, alone or with others. ssh matches
+     * host names in lower case and takes the first value it finds, a new
+     * block for name would change that host.
+     */
+    fun isUsed(name: String): Boolean =
+        blocks.any { b ->
+            b.keyword.equals("Host", ignoreCase = true) &&
+                arguments(b.value).orEmpty().any { it.equals(name, ignoreCase = true) }
+        }
+
+    /**
      * Replace the block named old by host, or add host when old is null.
      * New blocks go before wildcard Host and Match blocks so that their
      * options take precedence.
@@ -96,8 +107,7 @@ class SshConfig private constructor(
      * added.
      */
     fun addMissing(other: SshConfig): List<String> {
-        val names = blocks.filter { it.isHost }.map { it.value }.toSet()
-        val added = other.blocks.filter { it.isHost && it.value !in names }
+        val added = other.blocks.filter { it.isHost && !isUsed(it.value) }
         val at = blocks.indexOfFirst { !it.isHost }
         blocks.addAll(if (at < 0) blocks.size else at, added)
         return added.map { it.value }.distinct()
