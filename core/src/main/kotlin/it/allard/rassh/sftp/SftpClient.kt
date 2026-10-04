@@ -511,8 +511,23 @@ private fun sequence(b: ByteArray, i: Int): Int {
 /**
  * name, or a path, as shown: lone surrogates make Android's accessibility
  * services fail, the bytes that are not UTF-8 show as U+FFFD instead.
+ * Replaced here, Android's decoder may itself return lone surrogates.
  */
-fun shownName(name: String): String = String(encodeName(name), Charsets.UTF_8)
+fun shownName(name: String): String {
+    val sb = StringBuilder(name.length)
+    var i = 0
+    while (i < name.length) {
+        val c = name[i]
+        if (c.isHighSurrogate() && i + 1 < name.length && name[i + 1].isLowSurrogate()) {
+            sb.append(c).append(name[i + 1])
+            i += 2
+        } else {
+            sb.append(if (c.isSurrogate()) '\ufffd' else c)
+            i++
+        }
+    }
+    return sb.toString()
+}
 
 internal fun encodeName(s: String): ByteArray {
     val out = ByteArrayOutputStream(s.length)

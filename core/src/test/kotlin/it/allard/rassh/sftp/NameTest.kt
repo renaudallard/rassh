@@ -35,6 +35,8 @@ class NameTest {
     fun showsNoSurrogates() {
         assertEquals("c\ufffd", shownName(decodeName(bytes(0x63, 0xe9))))
         assertEquals("\u00e9t\u00e9 \ud83d\ude00", shownName("\u00e9t\u00e9 \ud83d\ude00"))
+        assertEquals("\ufffd\ufffd\ufffdx", shownName(decodeName(bytes(0xed, 0xb2, 0x80, 0x78))))
+        assertEquals("\ufffda\ufffd", shownName("\ud800a\udc00"))
     }
 
     @Test
