@@ -90,6 +90,26 @@ class SftpFakeTest {
         }
     }
 
+    @Test(timeout = TIMEOUT)
+    fun longPathRefused() {
+        val fake = FakeServer { type, id ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                else -> FakeServer.packet(104) {
+                    writeInt(id)
+                    writeInt(1)
+                    with(FakeServer) {
+                        string("/" + "x".repeat(200_000))
+                        string("")
+                    }
+                    writeInt(0)
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        assertEquals("name too long", assertFailsWith<java.io.IOException> { client.realpath(".") }.message)
+    }
+
     private companion object {
         const val TIMEOUT = 10_000L
     }

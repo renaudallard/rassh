@@ -84,7 +84,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         val r = request(Writer(FXP_REALPATH).string(path))
         expect(r, FXP_NAME)
         if (r.body.u32() < 1) throw IOException("empty reply")
-        return r.body.text()
+        return r.body.name()
     }
 
     @Synchronized
@@ -115,8 +115,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 val count = r.body.u32()
                 if (count < 1) throw IOException("empty reply")
                 repeat(count) {
-                    val name = r.body.text()
-                    r.body.text()
+                    val name = r.body.name()
+                    r.body.bytes()
                     val attrs = r.body.attrs()
                     if (name != "." && name != "..") entries.add(SftpEntry(name, attrs))
                     chars += name.length
@@ -387,7 +387,15 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             return b.copyOfRange(pos, pos + n).also { pos += n }
         }
 
-        fun text(): String = decodeName(bytes())
+        /*
+         * A name or path, refused beyond PATH_MAX: the browser keeps paths
+         * in the state Android saves, which a server could make too large.
+         */
+        fun name(): String {
+            val b = bytes()
+            if (b.size > MAX_NAME) throw IOException("name too long")
+            return decodeName(b)
+        }
 
         fun attrs(): SftpAttrs {
             val flags = u32()
@@ -428,6 +436,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
         private const val MAX_ENTRIES = 200_000
+        private const val MAX_NAME = 4096
         private const val MAX_CHARS = 16L * 1024 * 1024
         private const val MAX_EARLY = 64
 
