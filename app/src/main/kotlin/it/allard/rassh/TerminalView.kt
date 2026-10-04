@@ -267,6 +267,11 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         invalidate()
     }
 
+    /** Give the session the size of this view again, another may have resized it. */
+    fun refit() {
+        resizeTerminal()
+    }
+
     private fun resizeTerminal() {
         if (width == 0 || height == 0) return
         val columns = maxOf(1, (width / cellWidth).toInt())

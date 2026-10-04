@@ -102,6 +102,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         super.onResume()
         session?.let {
             it.listener = this
+            terminal.refit()
             terminal.invalidate()
         }
     }
@@ -192,6 +193,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* Hidden, it takes the keyboard it may have opened for a password along. */
     private fun showTerminal(show: Boolean) {
         terminal.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) terminal.refit()
         if (!show) window.insetsController?.hide(WindowInsets.Type.ime())
     }
 

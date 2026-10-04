@@ -50,6 +50,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         session?.let {
             it.listener = this
             actionBar?.title = label(it)
+            terminal.refit()
             terminal.invalidate()
         }
     }
