@@ -470,6 +470,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     /* False when the session could not take s, see Session.offer(). */
     private fun send(s: String): Boolean {
+        /* Anything sent, a special key or text from the soft keyboard, ends a dead key. */
+        deadAccent = 0
         val session = session ?: return true
         if (!session.isRunning) {
             if (s.contains('\r')) onCloseRequest?.invoke()
