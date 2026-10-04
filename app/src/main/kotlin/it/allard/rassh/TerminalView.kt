@@ -500,7 +500,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
                 if (editable?.isNotEmpty() == true)
                     return super.deleteSurroundingText(beforeLength, afterLength)
-                repeat(beforeLength) { sendKey(Key.BACKSPACE, 0) }
+                /* Latched CTRL and ALT apply to the first one, as for the Backspace key. */
+                val mods = extraKeys?.consumeModifiers() ?: 0
+                repeat(beforeLength) { sendKey(Key.BACKSPACE, if (it == 0) mods else 0) }
                 return true
             }
 
