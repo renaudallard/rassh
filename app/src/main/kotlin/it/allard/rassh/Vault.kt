@@ -3,7 +3,6 @@ package it.allard.rassh
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
-import android.security.keystore.StrongBoxUnavailableException
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONException
@@ -11,6 +10,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.security.KeyStore
+import java.security.ProviderException
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -48,7 +48,8 @@ class Vault(private val paths: Paths) {
     fun setUp(invalidate: Boolean) {
         try {
             generate(invalidate, true)
-        } catch (_: StrongBoxUnavailableException) {
+        } catch (_: ProviderException) {
+            /* No StrongBox, or one refusing the key: the TEE then holds it. */
             generate(invalidate, false)
         }
     }

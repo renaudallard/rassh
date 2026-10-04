@@ -12,6 +12,7 @@ import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
+import java.security.ProviderException
 
 /* The longest keys stay in the agent once loaded, in seconds. */
 private const val KEY_LIFETIME = 60
@@ -123,6 +124,10 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
         try {
             vault.setUp(invalidate)
         } catch (e: GeneralSecurityException) {
+            toast(getString(R.string.vault_error, e.message))
+            return
+        } catch (e: ProviderException) {
+            /* The Keystore refusing the key, unchecked, would end the app and its sessions. */
             toast(getString(R.string.vault_error, e.message))
             return
         }
