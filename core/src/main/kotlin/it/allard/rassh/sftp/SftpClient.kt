@@ -26,10 +26,15 @@ class SftpAttrs(
     val isLink: Boolean
         get() = permissions != null && permissions and S_IFMT == S_IFLNK
 
+    /** A regular file, not a FIFO, socket or device, whose reading could wait forever. */
+    val isFile: Boolean
+        get() = permissions != null && permissions and S_IFMT == S_IFREG
+
     companion object {
         const val S_IFMT = 0xf000
         const val S_IFDIR = 0x4000
         const val S_IFLNK = 0xa000
+        const val S_IFREG = 0x8000
     }
 }
 

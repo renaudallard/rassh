@@ -79,7 +79,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         list.emptyView = status
         list.setOnItemClickListener { _, _, position, _ -> open(entries[position]) }
         list.setOnItemLongClickListener { _, _, position, _ ->
-            actions(entries[position])
+            open(entries[position], false)
             true
         }
         cwd = savedInstanceState?.getString(STATE_PATH)
@@ -250,14 +250,21 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun path(dir: String, name: String): String = if (dir == "/") "/$name" else "$dir/$name"
 
-    /* A directory is entered, a link followed when it leads to one. */
-    private fun open(e: SftpEntry) {
+    /*
+     * A directory is entered, a link followed when it leads to one, with
+     * enter, else the actions are offered. A link is looked up first, its
+     * target may be a file to download.
+     */
+    private fun open(e: SftpEntry, enter: Boolean = true) {
         val c = client() ?: return
         val dir = cwd ?: return
         val p = path(dir, e.name)
         when {
-            e.attrs.isDirectory -> load(p)
-            e.attrs.isLink -> run({ c.stat(p) }) { if (it.isDirectory) load(p) else actions(e, dir) }
+            enter && e.attrs.isDirectory -> load(p)
+            /* A dangling link still gets its actions, but downloading, on a long press. */
+            e.attrs.isLink -> run({ c.stat(p) }, { if (enter) failed(it) else actions(e, dir, false) }) {
+                if (enter && it.isDirectory) load(p) else actions(e, dir, it.isFile)
+            }
             else -> actions(e, dir)
         }
     }
@@ -266,10 +273,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * The entry is in dir, the directory listed when it was picked: the
      * listing may change before an action is confirmed.
      */
-    private fun actions(e: SftpEntry, dir: String? = cwd) {
+    private fun actions(e: SftpEntry, dir: String? = cwd, file: Boolean = e.attrs.isFile) {
         dir ?: return
         val items = mutableListOf<Pair<Int, () -> Unit>>()
-        if (!e.attrs.isDirectory) items.add(R.string.download to { download(e, dir) })
+        if (file) items.add(R.string.download to { download(e, dir) })
         items.add(R.string.rename to { rename(e, dir) })
         items.add(R.string.delete to { delete(e, dir) })
         AlertDialog.Builder(this)
