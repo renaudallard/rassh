@@ -212,7 +212,7 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         }
         done()
     }
-    if (items.none { it.type == Backup.KEY && (replace || it.name !in present) && sealable(items, it) })
+    if (items.none { it.type == Backup.KEY && (replace || !Keys.isTaken(paths.sshDir, it.name, present)) && sealable(items, it) })
         return write(null)
     if (!vault.isSetUp) {
         zero()
@@ -280,7 +280,8 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     present: List<String>): Pair<Int, Int> {
     val dir = paths.sshDir
     paths.ensureSshDir()
-    val keys = items.filter { it.type == Backup.KEY && it.name !in present }
+    /* As on the key screen, a lone public key or certificate keeps its name. */
+    val keys = items.filter { it.type == Backup.KEY && !Keys.isTaken(dir, it.name, present) }
     /* Checked and read first, not to stop with only part of the file added. */
     if (vault.names().size + keys.count { sealable(items, it) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")

@@ -21,6 +21,14 @@ object Keys {
     val SUFFIXES = listOf(".pub", "-cert.pub")
 
     /*
+     * Whether name is used, by a key in clear or in stored, the names of
+     * the vault, or by a file of one, see SUFFIXES. A vault key may have
+     * no file left, a lone public key may be all there is.
+     */
+    fun isTaken(dir: File, name: String, stored: Collection<String>): Boolean =
+        name in stored || File(dir, name).exists() || SUFFIXES.any { File(dir, name + it).exists() }
+
+    /*
      * The suffixes of the files of key name among keys. Older versions
      * allowed a key x-cert next to x, x-cert.pub is then its public key.
      */

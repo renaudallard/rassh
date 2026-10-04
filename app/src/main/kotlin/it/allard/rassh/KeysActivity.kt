@@ -119,12 +119,10 @@ class KeysActivity : Activity() {
         startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
     }
 
-    /* A vault key may have no file left, its name is taken all the same. */
     private fun checkName(name: String): String? = when {
         /* Old keys may have such a name, new ones not: the public key of x-cert is the certificate of x. */
         !Keys.isValidName(name) || name.endsWith("-cert") -> getString(R.string.error_key_name)
-        File(paths.sshDir, name).exists() || Keys.SUFFIXES.any { File(paths.sshDir, name + it).exists() } ||
-            name in vaultNames() -> getString(R.string.error_key_exists)
+        Keys.isTaken(paths.sshDir, name, vaultNames()) -> getString(R.string.error_key_exists)
         else -> null
     }
 
