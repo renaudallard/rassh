@@ -132,8 +132,9 @@ not need it.
 
 Private keys are sealed in `~/.ssh/keys.vault`, each with AES-256-GCM
 under a random vault key. The vault key is itself sealed by an AES key of
-the Android Keystore, kept in StrongBox when the phone has one, that only
-works after a strong biometric check and while the phone is unlocked.
+the Android Keystore, kept in StrongBox when the phone has one that takes
+it, otherwise in the TEE, that only works after a strong biometric check
+and while the phone is unlocked.
 There is no PIN fallback.
 
 - Until a fingerprint is enrolled, keys stay in clear in `~/.ssh`. Once
