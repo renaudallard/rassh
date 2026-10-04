@@ -297,6 +297,13 @@ class KeysActivity : Activity() {
                 field.error = error
                 return@setOnClickListener
             }
+            /* Its config lines follow the key, the config must be one the app may rewrite. */
+            try {
+                paths.textOf(paths.config)
+            } catch (e: IOException) {
+                toast(getString(R.string.config_failed, e.message))
+                return@setOnClickListener
+            }
             dialog.dismiss()
             if (name in vaultNames())
                 withVaultKey(vault, getString(R.string.rename_reason)) { key -> renameKey(name, to, key) }
