@@ -181,6 +181,15 @@ class TerminalTest {
     }
 
     @Test
+    fun restoreWithNothingSaved() {
+        val t = term(columns = 10, rows = 4)
+        /* SGR, line drawing and origin mode set, then a restore with nothing saved. */
+        t.put("\u001b[7m\u001b[31m\u001b(0\u001b[?6h\u001b[2;3r\u001b8q\u001b[1;2HZ")
+        assertEquals("qZ", t.line(0))
+        assertEquals(TextStyle.NORMAL, t.row(0).style[0])
+    }
+
+    @Test
     fun alternateScreen() {
         val t = term()
         t.put("main\u001b[?1049h")

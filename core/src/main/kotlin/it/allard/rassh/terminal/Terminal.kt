@@ -735,11 +735,8 @@ class Terminal(
     }
 
     private fun restoreCursor() {
-        val s = screen.saved
-        if (s == null) {
-            setCursor(0, 0)
-            return
-        }
+        /* Nothing saved restores the defaults, home, plain text and charsets, as in xterm. */
+        val s = screen.saved ?: SavedCursor(0, 0, TextStyle.NORMAL, false, false, false, false)
         cursorX = minOf(s.x, columns - 1)
         cursorY = minOf(s.y, rows - 1)
         style = s.style
