@@ -126,10 +126,19 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         AlertDialog.Builder(this)
             .setTitle(R.string.sessions)
             .setItems(labels.toTypedArray()) { _, which ->
-                if (which < sessions.size) show(sessions[which])
-                /* The main screen already open rather than another, without closing a file browser above it. */
-                else startActivity(Intent(this, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+                if (which < sessions.size) {
+                    show(sessions[which])
+                } else {
+                    /*
+                     * The main screen already open rather than another, without
+                     * closing a file browser above it. Done here, this screen goes:
+                     * the sessions stay in the service and the main screen at the
+                     * root, Back from it leaving the app.
+                     */
+                    startActivity(Intent(this, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+                    finish()
+                }
             }
             .show()
     }
