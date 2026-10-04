@@ -377,11 +377,14 @@ class KeysActivity : Activity() {
     }
 
     private fun removeKey(name: String) {
-        try {
-            vault.remove(name)
-        } catch (e: IOException) {
-            toast(getString(R.string.vault_error, e.message))
-            return
+        /* A key in clear has nothing to do with the vault, a full disk or a broken vault must not keep it. */
+        if (name in vaultNames()) {
+            try {
+                vault.remove(name)
+            } catch (e: IOException) {
+                toast(getString(R.string.vault_error, e.message))
+                return
+            }
         }
         File(paths.sshDir, name).delete()
         for (suffix in Keys.suffixes(name, keys)) File(paths.sshDir, name + suffix).delete()

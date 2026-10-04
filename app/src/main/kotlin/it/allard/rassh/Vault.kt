@@ -185,6 +185,7 @@ class Vault(private val paths: Paths) {
     @Throws(IOException::class)
     fun remove(name: String) {
         val v = load() ?: return
+        if (v.second.none { it.name == name }) return
         save(v.first, v.second.filter { it.name != name })
     }
 
