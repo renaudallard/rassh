@@ -254,6 +254,7 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 - No mosh
 - No mouse reporting
 - Combining characters are not rendered
+- Screen readers such as TalkBack do not read the terminal output
 - The vault holds at most 64 keys, all loaded for each connection, and
   keys over 64 KiB stay out of it
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
