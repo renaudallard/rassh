@@ -250,14 +250,14 @@ fun withAgent(argv: List<String>, keys: Int): List<String> {
     /*
      * The shell outlives the program here, a Ctrl-C the program handles,
      * as sftp does, must not end the shell with it: a trap catching
-     * SIGINT is reset to the default in the program.
+     * SIGINT is reset to the default in the program. It is only set for
+     * the program, a Ctrl-C at a passphrase of ssh-add stops it all.
      */
-    val script = "trap : INT; " +
-        "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
+    val script = "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
         "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "ssh-add -t $KEY_LIFETIME $files >&2; cat $files >/dev/null 2>&1; " +
-        "\"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
+        "trap : INT; \"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
     return listOf("sh", "-c", script) + argv
 }
 
