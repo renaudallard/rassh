@@ -281,9 +281,17 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val dir = paths.sshDir
     paths.ensureSshDir()
     val keys = items.filter { it.type == Backup.KEY && it.name !in present }
-    /* Checked first, not to stop with only part of the file added. */
+    /* Checked and read first, not to stop with only part of the file added. */
     if (vault.names().size + keys.count { sealable(items, it) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
+    val configFile = File(dir, CONFIG)
+    val knownFile = File(dir, KNOWN_HOSTS)
+    val config = items.find { it.type == Backup.FILE && it.name == CONFIG }?.let {
+        Pair(SshConfig.parse(paths.textOf(configFile)), SshConfig.parse(Paths.utf8(it.data, CONFIG)))
+    }
+    val known = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
+        Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
+    }
     val names = present + keys.map { it.name }
     for (item in keys) {
         storeKey(paths, vault, key, items, item, names)
@@ -294,20 +302,16 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         }
     }
     var hosts = 0
-    items.find { it.type == Backup.FILE && it.name == CONFIG }?.let {
-        val file = File(dir, CONFIG)
-        val config = SshConfig.parse(paths.textOf(file))
-        hosts = config.addMissing(SshConfig.parse(Paths.utf8(it.data, CONFIG))).size
-        if (hosts > 0) paths.writePrivate(file, config.toString())
+    config?.let { (mine, theirs) ->
+        hosts = mine.addMissing(theirs).size
+        if (hosts > 0) paths.writePrivate(configFile, mine.toString())
     }
-    items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
-        val file = File(dir, KNOWN_HOSTS)
-        val text = paths.textOf(file)
-        val known = text.lines().toSet()
-        val missing = Paths.utf8(it.data, KNOWN_HOSTS).lines().filter { line -> line.isNotBlank() && line !in known }.distinct()
+    known?.let { (text, theirs) ->
+        val lines = text.lines().toSet()
+        val missing = theirs.lines().filter { line -> line.isNotBlank() && line !in lines }.distinct()
         if (missing.isNotEmpty()) {
             val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
-            paths.writePrivate(file, start + missing.joinToString("\n", postfix = "\n"))
+            paths.writePrivate(knownFile, start + missing.joinToString("\n", postfix = "\n"))
         }
     }
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
