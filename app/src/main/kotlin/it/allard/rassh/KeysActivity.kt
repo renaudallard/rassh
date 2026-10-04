@@ -21,6 +21,7 @@ import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
+import kotlin.concurrent.thread
 
 /** Private keys, generated and converted by ssh-keygen, kept in the vault. */
 class KeysActivity : Activity() {
@@ -202,26 +203,31 @@ class KeysActivity : Activity() {
                 return@setOnClickListener
             }
             dialog.dismiss()
-            try {
-                /* Kept in a byte array, zeroed after use, never in a String. */
-                val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(Keys.MAX_SIZE + 1) }
-                    ?: throw IOException("cannot open $uri")
-                try {
-                    if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
-                    if (!key.startsWith(PEM_START)) throw IOException("not a private key")
-                    paths.ensureSshDir()
-                    paths.writePrivate(File(paths.sshDir, n), key)
-                } finally {
-                    key.fill(0)
+            /* In a thread, a provider may have to download the file first. */
+            thread(name = "import-key") {
+                val error = try {
+                    /* Kept in a byte array, zeroed after use, never in a String. */
+                    val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(Keys.MAX_SIZE + 1) }
+                        ?: throw IOException("cannot open $uri")
+                    try {
+                        if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
+                        if (!key.startsWith(PEM_START)) throw IOException("not a private key")
+                        paths.ensureSshDir()
+                        paths.writePrivate(File(paths.sshDir, n), key)
+                    } finally {
+                        key.fill(0)
+                    }
+                    null
+                } catch (e: IOException) {
+                    e.message
+                } catch (e: ErrnoException) {
+                    e.message
                 }
-            } catch (e: IOException) {
-                toast(getString(R.string.import_failed, e.message))
-                return@setOnClickListener
-            } catch (e: ErrnoException) {
-                toast(getString(R.string.import_failed, e.message))
-                return@setOnClickListener
+                runOnUiThread {
+                    if (isDestroyed) return@runOnUiThread
+                    if (error != null) toast(getString(R.string.import_failed, error)) else derivePublicKey(n)
+                }
             }
-            derivePublicKey(n)
         }
     }
 
