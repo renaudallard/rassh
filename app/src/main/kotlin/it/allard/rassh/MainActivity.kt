@@ -388,7 +388,7 @@ class MainActivity : Activity(), SessionService.Listener {
             .setMessage(getString(R.string.delete_host, name))
             .setPositiveButton(R.string.delete) { _, _ ->
                 try {
-                    val config = readConfig()
+                    val config = SshConfig.parse(paths.textOf(paths.config))
                     config.remove(name)
                     paths.writePrivate(paths.config, config.toString())
                 } catch (e: IOException) {

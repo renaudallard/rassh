@@ -60,7 +60,7 @@ private val FOUND = Regex("""^# Host .* found: line (\d+)[ \t]*$""", RegexOption
  */
 @Throws(IOException::class)
 private fun removeLines(paths: Paths, file: File, gone: Set<String>) {
-    val kept = file.readText().split('\n').filter { it !in gone }
+    val kept = paths.textOf(file).split('\n').filter { it !in gone }
     paths.writePrivate(file, kept.joinToString("\n"))
 }
 

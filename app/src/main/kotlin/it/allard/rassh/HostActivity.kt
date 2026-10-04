@@ -107,7 +107,7 @@ class HostActivity : Activity() {
         val u = user.text.toString().trim()
         val p = port.text.toString().trim()
         val config = try {
-            readConfig()
+            SshConfig.parse(paths.textOf(paths.config))
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
             return

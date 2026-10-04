@@ -7,6 +7,8 @@ import android.system.OsConstants
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
 
 /** Where things live. $HOME is the app files directory. */
 class Paths(context: Context) {
@@ -63,6 +65,13 @@ class Paths(context: Context) {
     }
 
     /*
+     * The text of file, empty when it is missing, for a file the app
+     * writes back whole, see utf8().
+     */
+    @Throws(IOException::class)
+    fun textOf(file: File): String = if (file.isFile) utf8(file.readBytes(), file.name) else ""
+
+    /*
      * Replace file with text, readable by the owner only. The data and
      * the rename reach the disk before returning, as callers may delete
      * the only other copy right after.
@@ -100,5 +109,18 @@ class Paths(context: Context) {
 
     companion object {
         private val PROGRAMS = listOf("ssh", "ssh-keygen", "ssh-agent", "ssh-add", "scp", "sftp")
+
+        /*
+         * data as text, refused when it is not UTF-8: decoded leniently and
+         * written back, lines the app never meant to change would.
+         */
+        @Throws(IOException::class)
+        fun utf8(data: ByteArray, name: String): String = try {
+            Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(data)).toString()
+        } catch (_: CharacterCodingException) {
+            throw NotUtf8Exception(name)
+        }
     }
+
+    class NotUtf8Exception(name: String) : IOException("$name is not in UTF-8")
 }

@@ -296,15 +296,15 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     var hosts = 0
     items.find { it.type == Backup.FILE && it.name == CONFIG }?.let {
         val file = File(dir, CONFIG)
-        val config = SshConfig.parse(if (file.isFile) file.readText() else "")
-        hosts = config.addMissing(SshConfig.parse(String(it.data))).size
+        val config = SshConfig.parse(paths.textOf(file))
+        hosts = config.addMissing(SshConfig.parse(Paths.utf8(it.data, CONFIG))).size
         if (hosts > 0) paths.writePrivate(file, config.toString())
     }
     items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
         val file = File(dir, KNOWN_HOSTS)
-        val text = if (file.isFile) file.readText() else ""
+        val text = paths.textOf(file)
         val known = text.lines().toSet()
-        val missing = String(it.data).lines().filter { line -> line.isNotBlank() && line !in known }.distinct()
+        val missing = Paths.utf8(it.data, KNOWN_HOSTS).lines().filter { line -> line.isNotBlank() && line !in known }.distinct()
         if (missing.isNotEmpty()) {
             val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
             paths.writePrivate(file, start + missing.joinToString("\n", postfix = "\n"))
