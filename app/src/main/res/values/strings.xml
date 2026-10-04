@@ -40,6 +40,7 @@
     <string name="host_key_keep">Keep</string>
     <string name="host_key_removed">Old key removed, connect again to check the new one</string>
     <string name="host_key_failed">Cannot check the host key: %1$s</string>
+    <string name="host_key_remove_failed">Cannot remove the old key: %1$s</string>
 
     <!-- File browser -->
     <string name="files">Files</string>

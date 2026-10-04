@@ -92,7 +92,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                     try {
                         for ((file, lines) in found.second) removeLines(paths, file, lines)
                     } catch (e: IOException) {
-                        toast(getString(R.string.host_key_failed, e.message))
+                        toast(getString(R.string.host_key_remove_failed, e.message))
                         return@setPositiveButton
                     }
                     toast(getString(R.string.host_key_removed))
