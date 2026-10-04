@@ -292,7 +292,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         lastHistoryAdded = t.historyAdded
         if (added == 0) return
         if (scrollOffset > 0) scrollOffset += added
-        if (hasSelection) {
+        /* Main screen lines, as a resize pushes them: a selection on the alternate screen stays. */
+        if (hasSelection && !t.isAltScreen) {
             anchorY -= added
             pointY -= added
         }
