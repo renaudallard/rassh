@@ -373,6 +373,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     /** Send the clipboard, bracketed when the program asked for it. */
     fun paste() {
+        /* Nothing goes to an ended session, a lone newline would close it. */
+        if (session?.isRunning != true) return
         val t = session?.terminal ?: return
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         val clip = clipboard.primaryClip ?: return
