@@ -191,7 +191,23 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val (code, data) = pendingResult ?: return
         pendingResult = null
         val uri = data.data ?: return
-        if (code != REQUEST_DOWNLOAD) return
+        if (code == REQUEST_DOWNLOAD && isEmptyDocument(uri)) deleteDocument(uri)
+    }
+
+    /*
+     * A document the picker made for a download is empty, an existing one
+     * picked to be replaced may not be: it is only removed once written to.
+     */
+    private fun isEmptyDocument(uri: Uri): Boolean =
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use {
+                it.moveToFirst() && !it.isNull(0) && it.getLong(0) == 0L
+            } == true
+        } catch (_: Exception) {
+            false
+        }
+
+    private fun deleteDocument(uri: Uri) {
         try {
             DocumentsContract.deleteDocument(contentResolver, uri)
         } catch (_: Exception) {
@@ -348,16 +364,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val c = client() ?: return
         val name = shownName(remote.substringAfterLast('/'))
         transfer(getString(R.string.downloading, name), { progress ->
+            /* Truncated only once the remote file opened. */
+            var opened = false
             try {
-                val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
-                out.use { c.download(remote, it, progress) }
+                c.download(remote, {
+                    opened = true
+                    contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
+                }, progress)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
                 /* Not to leave a partial or empty file behind. */
-                try {
-                    DocumentsContract.deleteDocument(contentResolver, uri)
-                } catch (_: Exception) {
-                }
+                if (opened || isEmptyDocument(uri)) deleteDocument(uri)
                 throw e
             }
         }) { toast(getString(R.string.downloaded, name)) }

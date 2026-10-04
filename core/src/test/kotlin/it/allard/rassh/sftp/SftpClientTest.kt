@@ -53,7 +53,7 @@ class SftpClientTest {
         assertEquals(data.size.toLong(), seen)
         assertContentEquals(data, File(dir, "d/f").readBytes())
         val out = ByteArrayOutputStream()
-        sftp.download("$dir/d/f", out)
+        sftp.download("$dir/d/f", { out })
         assertContentEquals(data, out.toByteArray())
         assertEquals(data.size.toLong(), sftp.stat("$dir/d/f").size)
     }
@@ -62,7 +62,7 @@ class SftpClientTest {
     fun emptyFile() {
         sftp.upload(ByteArrayInputStream(ByteArray(0)), "$dir/e")
         val out = ByteArrayOutputStream()
-        sftp.download("$dir/e", out)
+        sftp.download("$dir/e", { out })
         assertEquals(0, out.size())
     }
 
@@ -111,7 +111,10 @@ class SftpClientTest {
     fun errors() {
         val e = assertFailsWith<SftpException> { sftp.list("$dir/missing") }
         assertEquals(SftpException.NO_SUCH_FILE, e.status)
-        assertFailsWith<SftpException> { sftp.download("$dir/missing", ByteArrayOutputStream()) }
+        /* Not opened, the local file is left alone when the remote one is missing. */
+        var opened = false
+        assertFailsWith<SftpException> { sftp.download("$dir/missing", { opened = true; ByteArrayOutputStream() }) }
+        assertTrue(!opened)
         assertFailsWith<SftpException> { sftp.rmdir("$dir/missing") }
         /* The connection is still in step. */
         assertEquals(dir.canonicalPath, sftp.realpath("."))
@@ -121,7 +124,7 @@ class SftpClientTest {
     fun cancel() {
         File(dir, "big").writeBytes(Random(2).nextBytes(2_000_000))
         assertFailsWith<SftpCancelledException> {
-            sftp.download("$dir/big", ByteArrayOutputStream()) { it < 100_000 }
+            sftp.download("$dir/big", { ByteArrayOutputStream() }) { it < 100_000 }
         }
         assertFailsWith<SftpCancelledException> {
             sftp.upload(ByteArrayInputStream(ByteArray(2_000_000)), "$dir/up") { it < 100_000 }

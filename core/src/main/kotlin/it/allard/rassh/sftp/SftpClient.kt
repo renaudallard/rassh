@@ -147,53 +147,60 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     fun rename(from: String, to: String) = ok(request(Writer(FXP_RENAME).string(from).string(to)))
 
     /**
-     * Copy the file path to out. progress gets the bytes copied so far
-     * and returns false to stop, which throws SftpCancelledException.
+     * Copy the file path to the stream open gives, called once the remote
+     * file is open, so that failing to open it leaves the local one alone,
+     * and closed afterwards. progress gets the bytes copied so far and
+     * returns false to stop, which throws SftpCancelledException.
      */
     @Synchronized
     @Throws(IOException::class)
-    fun download(path: String, out: OutputStream, progress: (Long) -> Boolean = { true }) {
+    fun download(path: String, open: () -> OutputStream, progress: (Long) -> Boolean = { true }) {
         val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(FXF_READ).u32(0)))
         val pending = ArrayDeque<Pair<Int, Long>>()
         try {
-            var offset = 0L
-            var done = 0L
-            var eof = false
-            while (true) {
-                while (!eof && pending.size < MAX_REQUESTS) {
-                    pending.addLast(Pair(send(Writer(FXP_READ).bytes(handle).u64(offset).u32(CHUNK)), offset))
-                    offset += CHUNK
-                }
-                val (id, at) = pending.removeFirstOrNull() ?: break
-                val r = reply(id)
-                /*
-                 * Past the end, the replies still due are dropped: a file
-                 * growing meanwhile answers with data beyond it, the copy
-                 * ends where the end was met.
-                 */
-                if (eof) continue
-                if (r.type == FXP_STATUS) {
-                    val e = statusOf(r)
-                    if (e.status != SftpException.EOF) throw e
-                    eof = true
-                    continue
-                }
-                expect(r, FXP_DATA)
-                val data = r.body.bytes()
-                /* The end comes as a status, empty data would ask the same again forever. */
-                if (at != done || data.size > CHUNK || data.isEmpty()) throw IOException("unexpected data")
-                out.write(data)
-                done += data.size
-                /* A short read: the requests after it start at the wrong offset. */
-                if (data.size < CHUNK) {
-                    drain(pending)
-                    offset = done
-                }
-                if (!progress(done)) throw SftpCancelledException()
-            }
+            open().use { out -> copy(handle, out, pending, progress) }
         } finally {
             drain(pending)
             closeHandle(handle)
+        }
+    }
+
+    private fun copy(handle: ByteArray, out: OutputStream, pending: ArrayDeque<Pair<Int, Long>>,
+        progress: (Long) -> Boolean) {
+        var offset = 0L
+        var done = 0L
+        var eof = false
+        while (true) {
+            while (!eof && pending.size < MAX_REQUESTS) {
+                pending.addLast(Pair(send(Writer(FXP_READ).bytes(handle).u64(offset).u32(CHUNK)), offset))
+                offset += CHUNK
+            }
+            val (id, at) = pending.removeFirstOrNull() ?: break
+            val r = reply(id)
+            /*
+             * Past the end, the replies still due are dropped: a file
+             * growing meanwhile answers with data beyond it, the copy
+             * ends where the end was met.
+             */
+            if (eof) continue
+            if (r.type == FXP_STATUS) {
+                val e = statusOf(r)
+                if (e.status != SftpException.EOF) throw e
+                eof = true
+                continue
+            }
+            expect(r, FXP_DATA)
+            val data = r.body.bytes()
+            /* The end comes as a status, empty data would ask the same again forever. */
+            if (at != done || data.size > CHUNK || data.isEmpty()) throw IOException("unexpected data")
+            out.write(data)
+            done += data.size
+            /* A short read: the requests after it start at the wrong offset. */
+            if (data.size < CHUNK) {
+                drain(pending)
+                offset = done
+            }
+            if (!progress(done)) throw SftpCancelledException()
         }
     }
 

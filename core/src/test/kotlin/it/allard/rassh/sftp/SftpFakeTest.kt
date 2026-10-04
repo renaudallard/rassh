@@ -50,7 +50,7 @@ class SftpFakeTest {
             }
         }
         val client = SftpClient(fake.clientIn, fake.clientOut)
-        val e = assertFailsWith<java.io.IOException> { client.download("/f", java.io.ByteArrayOutputStream()) }
+        val e = assertFailsWith<java.io.IOException> { client.download("/f", { java.io.ByteArrayOutputStream() }) }
         assertEquals("unexpected data", e.message)
     }
 
@@ -118,7 +118,7 @@ class SftpFakeTest {
         }
         val client = SftpClient(fake.clientIn, fake.clientOut)
         val out = java.io.ByteArrayOutputStream()
-        client.download("/f", out)
+        client.download("/f", { out })
         assertEquals(32768, out.size())
     }
 
