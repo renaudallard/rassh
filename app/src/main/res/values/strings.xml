@@ -127,7 +127,7 @@
 
     <!-- Terminal -->
     <string name="paste">Paste</string>
-    <string name="paste_too_large">Not pasted, more than 1 MiB waits to be sent</string>
+    <string name="paste_too_large">Not pasted, at most 1 MiB can wait to be sent</string>
     <string name="new_session">New session</string>
     <string name="close_session">Close session</string>
     <string name="keyboard">Keyboard</string>
