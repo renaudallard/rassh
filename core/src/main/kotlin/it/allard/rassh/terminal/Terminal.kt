@@ -139,7 +139,8 @@ class Terminal(
         cursorY = screen.resize(columns, rows, cursorY)
         /* The saved cursor stays on its line, which moved with the cursor's. */
         screen.saved?.let { moveSaved(screen, it.y + cursorY - oldY, columns, rows) }
-        val y = other.resize(columns, rows, other.saved?.y ?: 0)
+        /* Without a saved cursor, as after 47 or 1047, nothing is dropped: the top goes to the history. */
+        val y = other.resize(columns, rows, other.saved?.y ?: (this.rows - 1))
         if (other.saved != null) moveSaved(other, y, columns, rows)
         val tabs = defaultTabs(columns)
         tabStops.copyInto(tabs, 0, 0, minOf(this.columns, columns))

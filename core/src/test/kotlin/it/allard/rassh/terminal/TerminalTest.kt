@@ -292,6 +292,17 @@ class TerminalTest {
     }
 
     @Test
+    fun resizeOnAltScreenKeepsMain() {
+        val t = term(columns = 10, rows = 4)
+        t.put("1\r\n2\r\n3\r\n4\u001b[?1047h")
+        t.resize(10, 2)
+        t.put("\u001b[?1047l")
+        assertEquals("3", t.line(0))
+        assertEquals("4", t.line(1))
+        assertEquals("2", t.line(-1))
+    }
+
+    @Test
     fun resizeTruncatesWideCharacter() {
         val t = term(columns = 4, rows = 1)
         t.put("ab中")
