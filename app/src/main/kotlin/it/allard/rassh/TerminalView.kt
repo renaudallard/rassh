@@ -376,7 +376,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         /* Without ESC the text cannot end the paste early, nor hold any sequence. */
         if (synchronized(t) { t.bracketedPaste })
             s = "\u001b[200~" + s.replace("\u001b", "") + "\u001b[201~"
-        send(s)
+        if (!send(s)) context.toast(context.getString(R.string.paste_too_large))
     }
 
     override fun performClick(): Boolean {
@@ -463,17 +463,18 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         send(sb.toString())
     }
 
-    private fun send(s: String) {
-        val session = session ?: return
+    /* False when the session could not take s, see Session.offer(). */
+    private fun send(s: String): Boolean {
+        val session = session ?: return true
         if (!session.isRunning) {
             if (s.contains('\r')) onCloseRequest?.invoke()
-            return
+            return true
         }
         if (scrollOffset != 0) {
             scrollOffset = 0
             invalidate()
         }
-        session.write(s.toByteArray())
+        return session.offer(s.toByteArray())
     }
 
     override fun onCheckIsTextEditor(): Boolean = true

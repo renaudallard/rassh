@@ -150,9 +150,14 @@ class Session(
      * dropped beyond MAX_PENDING queued bytes.
      */
     override fun write(data: ByteArray) {
+        offer(data)
+    }
+
+    /** Queue data for the program, false when dropped, see write(). */
+    fun offer(data: ByteArray): Boolean {
         if (pending.addAndGet(data.size) > MAX_PENDING) {
             pending.addAndGet(-data.size)
-            return
+            return false
         }
         submit {
             try {
@@ -162,6 +167,7 @@ class Session(
                 pending.addAndGet(-data.size)
             }
         }
+        return true
     }
 
     fun resize(columns: Int, rows: Int) {
