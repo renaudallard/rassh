@@ -196,7 +196,8 @@ class HostActivity : Activity() {
      */
     @Throws(IOException::class)
     private fun refusal(text: String, name: String): String? {
-        val file = File(paths.tmp, "config.check")
+        /* Its own, a check left running by a recreated screen may still use another. */
+        val file = File.createTempFile("config", ".check", paths.tmp)
         try {
             paths.writePrivate(file, text)
             /* Not looking the name up: offline, a canonicalized name would fail the check. */
