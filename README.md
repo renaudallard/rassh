@@ -232,7 +232,7 @@ As of October 2026, from each project's own pages and sources.
 | Hosts in `~/.ssh/config` | yes | yes | no | no | no |
 | Jump hosts | yes | yes | yes | yes | yes |
 | Private keys | vault sealed by the Keystore, fingerprint on every use | files | encrypted, or kept in the Keystore | app vault, or kept in the Keystore | sealed by the Keystore |
-| Keys that never leave the Keystore | none | none | RSA, ECDSA P-256, P-384, P-521 | ECDSA P-256 (reported by users, not documented) | none |
+| Signing inside the Keystore | none | none | RSA, ECDSA P-256, P-384, P-521 | ECDSA P-256 (reported by users, not documented) | none |
 | FIDO security keys | no | no | no | yes | yes |
 | mosh | no | yes | not released | yes | yes |
 | SFTP | file browser, command line | command line | no | file browser | file browser |
@@ -243,8 +243,10 @@ included, and new algorithms such as `mldsa44-ed25519` keys come with
 OpenSSH. Termux has the same programs, as a general shell with keys in
 plain files. ConnectBot and Termius can keep keys in the Keystore that
 never leave it, but only RSA or ECDSA ones, no Ed25519 and no
-post-quantum keys. rassh keeps Ed25519 and `mldsa44-ed25519` keys in its
-vault and decrypts them into the agent during the login. JuiceSSH is no longer on Google Play.
+post-quantum keys. rassh keeps Ed25519 and `mldsa44-ed25519` keys in a vault
+that is useless without the Keystore key and a fingerprint, so a copy of
+its files reveals nothing. They are decrypted only in memory, into the
+agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 
 ## Limitations
 
