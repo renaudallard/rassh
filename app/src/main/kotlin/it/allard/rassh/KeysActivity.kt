@@ -70,7 +70,8 @@ class KeysActivity : Activity() {
         protecting = true
         protectKeys(paths, vault) { moved ->
             protecting = false
-            if (!moved) declined = pending
+            /* The keys still in clear, some may have moved. */
+            if (!moved) declined = Keys.plaintext(paths.sshDir).toSet()
             load()
         }
     }
