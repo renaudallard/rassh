@@ -382,4 +382,11 @@ class TerminalTest {
         t.put("abc\u4e2d")
         assertEquals("abc\u4e2d", t.text(0, 0, 1, 3))
     }
+
+    @Test
+    fun copyFromTheRightHalfOfAWideCharacter() {
+        val t = term(columns = 10, rows = 2)
+        t.put("\u4e2dz")
+        assertEquals("\u4e2dz", t.text(0, 1, 0, 2))
+    }
 }

@@ -158,7 +158,10 @@ class Terminal(
         for (y in startY..endY) {
             if (y < -screen.historySize || y >= rows) continue
             val row = row(y)
-            val from = if (y == startY) startX else 0
+            /* Starting on the right half of a wide character takes all of it. */
+            val from = if (y != startY) 0
+                else if (startX in 1 until row.columns && row.text[startX] == WIDE_TAIL) startX - 1
+                else startX
             val to = if (y == endY) endX + 1 else row.columns
             /* A space at a wrap is in the middle of the line, it stays. */
             val goesOn = y != endY && row.wrapped
