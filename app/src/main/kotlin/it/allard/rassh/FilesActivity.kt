@@ -27,6 +27,7 @@ import java.io.IOException
 import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * A file browser on a server, speaking SFTP to "ssh -s host sftp" through
@@ -58,9 +59,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     /* A picker result waiting for the connection, see onActivityResult(). */
     private var pendingResult: Pair<Int, Intent>? = null
-
-    @Volatile
-    private var cancelled = false
 
     /* The dialog of the transfer running, closed with the screen. */
     private var progressDialog: AlertDialog? = null
@@ -502,11 +500,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
         bar.isIndeterminate = true
         val count = TextView(this)
-        cancelled = false
+        /* Its own, a transfer slow to see it must not take the next one's. */
+        val cancelled = AtomicBoolean()
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogLayout(bar, count))
-            .setNegativeButton(R.string.cancel) { _, _ -> cancelled = true }
+            .setNegativeButton(R.string.cancel) { _, _ -> cancelled.set(true) }
             .setCancelable(false)
             .show()
         progressDialog = dialog
@@ -518,7 +517,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     shown = now
                     runOnUiThread { count.text = Formatter.formatShortFileSize(this, bytes) }
                 }
-                !cancelled
+                !cancelled.get()
             }
         }) {
             dialog.dismiss()
