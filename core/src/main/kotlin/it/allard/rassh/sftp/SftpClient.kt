@@ -313,8 +313,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun statusOf(r: Reply): SftpException {
         expect(r, FXP_STATUS)
         val code = r.body.u32()
-        /* Only shown, never sent back. */
-        val message = String(r.body.bytes(), Charsets.UTF_8)
+        /* Only shown, never sent back, see shownName(). */
+        val message = shownName(decodeName(r.body.bytes()))
         return SftpException(code, message.ifEmpty { "error $code" })
     }
 
