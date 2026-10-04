@@ -84,13 +84,16 @@ class SshConfig private constructor(
     /**
      * Whether a Host line names name, alone or with others. ssh matches
      * host names in lower case and takes the first value it finds, a new
-     * block for name would change that host.
+     * block for name would change that host. The block of except, the one
+     * put() replaces when renaming it, does not count.
      */
-    fun isUsed(name: String): Boolean =
-        blocks.any { b ->
-            b.keyword.equals("Host", ignoreCase = true) &&
+    fun isUsed(name: String, except: String? = null): Boolean {
+        val own = if (except == null) -1 else blocks.indexOfFirst { it.name == except }
+        return blocks.withIndex().any { (i, b) ->
+            i != own && b.keyword.equals("Host", ignoreCase = true) &&
                 arguments(b.value).orEmpty().any { it.equals(name, ignoreCase = true) }
         }
+    }
 
     /**
      * Replace the block named old by host, or add host when old is null.

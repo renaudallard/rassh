@@ -216,6 +216,9 @@ class SshConfigTest {
         assertTrue(config.isUsed("Mail"))
         assertFalse(config.isUsed("x"))
         assertFalse(config.isUsed("prod"))
+        val cases = SshConfig.parse("Host Foo\n    User alice\nHost foo\n    User bob\nHost Bar\n")
+        assertTrue(cases.isUsed("foo", "Foo"))
+        assertFalse(cases.isUsed("bar", "Bar"))
         val other = SshConfig.parse("Host web\n    User root\nHost mail\nHost pi\n")
         assertEquals(listOf("pi"), config.addMissing(other))
     }

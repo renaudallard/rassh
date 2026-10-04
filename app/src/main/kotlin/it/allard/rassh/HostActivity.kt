@@ -116,7 +116,7 @@ class HostActivity : Activity() {
         if (!Host.isValidName(n)) {
             name.error = getString(R.string.error_name)
             ok = false
-        } else if (!n.equals(original, ignoreCase = true) && config.isUsed(n)) {
+        } else if (n != original && config.isUsed(n, original)) {
             name.error = getString(R.string.error_name_used)
             ok = false
         }
