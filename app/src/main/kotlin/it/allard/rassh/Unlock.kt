@@ -233,7 +233,8 @@ private val AGENT_SOCKET = Regex("""agent\.\d+""")
 
 /**
  * Run argv with an ssh-agent of its own holding the keys of keyPipes()
- * for KEY_LIFETIME, gone when the program exits. Connections do not
+ * for KEY_LIFETIME, gone when the program exits, or at a Ctrl-C, which
+ * stops it too, the login being over by then. Connections do not
  * share an agent, as the LocalCommand of one emptying it would leave
  * another without keys in the middle of its login. ProxyJump and
  * LocalCommand reach it through SSH_AUTH_SOCK.
