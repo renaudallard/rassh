@@ -40,26 +40,27 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
 }
 
 /*
- * The numbers, from 1, of the lines of file holding a key of name, hashed
- * or not. @cert-authority and @revoked lines are listed with CA or REVOKED
- * after the number, they are kept, as ssh-keygen -R does.
+ * The lines of file holding a key of name, hashed or not. ssh-keygen
+ * lists @cert-authority and @revoked lines with CA or REVOKED after the
+ * number, they are kept, as ssh-keygen -R does. Kept as text, the
+ * numbers change with any other removal before the user decides.
  */
 @Throws(IOException::class)
-private fun keyLines(paths: Paths, name: String, file: File): List<Int> {
+private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     val out = runProgram(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
-    return FOUND.findAll(out).map { it.groupValues[1].toInt() }.toList()
+    val lines = file.readText().split('\n')
+    return FOUND.findAll(out).mapNotNull { lines.getOrNull(it.groupValues[1].toInt() - 1) }.toSet()
 }
 
 private val FOUND = Regex("""^# Host .* found: line (\d+)[ \t]*$""", RegexOption.MULTILINE)
 
 /*
- * Remove the lines of file, numbered from 1. ssh-keygen -R cannot, it
- * keeps a backup with link(), which Android refuses to apps.
+ * Remove the lines of file found in gone. ssh-keygen -R cannot, it keeps
+ * a backup with link(), which Android refuses to apps.
  */
 @Throws(IOException::class)
-private fun removeLines(paths: Paths, file: File, numbers: List<Int>) {
-    val lines = file.readText().split('\n')
-    val kept = lines.filterIndexed { i, _ -> i + 1 !in numbers }
+private fun removeLines(paths: Paths, file: File, gone: Set<String>) {
+    val kept = file.readText().split('\n').filter { it !in gone }
     paths.writePrivate(file, kept.joinToString("\n"))
 }
 
@@ -89,7 +90,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                 .setMessage(getString(R.string.host_key_changed_text, found.first))
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
-                        for ((file, numbers) in found.second) removeLines(paths, file, numbers)
+                        for ((file, lines) in found.second) removeLines(paths, file, lines)
                     } catch (e: IOException) {
                         toast(getString(R.string.host_key_failed, e.message))
                         return@setPositiveButton
