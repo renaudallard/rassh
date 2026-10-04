@@ -49,6 +49,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         set(value) {
             field = value
             scrollOffset = 0
+            deadAccent = 0
             clearSelection()
             lastHistoryAdded = value?.terminal?.let { synchronized(it) { it.historyAdded } } ?: 0
             resizeTerminal()
