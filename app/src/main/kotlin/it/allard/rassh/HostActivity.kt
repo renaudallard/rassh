@@ -156,7 +156,7 @@ class HostActivity : Activity() {
         config.put(original, host)
         val text = config.toString()
         checking = true
-        /* ssh may look names up or run Match exec, not on the UI thread. */
+        /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
             val refused = try {
                 refusal(text, n)
@@ -199,7 +199,10 @@ class HostActivity : Activity() {
         val file = File(paths.tmp, "config.check")
         try {
             paths.writePrivate(file, text)
-            val (out, status) = execute(paths.ssh, listOf("ssh", "-G", "-F", file.path, name), paths.env, paths.home.path)
+            /* Not looking the name up: offline, a canonicalized name would fail the check. */
+            val argv = listOf("ssh", "-G", "-F", file.path, "-o", "CanonicalizeHostname=no",
+                "-o", "CanonicalizePermittedCNAMEs=none", name)
+            val (out, status) = execute(paths.ssh, argv, paths.env, paths.home.path)
             return if (status == 0) null else out.replace(file.path, "config")
         } finally {
             file.delete()
