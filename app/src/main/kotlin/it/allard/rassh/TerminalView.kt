@@ -377,11 +377,15 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         val clip = clipboard.primaryClip ?: return
         if (clip.itemCount == 0) return
+        /*
+         * Control characters but tab and newline become spaces, as in
+         * xterm: ^C or ^Z would reach the remote terminal as signals, ESC
+         * could end a bracketed paste early or start a sequence.
+         */
         var s = clip.getItemAt(0).coerceToText(context).toString()
-            .replace("\r\n", "\r").replace('\n', '\r')
-        /* Without ESC the text cannot end the paste early, nor hold any sequence. */
+            .replace("\r\n", "\r").replace('\n', '\r').replace(PASTE_CONTROLS, " ")
         if (synchronized(t) { t.bracketedPaste })
-            s = "\u001b[200~" + s.replace("\u001b", "") + "\u001b[201~"
+            s = "\u001b[200~$s\u001b[201~"
         if (!send(s)) context.toast(context.getString(R.string.paste_too_large))
     }
 
@@ -594,6 +598,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     }
 
     companion object {
+        private val PASTE_CONTROLS = Regex("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]")
         const val PREFS = "terminal"
         const val PREF_COLUMNS = "columns"
         const val PREF_ROWS = "rows"
