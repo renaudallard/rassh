@@ -313,19 +313,22 @@ class KeysActivity : Activity() {
             toast(getString(R.string.rename_failed, from))
             return
         }
-        try {
-            if (key != null)
+        /* A key in clear has nothing to do with the vault, nor its error. */
+        val error = if (key == null) {
+            if (File(paths.sshDir, from).renameTo(File(paths.sshDir, to))) null else getString(R.string.rename_failed, from)
+        } else {
+            try {
                 vault.rename(key, from, to)
-            else if (!File(paths.sshDir, from).renameTo(File(paths.sshDir, to)))
-                throw IOException(getString(R.string.rename_failed, from))
-        } catch (e: IOException) {
+                null
+            } catch (e: IOException) {
+                getString(R.string.vault_error, e.message)
+            } catch (e: GeneralSecurityException) {
+                getString(R.string.vault_error, e.message)
+            }
+        }
+        if (error != null) {
             pubTo.renameTo(pubFrom)
-            toast(getString(R.string.vault_error, e.message))
-            load()
-            return
-        } catch (e: GeneralSecurityException) {
-            pubTo.renameTo(pubFrom)
-            toast(getString(R.string.vault_error, e.message))
+            toast(error)
             load()
             return
         }
