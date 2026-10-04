@@ -469,13 +469,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         send(KeyEncoder.encode(key, mods, synchronized(t) { t.applicationCursorKeys }))
     }
 
+    /* Latched CTRL and ALT apply to the first character, a keyboard may send a whole word. */
     private fun typeText(s: String, mods: Int) {
         val sb = StringBuilder()
         var i = 0
         while (i < s.length) {
             val c = s.codePointAt(i)
+            sb.append(KeyEncoder.encode(if (c == '\n'.code) '\r'.code else c, if (i == 0) mods else 0))
             i += Character.charCount(c)
-            sb.append(KeyEncoder.encode(if (c == '\n'.code) '\r'.code else c, mods))
         }
         send(sb.toString())
     }
