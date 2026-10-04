@@ -142,16 +142,22 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         canvas.drawColor(background)
         val s = session ?: return
         val t = s.terminal
-        synchronized(t) {
+        val lost = synchronized(t) {
             followHistory(t)
             scrollOffset = scrollOffset.coerceIn(0, t.historySize)
             for (r in 0 until t.rows)
                 drawRow(canvas, t.row(r - scrollOffset), t.columns, (r * cellHeight).toFloat())
             if (scrollOffset == 0 && t.cursorVisible && s.isRunning)
                 drawCursor(canvas, t.row(t.cursorY), t.cursorX, t.cursorY)
-            if (hasSelection) drawSelection(canvas, t.columns, t.rows)
+            val lost = selectionLost(t)
+            if (hasSelection && !lost) drawSelection(canvas, t.columns, t.rows)
+            lost
         }
+        if (lost) post { clearSelection() }
     }
+
+    /* The program switched screens, the text selected is no longer shown. Called with t locked. */
+    private fun selectionLost(t: Terminal): Boolean = hasSelection && t.isAltScreen != selectionOnAlt
 
     private fun drawRow(canvas: Canvas, row: TerminalRow, columns: Int, top: Float) {
         val n = minOf(row.columns, columns)
@@ -372,6 +378,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val t = session?.terminal ?: return
         val text = synchronized(t) {
             followHistory(t)
+            if (selectionLost(t)) return
             val (sx, sy, ex, ey) = selection()
             t.text(sy, sx, ey, ex)
         }
