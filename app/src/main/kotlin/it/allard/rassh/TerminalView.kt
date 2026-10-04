@@ -39,6 +39,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     var extraKeys: ExtraKeysView? = null
     var onCloseRequest: (() -> Unit)? = null
 
+    /* The accent of a dead key waiting for the next key, see onKeyDown(). */
+    private var deadAccent = 0
+
     /* The terminal screen sets the size of new sessions, a smaller view does not. */
     var savesSize = true
 
@@ -534,8 +537,17 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 if (meta and KeyEvent.META_ALT_LEFT_ON == 0) mods = mods and KeyEncoder.ALT.inv()
             }
         }
-        if (c == 0 || c and KeyCharacterMap.COMBINING_ACCENT != 0)
-            return super.onKeyDown(keyCode, event)
+        if (c == 0) return super.onKeyDown(keyCode, event)
+        /* A dead key, ^ on many layouts, combines with the next one, a space giving it alone. */
+        if (c and KeyCharacterMap.COMBINING_ACCENT != 0) {
+            deadAccent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+            return true
+        }
+        if (deadAccent != 0) {
+            val composed = KeyCharacterMap.getDeadChar(deadAccent, c)
+            if (composed != 0) c = composed else send(KeyEncoder.encode(deadAccent, 0))
+            deadAccent = 0
+        }
         mods = (mods or (extraKeys?.consumeModifiers() ?: 0)) and KeyEncoder.SHIFT.inv()
         send(KeyEncoder.encode(c, mods))
         return true
