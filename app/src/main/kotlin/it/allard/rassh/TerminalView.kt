@@ -535,7 +535,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 val e = editable ?: return
                 val s = e.toString()
                 e.clear()
-                if (s.isNotEmpty()) typeText(s, extraKeys?.consumeModifiers() ?: 0)
+                /* Clipboard text a keyboard commits may end its lines with CR LF, one Enter each. */
+                if (s.isNotEmpty()) typeText(s.replace("\r\n", "\r"), extraKeys?.consumeModifiers() ?: 0)
             }
         }
     }
