@@ -56,10 +56,15 @@ class KeysActivity : Activity() {
         load()
     }
 
-    /* Not from onResume(), see MainActivity. */
+    /*
+     * Not from onResume(), see MainActivity. A dialog closing gives the
+     * focus back, one resetting the vault leaves the list out of date.
+     */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) protect()
+        if (!hasFocus) return
+        load()
+        protect()
     }
 
     /* Move new keys into the vault, not asking twice for the same ones. */
