@@ -226,24 +226,30 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     /*
      * Write the export first and only then remove what it does not hold,
      * so that a failure leaves the old setup rather than nothing. The
-     * vault is replaced in one write.
+     * vault is replaced in one write, and the key files only follow once
+     * it succeeded: an old vault key must not end up paired with the
+     * public key or the clear copy of another.
      */
     val keys = items.filter { it.type == Backup.KEY }
     val sealed = keys.filter { sealable(items, it) }.map { it.name }.toSet()
     /* Checked first, not to stop with only part of the file written. */
     if (sealed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
+    val publicKeys = items.filter { it.type == Backup.FILE && it.name.endsWith(".pub") }
     for (item in items) {
         when (item.type) {
-            Backup.FILE -> paths.writePrivate(File(dir, item.name), item.data)
-            Backup.KEY -> if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
+            Backup.FILE -> if (item !in publicKeys) paths.writePrivate(File(dir, item.name), item.data)
             Backup.SETTING -> putSetting(item)
         }
     }
     vault.replaceAll(key, keys.filter { it.name in sealed }.map { it.name to it.data })
+    for (item in publicKeys) paths.writePrivate(File(dir, item.name), item.data)
     usePublicKeys(paths, sealed.toList())
     val clear = keys.map { it.name }.toSet() - sealed
-    /* Only now: had the vault failed, a key kept there would have lost it. */
-    for (name in clear) dropStrayPublicKey(paths, items, name)
+    for (item in keys) {
+        if (item.name in sealed) continue
+        paths.writePrivate(File(dir, item.name), item.data)
+        dropStrayPublicKey(paths, items, item.name)
+    }
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
     for (name in present) {
         /* The imported copy replaces the one of the same name. */
