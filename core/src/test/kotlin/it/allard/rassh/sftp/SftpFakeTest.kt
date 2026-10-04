@@ -4,9 +4,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/* Replies a real server does not easily give, from a scripted one. */
+/*
+ * Replies a real server does not easily give, from a scripted one. It
+ * answers forever, a client that does not give up hangs: the timeout
+ * makes that a failure.
+ */
 class SftpFakeTest {
-    @Test
+    @Test(timeout = TIMEOUT)
     fun listReportsTheServerError() {
         val fake = FakeServer { type, id ->
             when (type) {
@@ -28,7 +32,7 @@ class SftpFakeTest {
         assertEquals("denied", e.message)
     }
 
-    @Test
+    @Test(timeout = TIMEOUT)
     fun emptyReadsEnd() {
         val fake = FakeServer { type, id ->
             when (type) {
@@ -46,7 +50,8 @@ class SftpFakeTest {
             }
         }
         val client = SftpClient(fake.clientIn, fake.clientOut)
-        assertFailsWith<java.io.IOException> { client.download("/f", java.io.ByteArrayOutputStream()) }
+        val e = assertFailsWith<java.io.IOException> { client.download("/f", java.io.ByteArrayOutputStream()) }
+        assertEquals("unexpected data", e.message)
     }
 
     /* A server answering every READDIR with count entries, never with the end. */
@@ -76,12 +81,16 @@ class SftpFakeTest {
         }
     }
 
-    @Test
+    @Test(timeout = TIMEOUT)
     fun listEnds() {
         for ((count, error) in listOf(0 to "empty reply", 1000 to "too many files")) {
             val fake = endless(count)
             val client = SftpClient(fake.clientIn, fake.clientOut)
             assertEquals(error, assertFailsWith<java.io.IOException> { client.list("/d") }.message)
         }
+    }
+
+    private companion object {
+        const val TIMEOUT = 10_000L
     }
 }
