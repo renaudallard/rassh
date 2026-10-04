@@ -31,7 +31,7 @@ object Args {
                     quote = c
                     inWord = true
                 }
-                c.isWhitespace() -> if (inWord) {
+                c == ' ' || c == '\t' || c == '\n' -> if (inWord) {
                     words.add(word.toString())
                     word.setLength(0)
                     inWord = false

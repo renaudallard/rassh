@@ -17,6 +17,7 @@ class ArgsTest {
         assertEquals(listOf("h", "printf 'a\\nb'"), Args.split("h \"printf 'a\\nb'\""))
         assertEquals(listOf("a\"b\\c\$d"), Args.split("\"a\\\"b\\\\c\\\$d\""))
         assertEquals(listOf("trailing\\"), Args.split("trailing\\"))
+        assertEquals(listOf("a\u00a0b"), Args.split("a\u00a0b"))
     }
 
     @Test
