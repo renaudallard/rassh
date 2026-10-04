@@ -262,5 +262,6 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 
 ## License
 
-ISC, see [LICENSE](LICENSE). OpenSSH, LibreSSL and the DejaVu fonts keep
-their own licenses, which the About dialog shows.
+ISC, see [LICENSE](LICENSE). OpenSSH, LibreSSL, the Kotlin standard
+library and the DejaVu fonts keep their own licenses, which the About
+dialog shows.
