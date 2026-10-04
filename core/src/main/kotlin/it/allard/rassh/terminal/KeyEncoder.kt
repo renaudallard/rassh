@@ -53,8 +53,9 @@ object KeyEncoder {
         return if (mods and ALT != 0) "\u001b" + s else s
     }
 
+    /* As XLookupString() in libX11, which xterm uses, with ? as DEL besides. */
     private fun control(c: Int): Int = when (c) {
-        in 'a'.code..'z'.code, in '@'.code..'_'.code -> c and 0x1f
+        in '@'.code..'~'.code -> c and 0x1f
         ' '.code, '2'.code -> 0
         '3'.code -> 0x1b
         '4'.code -> 0x1c
