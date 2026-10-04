@@ -294,7 +294,7 @@ class MainActivity : Activity(), SessionService.Listener {
             }
             service.start(l.title, path, argv, l.cwd, pipes.map { it.fd }.toIntArray(), l.server, l.browse, target)
         } catch (e: IOException) {
-            toast(getString(R.string.start_failed, argv[0], e.message))
+            toast(getString(R.string.start_failed, l.argv[0], e.message))
             return false
         }
         val screen = if (l.browse) FilesActivity::class.java else TerminalActivity::class.java
