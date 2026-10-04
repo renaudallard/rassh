@@ -101,7 +101,9 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
             items.add(Backup.Item(Backup.KEY, name, secret))
             for (suffix in Keys.SUFFIXES) {
                 val file = File(paths.sshDir, name + suffix)
-                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
+                /* Once, x-cert.pub may be both the certificate of x and the public key of an old x-cert. */
+                if (file.isFile && items.none { it.type == Backup.FILE && it.name == file.name })
+                    items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
             }
         }
         val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)

@@ -33,12 +33,11 @@ object Keys {
     /*
      * A plain file name that does not clash with other ssh files. Names
      * end up in IdentityFile lines, where ssh expands % and ${} and
-     * parses quotes, so only a safe set of characters is allowed. The
-     * public key of a key named x-cert would be the certificate of x.
+     * parses quotes, so only a safe set of characters is allowed.
      */
     fun isValidName(name: String): Boolean =
         name.isNotEmpty() && !name.startsWith(".") && name.all { it in SAFE } &&
-            !name.endsWith(".pub") && !name.endsWith(".tmp") && !name.endsWith("-cert") && name !in RESERVED
+            !name.endsWith(".pub") && !name.endsWith(".tmp") && name !in RESERVED
 
     /** name with the characters isValidName() refuses replaced. */
     fun safeName(name: String): String = name.map { if (it in SAFE) it else '_' }.joinToString("")
