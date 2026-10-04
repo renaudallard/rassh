@@ -558,7 +558,15 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             if (modified) {
                 c = c and KeyCharacterMap.COMBINING_ACCENT_MASK
             } else {
-                deadAccent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+                /* A second one combines with the first, ^^ gives ^, or sends it and waits itself. */
+                val accent = c and KeyCharacterMap.COMBINING_ACCENT_MASK
+                val pending = deadAccent
+                if (pending != 0) {
+                    val composed = KeyCharacterMap.getDeadChar(pending, accent)
+                    send(KeyEncoder.encode(if (composed != 0) composed else pending, 0))
+                    if (composed != 0) return true
+                }
+                deadAccent = accent
                 return true
             }
         }
