@@ -371,7 +371,7 @@ class MainActivity : Activity(), SessionService.Listener {
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 MENU_FILES -> launch(Launch(getString(R.string.files_title, name), paths.ssh,
-                    SSH + NO_COMMAND + listOf("-s", name, "sftp"), paths.home.path, null))
+                    SSH + NO_COMMAND + FILES + listOf("-s", name, "sftp"), paths.home.path, null))
                 MENU_SFTP -> sftp(name)
                 MENU_SCP -> scp(name)
                 MENU_EDIT -> startActivity(Intent(this, HostActivity::class.java).putExtra(EXTRA_HOST, name))
@@ -484,6 +484,8 @@ class MainActivity : Activity(), SessionService.Listener {
          * itself, sftp does not.
          */
         private val NO_COMMAND = listOf("-o", "RemoteCommand=none", "-o", "RequestTTY=no")
+        /* Without the host's forwards, as sftp does: they would clash with a terminal's or go with the browser. */
+        private val FILES = listOf("-o", "ClearAllForwardings=yes")
         private const val MENU_ADD = 1
         private const val MENU_SESSIONS = 2
         private const val MENU_KEYS = 3
