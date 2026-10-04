@@ -138,13 +138,16 @@ There is no PIN fallback.
   public key sits next to them, if the vault has room and the key is not
   over 64 KiB.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
-  whenever the vault holds keys, then `ssh-add`
-  loads the keys through pipes into an agent started for that connection
-  alone, so the decrypted keys never touch the disk. `ssh` removes them
-  from it as soon as it is logged in, through `LocalCommand`. Otherwise,
-  with `scp`, `sftp` or a failed login, they leave it after 60 seconds,
-  or when the screen turns off, and the agent ends with the connection.
-  Cancelling connects without them, for password logins.
+  whenever the vault holds keys, then `ssh-add` loads the keys through
+  pipes into an agent started for that connection alone, so the
+  decrypted keys never touch the disk. `ssh` removes them from it as
+  soon as it is logged in, through `LocalCommand`, which then takes the
+  place of one set for the host. Otherwise, with `scp`, `sftp` or a
+  failed login, they leave it 60 seconds after the fingerprint, or when
+  the screen turns off, and the agent ends with the connection. A login
+  that takes longer, such as one waiting on a new host key to be
+  confirmed, goes on without them. Cancelling connects without them,
+  for password logins.
 
 Public keys stay in clear next to the vault. Since `ssh` skips an
 `IdentityFile` whose private key is gone, but takes a public key and finds
@@ -260,6 +263,10 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 - No mouse reporting
 - Combining characters are not rendered
 - Screen readers such as TalkBack do not read the terminal output
+- Saving a host writes its host name, user, port, identity file and
+  forwards before its other options, which changes the values that win
+  when its block has an `Include`. Names used in included files are not
+  checked when a host is added
 - The vault holds at most 64 keys, all loaded for each connection, and
   keys over 64 KiB stay out of it
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
