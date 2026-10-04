@@ -198,10 +198,12 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         toast(getString(R.string.vault_error, e.message))
         return
     }
+    /* Without a vault, as before a fingerprint is enrolled, keys come in clear. */
+    val seal = vault.isSetUp
     fun write(key: ByteArray?) {
         try {
-            val (hosts, keys) = if (replace) replaceAll(paths, vault, key, items, present)
-                else append(paths, vault, key, items, present)
+            val (hosts, keys) = if (replace) replaceAll(paths, vault, key, items, present, seal)
+                else append(paths, vault, key, items, present, seal)
             toast(getString(R.string.imported, hosts, keys))
         } catch (e: IOException) {
             toast(getString(R.string.restore_failed, e.message))
@@ -212,20 +214,15 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         }
         done()
     }
-    if (items.none { it.type == Backup.KEY && (replace || !Keys.isTaken(paths.sshDir, it.name, present)) && sealable(items, it) })
+    if (items.none { it.type == Backup.KEY && (replace || !Keys.isTaken(paths.sshDir, it.name, present)) && sealable(items, it, seal) })
         return write(null)
-    if (!vault.isSetUp) {
-        zero()
-        toast(getString(R.string.restore_failed, getString(R.string.restore_no_vault)))
-        return
-    }
     withVaultKey(vault, getString(R.string.import_reason), { zero() }) { key -> write(key) }
 }
 
 /* Returns the number of hosts and keys there are now. */
 @Throws(IOException::class)
 private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>,
-    present: List<String>): Pair<Int, Int> {
+    present: List<String>, seal: Boolean): Pair<Int, Int> {
     val dir = paths.sshDir
     paths.ensureSshDir()
     /*
@@ -236,7 +233,7 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
      * public key or the clear copy of another.
      */
     val keys = items.filter { it.type == Backup.KEY }
-    val sealed = keys.filter { sealable(items, it) }.map { it.name }.toSet()
+    val sealed = keys.filter { sealable(items, it, seal) }.map { it.name }.toSet()
     /* Checked first, not to stop with only part of the file written. */
     if (sealed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
     val publicKeys = items.filter { it.type == Backup.FILE && it.name.endsWith(".pub") }
@@ -277,13 +274,13 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
 /* Returns the number of hosts and keys added. */
 @Throws(IOException::class)
 private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>,
-    present: List<String>): Pair<Int, Int> {
+    present: List<String>, seal: Boolean): Pair<Int, Int> {
     val dir = paths.sshDir
     paths.ensureSshDir()
     /* As on the key screen, a lone public key or certificate keeps its name. */
     val keys = items.filter { it.type == Backup.KEY && !Keys.isTaken(dir, it.name, present) }
     /* Checked and read first, not to stop with only part of the file added. */
-    if (vault.names().size + keys.count { sealable(items, it) } > Keys.MAX_COUNT)
+    if (vault.names().size + keys.count { sealable(items, it, seal) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
     val configFile = File(dir, CONFIG)
     val knownFile = File(dir, KNOWN_HOSTS)
@@ -295,7 +292,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     }
     val names = present + keys.map { it.name }
     for (item in keys) {
-        storeKey(paths, vault, key, items, item, names)
+        storeKey(paths, vault, key, items, item, names, seal)
         for (suffix in Keys.suffixes(item.name, names)) {
             items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let {
                 paths.writePrivate(File(dir, it.name), it.data)
@@ -318,24 +315,25 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)
-    useKeyNames(paths, keys.filter { sealable(items, it) }.map { it.name })
+    useKeyNames(paths, keys.filter { sealable(items, it, seal) }.map { it.name })
     return Pair(hosts, keys.size)
 }
 
 /*
- * A key goes into the vault with its public key, which ssh needs to use
- * it from the agent, and if it fits the pipe to ssh-add, see Keys.MAX_SIZE.
- * Otherwise it stays in clear, as on the phone it comes from.
+ * A key goes into the vault, when seal tells there is one, with its public
+ * key, which ssh needs to use it from the agent, and if it fits the pipe
+ * to ssh-add, see Keys.MAX_SIZE. Otherwise it stays in clear, as on the
+ * phone it comes from or as keys do until a fingerprint is enrolled.
  */
-private fun sealable(items: List<Backup.Item>, key: Backup.Item): Boolean =
-    key.data.size <= Keys.MAX_SIZE && items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" }
+private fun sealable(items: List<Backup.Item>, key: Backup.Item, seal: Boolean): Boolean =
+    seal && key.data.size <= Keys.MAX_SIZE && items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" }
 
 /* Into the vault or in clear, see sealable(). */
 @Throws(IOException::class)
 private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item,
-    names: List<String>) {
+    names: List<String>, seal: Boolean) {
     dropStrayFiles(paths, items, item.name, names)
-    if (sealable(items, item))
+    if (sealable(items, item, seal))
         vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
     else
         paths.writePrivate(File(paths.sshDir, item.name), item.data)

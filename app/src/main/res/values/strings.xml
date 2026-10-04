@@ -153,7 +153,6 @@
     <string name="import_replace">Replace</string>
     <string name="import_reason">Store the imported keys</string>
     <string name="restore_failed">Cannot import: %1$s</string>
-    <string name="restore_no_vault">keys need a fingerprint set up in the phone settings</string>
     <string name="wrong_passphrase">wrong passphrase or damaged file</string>
     <string name="import_interrupted">the screen changed meanwhile, nothing was imported, try again</string>
     <string name="imported">Hosts imported: %1$d, keys imported: %2$d</string>
