@@ -42,6 +42,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private val worker = Executors.newSingleThreadExecutor()
     private var session: Session? = null
     private var entries: List<SftpEntry> = emptyList()
+    /* Whether a folder was listed, the status says connecting until then. */
+    private var listed = false
 
     /* The directory shown and the one the server started in, absolute. */
     private var cwd: String? = null
@@ -164,6 +166,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             client.realpath(".")
         }) { start ->
             home = start
+            /* Uploads still go there when it cannot be listed, a drop folder for one. */
+            if (cwd == null) {
+                cwd = start
+                pathView.text = start
+            }
             showTerminal(false)
             load(cwd ?: start)
             takePending()
@@ -202,7 +209,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         run({
             val dir = c.realpath(path)
             Pair(dir, c.list(dir).sortedWith(compareBy({ !it.attrs.isDirectory }, { it.name.lowercase() })))
+        }, { e ->
+            failed(e)
+            if (client() != null && !listed) status.text = getString(R.string.files_failed, e.message)
         }) { (dir, found) ->
+            listed = true
             cwd = dir
             entries = found
             pathView.text = dir
@@ -445,7 +456,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * Run task on the worker, then done with its result on the main
      * thread. Errors are shown, the browser stays on what it had.
      */
-    private fun <T> run(task: () -> T, done: (T) -> Unit) {
+    private fun <T> run(task: () -> T, fail: (Throwable) -> Unit = ::failed, done: (T) -> Unit) {
         worker.execute {
             /* Android's files may also refuse with these, a revoked permission for instance. */
             val result = try {
@@ -459,7 +470,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
-                result.fold(done) { failed(it) }
+                result.fold(done, fail)
             }
         }
     }
