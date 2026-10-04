@@ -90,15 +90,15 @@ private fun Activity.vaultInvalidated(vault: Vault) {
         .show()
 }
 
-/**
- * Create the Keystore key, asking first whether a new fingerprint
- * enrollment should destroy it. done is called once it exists.
- */
 /** A strong biometric is enrolled, the vault can be used. */
 fun Context.hasStrongBiometric(): Boolean =
     getSystemService(BiometricManager::class.java).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
         BiometricManager.BIOMETRIC_SUCCESS
 
+/**
+ * Create the Keystore key, asking first whether a new fingerprint
+ * enrollment should destroy it. done is called once it exists.
+ */
 fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
     if (vault.isSetUp) return done()
     /* A new Keystore key could never read the keys left by the old one. */
@@ -246,8 +246,7 @@ fun withAgent(argv: List<String>, keys: Int): List<String> {
      * reads, and ssh-add writes there on some errors. The shell cannot
      * close descriptors above 9 and scp and sftp keep them, so what
      * ssh-add left unread in the pipes is drained.
-     */
-    /*
+     *
      * The shell outlives the program here, a Ctrl-C the program handles,
      * as sftp does, must not end the shell with it: a trap catching
      * SIGINT is reset to the default in the program. It is only set for
