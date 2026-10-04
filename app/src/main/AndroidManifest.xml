@@ -39,8 +39,10 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Not recreated, which would drop a key import still reading its file. -->
         <activity
             android:name=".KeysActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender"
             android:exported="false" />
 
         <!-- Not recreated, which would leave a running transfer without its screen. -->
