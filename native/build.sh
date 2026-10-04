@@ -79,13 +79,14 @@ build_abi()
 	    STRIP="$toolchain/bin/llvm-strip"
 
 	# A previous LibreSSL must not leave headers or libraries behind.
+	# OPENSSLDIR goes into the programs, the build directory must not.
 	rm -rf "$prefix"
 	unpack "$work/libressl-$LIBRESSL_VERSION.tar.gz" "$dir/libressl"
 	(
 		cd "$dir/libressl"
 		./configure --host="$target" --prefix="$prefix" \
 		    --disable-shared --enable-static --disable-tests \
-		    --with-pic
+		    --with-pic --with-openssldir=/etc/ssl
 		make -j "$jobs" -C crypto install
 		make -C include install
 	)
