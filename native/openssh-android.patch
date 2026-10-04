@@ -1,3 +1,22 @@
+--- a/hostfile.c
++++ b/hostfile.c
+@@ -723,6 +723,8 @@
+ 
+ 	if (ctx.modified) {
+ 		/* Backup the original file and replace it with the temporary */
++#ifndef __ANDROID__
++		/* Android refuses link() to apps, the rename alone is atomic. */
+ 		if (unlink(back) == -1 && errno != ENOENT) {
+ 			oerrno = errno;
+ 			error_f("unlink %.100s: %s", back, strerror(errno));
+@@ -736,6 +738,7 @@
+ 			r = SSH_ERR_SYSTEM_ERROR;
+ 			goto fail;
+ 		}
++#endif
+ 		if (rename(temp, filename) == -1) {
+ 			oerrno = errno;
+ 			error_f("rename \"%s\" to \"%s\": %s", temp,
 --- a/misc.c
 +++ b/misc.c
 @@ -2947,11 +2947,14 @@
