@@ -67,6 +67,17 @@ class SftpClientTest {
     }
 
     @Test
+    fun namesNotInUtf8() {
+        val name = byteArrayOf(0x63, 0xe9.toByte())
+        ProcessBuilder("sh", "-c", "printf x > \"$(printf 'c\\351')\"").directory(dir).start().waitFor()
+        val entry = sftp.list(dir.path).single()
+        assertEquals("c\udce9", entry.name)
+        assertContentEquals(name, encodeName(entry.name))
+        sftp.rename("$dir/${entry.name}", "$dir/\u00e9t\u00e9")
+        assertEquals("\u00e9t\u00e9", sftp.list(dir.path).single().name)
+    }
+
+    @Test
     fun listsAndEdits() {
         sftp.mkdir("$dir/sub")
         File(dir, "a").writeText("x")

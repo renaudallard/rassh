@@ -10,6 +10,8 @@ import java.io.EOFException
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
 
 /** Attributes of a remote file, null for those the server left out. */
 class SftpAttrs(
@@ -334,7 +336,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
         fun u64(v: Long) = apply { out.writeLong(v) }
 
-        fun string(s: String) = bytes(s.toByteArray())
+        fun string(s: String) = bytes(encodeName(s))
 
         fun bytes(b: ByteArray, n: Int = b.size) = apply {
             out.writeInt(n)
@@ -374,7 +376,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             return b.copyOfRange(pos, pos + n).also { pos += n }
         }
 
-        fun text(): String = String(bytes(), Charsets.UTF_8)
+        fun text(): String = decodeName(bytes())
 
         fun attrs(): SftpAttrs {
             val flags = u32()
@@ -451,3 +453,40 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val ATTR_EXTENDED = 0x80000000.toInt()
     }
 }
+
+/*
+ * Names are bytes to SFTP. Those that are not UTF-8 keep each stray byte
+ * b as the lone surrogate U+DC00 + b, like Python's surrogateescape, so
+ * that they go back to the server as they came.
+ */
+internal fun decodeName(b: ByteArray): String {
+    val decoder = Charsets.UTF_8.newDecoder()
+    val input = ByteBuffer.wrap(b)
+    /* A byte gives at most one char. */
+    val out = CharBuffer.allocate(b.size)
+    while (true) {
+        val r = decoder.decode(input, out, true)
+        if (!r.isError) break
+        repeat(r.length()) { out.put((ESCAPE + (input.get().toInt() and 0xff)).toChar()) }
+    }
+    decoder.flush(out)
+    return out.flip().toString()
+}
+
+internal fun encodeName(s: String): ByteArray {
+    val out = ByteArrayOutputStream(s.length)
+    var start = 0
+    for (i in s.indices) {
+        val c = s[i].code
+        /* Only bytes from 0x80 are escaped, a low surrogate after a high one is half of a pair. */
+        if (c in ESCAPE + 0x80..ESCAPE + 0xff && (i == 0 || !s[i - 1].isHighSurrogate())) {
+            out.write(s.substring(start, i).toByteArray())
+            out.write(c - ESCAPE)
+            start = i + 1
+        }
+    }
+    out.write(s.substring(start).toByteArray())
+    return out.toByteArray()
+}
+
+private const val ESCAPE = 0xdc00
