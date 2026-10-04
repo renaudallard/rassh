@@ -491,7 +491,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         deadAccent = 0
         val session = session ?: return true
         if (!session.isRunning) {
-            if (s.contains('\r')) onCloseRequest?.invoke()
+            /* Enter alone, a paste holding a newline must not close the session. */
+            if (s == "\r") onCloseRequest?.invoke()
             return true
         }
         if (scrollOffset != 0) {
