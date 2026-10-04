@@ -122,8 +122,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun attach(service: SessionService) {
         service.addListener(this)
-        val s = service.find(intent.getIntExtra(EXTRA_SESSION, -1))
-        if (s == null) {
+        val s = service.find(intent.getIntExtra(EXTRA_SESSION, -1), intent.getLongExtra(EXTRA_OPENED, -1))
+        /* Only a session made for the browser has its pipes. */
+        if (s == null || s.dataInput == null) {
             dropPending()
             finish()
             return

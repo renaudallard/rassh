@@ -104,7 +104,8 @@ class SessionService : Service() {
         listeners.remove(l)
     }
 
-    fun find(id: Int): Session? = _sessions.find { it.id == id }
+    /** The session of id opened at opened, see forSession(). */
+    fun find(id: Int, opened: Long): Session? = _sessions.find { it.id == id && it.opened == opened }
 
     /** Start argv[0] from path in cwd on a new terminal, fds become 3, 4, ... */
     @Throws(IOException::class)

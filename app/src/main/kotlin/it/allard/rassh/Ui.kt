@@ -19,6 +19,7 @@ import android.widget.Toast
 import java.io.IOException
 
 const val EXTRA_SESSION = "it.allard.rassh.SESSION"
+const val EXTRA_OPENED = "it.allard.rassh.OPENED"
 const val EXTRA_HOST = "it.allard.rassh.HOST"
 const val SHELL = "/system/bin/sh"
 
@@ -127,3 +128,11 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
  */
 fun isFileError(e: Exception): Boolean =
     e is IOException || e is SecurityException || e is IllegalArgumentException
+
+/*
+ * An intent for the screen of session. Ids start again in a new process,
+ * a screen restored there must not take another session of the same id:
+ * the opening time tells them apart.
+ */
+fun Intent.forSession(session: Session): Intent =
+    putExtra(EXTRA_SESSION, session.id).putExtra(EXTRA_OPENED, session.opened)

@@ -18,6 +18,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     /* The session to show, kept when the activity is recreated. */
     private var wanted = -1
+    private var wantedOpened = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,18 +31,21 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         keys.listener = terminal
         terminal.onCloseRequest = { closeSession() }
         wanted = savedInstanceState?.getInt(STATE_SESSION, -1) ?: intent.getIntExtra(EXTRA_SESSION, -1)
+        wantedOpened = savedInstanceState?.getLong(STATE_OPENED, -1) ?: intent.getLongExtra(EXTRA_OPENED, -1)
         binding.bind()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(STATE_SESSION, session?.id ?: wanted)
+        outState.putLong(STATE_OPENED, session?.opened ?: wantedOpened)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         wanted = intent.getIntExtra(EXTRA_SESSION, -1)
+        wantedOpened = intent.getLongExtra(EXTRA_OPENED, -1)
         binding.service?.let { attach(it) }
     }
 
@@ -65,7 +69,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun attach(service: SessionService) {
         service.addListener(this)
-        show(service.find(wanted) ?: session?.takeIf { it in service.sessions } ?: service.sessions.lastOrNull())
+        show(service.find(wanted, wantedOpened) ?: session?.takeIf { it in service.sessions } ?: service.sessions.lastOrNull())
     }
 
     private fun show(s: Session?) {
@@ -79,6 +83,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         }
         s.listener = this
         wanted = s.id
+        wantedOpened = s.opened
         actionBar?.title = label(s)
         terminal.showKeyboard()
         if (!s.isRunning) offerNewHostKey(Paths(this), s)
@@ -175,6 +180,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     companion object {
         private const val STATE_SESSION = "session"
+        private const val STATE_OPENED = "opened"
         private const val MENU_PASTE = 1
         private const val MENU_KEYBOARD = 2
         private const val MENU_SESSIONS = 3

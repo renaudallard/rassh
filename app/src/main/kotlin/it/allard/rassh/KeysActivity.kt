@@ -124,7 +124,7 @@ class KeysActivity : Activity() {
             toast(getString(R.string.start_failed, argv[0], e.message))
             return
         }
-        startActivity(Intent(this, TerminalActivity::class.java).putExtra(EXTRA_SESSION, session.id))
+        startActivity(Intent(this, TerminalActivity::class.java).forSession(session))
     }
 
     private fun checkName(name: String): String? = when {

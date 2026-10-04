@@ -309,7 +309,7 @@ class MainActivity : Activity(), SessionService.Listener {
             return false
         }
         val screen = if (l.browse) FilesActivity::class.java else TerminalActivity::class.java
-        startActivity(Intent(this, screen).putExtra(EXTRA_SESSION, session.id))
+        startActivity(Intent(this, screen).forSession(session))
         return true
     }
 
