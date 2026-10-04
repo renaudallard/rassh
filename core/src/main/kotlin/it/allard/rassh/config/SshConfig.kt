@@ -36,8 +36,9 @@ data class Host(
             return !key.equals("Host", true) && !key.equals("Match", true)
         }
 
+        /* A port number, leading zeros allowed as ssh reads it with strtonum(). */
         fun isValidPort(port: String): Boolean =
-            port.isEmpty() || port.length <= 5 && port.all { it in '0'..'9' } &&
+            port.isEmpty() || port.all { it in '0'..'9' } && port.trimStart('0').length <= 5 &&
                 port.toInt() in 1..65535
     }
 }
