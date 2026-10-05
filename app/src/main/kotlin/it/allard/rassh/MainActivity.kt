@@ -269,8 +269,8 @@ class MainActivity : Activity(), SessionService.Listener {
 
     private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
         withVaultKey(vault, getString(R.string.unlock_reason), {
-            /* Not with the screen going away, its dialog dismissed then, see dismissWithScreen(). */
-            if (!isFinishing && !isChangingConfigurations) start(service, l, l.path, l.argv, emptyList())
+            /* Not once the screen is gone, its dialog dismissed then, see dismissWithScreen(). */
+            if (!isDestroyed && !isFinishing) start(service, l, l.path, l.argv, emptyList())
         }) { key ->
             val pipes = try {
                 keyPipes(vault, key, names)
