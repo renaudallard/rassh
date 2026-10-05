@@ -63,6 +63,10 @@ keys are encrypted and unlocked with it.
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
+- **Local shell** - from the menu, Android's own `sh` and toybox as the
+  app user, in its home directory, with `ssh`, `scp`, `sftp`, `ssh-add`,
+  `ssh-agent` and `ssh-keygen` first in `PATH`. Keys in the vault do not
+  reach it, only keys in clear are found there
 - **Encrypted keys** - private keys live in a vault sealed by the Android
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
 - **Agent** - each connection gets an `ssh-agent` of its own holding the

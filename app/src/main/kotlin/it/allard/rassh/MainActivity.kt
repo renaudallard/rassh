@@ -316,6 +316,17 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     /*
+     * Android's sh and toybox as the app user, in its home directory, with
+     * ssh and the other programs first in PATH. No vault keys go there,
+     * the programs only find keys in clear.
+     */
+    private fun localShell() {
+        val service = binding.service ?: return
+        val l = Launch(getString(R.string.local_shell), SHELL, listOf("sh"), paths.home.path, LOCALHOST)
+        start(service, l, l.path, l.argv, emptyList())
+    }
+
+    /*
      * scp and sftp work relative to shared storage when the app may use
      * it, otherwise relative to the private home directory.
      */
@@ -445,6 +456,7 @@ class MainActivity : Activity(), SessionService.Listener {
         /* In the menu, where it is found once the notification is gone. */
         if (binding.service?.sessions?.isNotEmpty() == true)
             menu.add(Menu.NONE, MENU_SESSIONS, 1, R.string.sessions)
+        menu.add(Menu.NONE, MENU_LOCAL, 1, R.string.local_shell)
         menu.add(Menu.NONE, MENU_KEYS, 2, R.string.keys)
             .setIcon(R.drawable.ic_key)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
@@ -459,6 +471,7 @@ class MainActivity : Activity(), SessionService.Listener {
             MENU_ADD -> startActivity(Intent(this, HostActivity::class.java))
             MENU_SESSIONS -> startActivity(Intent(this, TerminalActivity::class.java))
             MENU_KEYS -> startActivity(Intent(this, KeysActivity::class.java))
+            MENU_LOCAL -> localShell()
             MENU_EXPORT -> startActivityForResult(
                 Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("application/octet-stream")
@@ -510,6 +523,9 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_EXPORT = 9
         private const val MENU_IMPORT = 10
         private const val MENU_FILES = 11
+        private const val MENU_LOCAL = 12
+        /* The server of local shells, for the labels of sessions opened together. */
+        private const val LOCALHOST = "localhost"
         private const val REQUEST_EXPORT = 1
         private const val REQUEST_IMPORT = 2
     }

@@ -8,6 +8,7 @@
     <string name="no_hosts">No saved hosts</string>
     <string name="add_host">Add host</string>
     <string name="sessions">Sessions</string>
+    <string name="local_shell">Local shell</string>
     <string name="keys">Keys</string>
     <string name="about">About</string>
     <string name="edit">Edit</string>
