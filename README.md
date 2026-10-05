@@ -66,7 +66,8 @@ keys are encrypted and unlocked with it.
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
   app user, in its home directory, with `ssh`, `scp`, `sftp`, `ssh-add`,
   `ssh-agent` and `ssh-keygen` first in `PATH`. Keys in the vault do not
-  reach it, only keys in clear are found there
+  reach it, only keys in clear are found there. With All files access it
+  also reads and writes your files in shared storage, under `/sdcard`
 - **Encrypted keys** - private keys live in a vault sealed by the Android
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
 - **Agent** - each connection gets an `ssh-agent` of its own holding the
@@ -125,7 +126,7 @@ and install it. It needs Android 13 or newer on an `arm64-v8a` or
 | Notifications | The notification keeping sessions alive |
 | Foreground service | Keeping sessions open in the background |
 | Biometric | Unlocking the encrypted keys |
-| All files access | Reading and writing your files with sftp and scp, asked when first used |
+| All files access | Reading and writing your files with sftp, scp and the local shell, asked when sftp or scp is first used |
 
 On Android 17 hosts on the LAN (RFC 1918, CGNAT and link-local addresses)
 cannot be reached without the local network permission. Hosts reached

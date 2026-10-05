@@ -27,7 +27,7 @@
     <string name="scp_remote" translatable="false">%1$s:</string>
     <string name="scp_recursive">Copy directories (-r)</string>
     <string name="copy_files">Copy</string>
-    <string name="storage_rationale">scp and sftp need All files access to read and write your files. Without it they only reach the app\'s private directory.</string>
+    <string name="storage_rationale">scp, sftp and the local shell need All files access to read and write your files. Without it scp and sftp only reach the app\'s private directory.</string>
     <string name="open_settings">Open settings</string>
     <string name="continue_anyway">Continue</string>
     <string name="second_session">A session to %1$s is already open. Open another one?</string>
