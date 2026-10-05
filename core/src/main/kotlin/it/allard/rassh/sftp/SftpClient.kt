@@ -281,7 +281,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         }
     }
 
-    /* Read and drop the replies to the requests ids, to keep the stream in step. */
+    /* Read and drop the replies to the request ids, to keep the stream in step. */
     private fun drain(ids: Iterable<Int>) {
         for (id in ids) reply(id)
     }
