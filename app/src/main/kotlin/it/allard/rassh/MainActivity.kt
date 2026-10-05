@@ -36,7 +36,6 @@ class MainActivity : Activity(), SessionService.Listener {
     private lateinit var vault: Vault
     private var declined = emptySet<String>()
     private var toldConfig = false
-    private var exportDialog: AlertDialog? = null
     private var protecting = false
 
     /* Each vault question is asked once while the vault is missing, see setUp(). */
@@ -180,8 +179,6 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     override fun onDestroy() {
-        /* Recreated, as for a new theme, the dialog would go without removing the empty file. */
-        exportDialog?.dismiss()
         binding.service?.removeListener(this)
         binding.unbind()
         super.onDestroy()
@@ -271,8 +268,10 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
-        withVaultKey(vault, getString(R.string.unlock_reason),
-            { start(service, l, l.path, l.argv, emptyList()) }) { key ->
+        withVaultKey(vault, getString(R.string.unlock_reason), {
+            /* Not with the screen going away, its dialog dismissed then, see dismissWithScreen(). */
+            if (!isFinishing && !isChangingConfigurations) start(service, l, l.path, l.argv, emptyList())
+        }) { key ->
             val pipes = try {
                 keyPipes(vault, key, names)
             } catch (e: IOException) {
@@ -479,7 +478,7 @@ class MainActivity : Activity(), SessionService.Listener {
         val uri = data?.data
         if (resultCode != RESULT_OK || uri == null) return
         when (requestCode) {
-            REQUEST_EXPORT -> exportDialog = exportTo(uri, paths, vault)
+            REQUEST_EXPORT -> exportTo(uri, paths, vault)
             REQUEST_IMPORT -> importFrom(uri, paths, vault) { if (!isDestroyed) loadHosts() }
         }
     }

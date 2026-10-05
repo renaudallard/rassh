@@ -92,7 +92,7 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
 
 /* closed is called once the dialog is gone. */
 private fun Activity.vaultInvalidated(vault: Vault, closed: () -> Unit = {}) {
-    AlertDialog.Builder(this)
+    val dialog = AlertDialog.Builder(this)
         /* Not telling of keys lost when there were none, as after deleting them all. */
         .setMessage(if (holdsKeys(vault)) R.string.vault_invalidated else R.string.vault_invalidated_empty)
         /* A new vault is set up from the main screen, see MainActivity.setUp(). */
@@ -100,6 +100,8 @@ private fun Activity.vaultInvalidated(vault: Vault, closed: () -> Unit = {}) {
         .setNegativeButton(R.string.cancel, null)
         .setOnDismissListener { closed() }
         .show()
+    /* closed() cleans up what the caller asked for, an export file for one. */
+    dismissWithScreen(dialog)
 }
 
 /* Whether the vault file holds keys, as it does when it cannot be read. */

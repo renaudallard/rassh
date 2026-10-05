@@ -27,10 +27,8 @@ private const val KNOWN_HOSTS = "known_hosts"
 /**
  * Seal the hosts, keys and settings into uri with a passphrase. The file
  * picker created uri, it is deleted when the export does not happen.
- * Returns the passphrase dialog, to dismiss with a screen going away, as
- * that deletes the file too.
  */
-fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault): AlertDialog {
+fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     fun discard() {
         try {
             DocumentsContract.deleteDocument(contentResolver, uri)
@@ -38,7 +36,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault): AlertDialog {
             /* Not every provider deletes, the file is then left empty. */
         }
     }
-    return askPassphrase(R.string.export, true, { discard() }) { pass ->
+    askPassphrase(R.string.export, true, { discard() }) { pass ->
         fun export(key: ByteArray?) {
             val items = try {
                 exportItems(paths, vault, key)
@@ -369,7 +367,7 @@ private fun hostCount(paths: Paths): Int =
  * into a String.
  */
 private fun Activity.askPassphrase(title: Int, choose: Boolean, cancelled: () -> Unit = {},
-    use: (CharArray) -> Unit): AlertDialog {
+    use: (CharArray) -> Unit) {
     fun field(hint: Int) = EditText(this).apply {
         isSingleLine = true
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -406,5 +404,6 @@ private fun Activity.askPassphrase(title: Int, choose: Boolean, cancelled: () ->
         dialog.dismiss()
         use(pass)
     }
-    return dialog
+    /* Taken away with the screen, the export would leave its empty file. */
+    dismissWithScreen(dialog)
 }

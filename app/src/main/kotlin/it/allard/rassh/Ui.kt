@@ -1,10 +1,13 @@
 package it.allard.rassh
 
 import android.app.Activity
+import android.app.Application
+import android.app.Dialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Bundle
 import android.os.IBinder
 import android.text.InputType
 import android.view.LayoutInflater
@@ -136,3 +139,24 @@ fun isFileError(e: Exception): Boolean =
  */
 fun Intent.forSession(session: Session): Intent =
     putExtra(EXTRA_SESSION, session.id).putExtra(EXTRA_OPENED, session.opened)
+
+/*
+ * Dismiss dialog when the screen goes, recreated or finished. Android
+ * only takes its window away, and its dismiss listener, which cleans up
+ * after what it asked, would never run.
+ */
+fun Activity.dismissWithScreen(dialog: Dialog) {
+    registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityPreDestroyed(activity: Activity) {
+            if (dialog.isShowing) dialog.dismiss()
+        }
+
+        override fun onActivityCreated(activity: Activity, state: Bundle?) {}
+        override fun onActivityStarted(activity: Activity) {}
+        override fun onActivityResumed(activity: Activity) {}
+        override fun onActivityPaused(activity: Activity) {}
+        override fun onActivityStopped(activity: Activity) {}
+        override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) {}
+        override fun onActivityDestroyed(activity: Activity) {}
+    })
+}
