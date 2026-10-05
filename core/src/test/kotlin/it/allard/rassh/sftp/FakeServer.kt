@@ -9,7 +9,8 @@ import kotlin.concurrent.thread
 
 /*
  * An SFTP server answering each request with what reply returns for its
- * type and id, to test replies a real server does not easily give.
+ * type, id and whole packet, to test replies a real server does not
+ * easily give.
  */
 class FakeServer(private val reply: (type: Int, id: Int, packet: ByteArray) -> ByteArray) {
     private val toServer = PipedInputStream(1 shl 20)
