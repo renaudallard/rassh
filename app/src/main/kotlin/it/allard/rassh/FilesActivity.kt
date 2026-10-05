@@ -365,12 +365,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val c = client() ?: return
         val name = shownName(remote.substringAfterLast('/'))
         transfer(getString(R.string.downloading, name), { progress ->
-            /* Truncated only once the remote file opened. */
+            /* Truncated only once the remote file opened, and only known so once that open returned. */
             var opened = false
             try {
                 c.download(remote, {
-                    opened = true
-                    contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
+                    contentResolver.openOutputStream(uri, "wt")?.also { opened = true } ?: throw IOException("cannot open $uri")
                 }, progress)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
