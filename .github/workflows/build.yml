@@ -50,7 +50,7 @@ jobs:
               echo "$RASSH_KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
               export RASSH_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
           fi
-          ./gradlew --no-daemon :app:assembleRelease
+          ./gradlew --no-daemon :app:assembleRelease :app:bundleRelease
           rm -f "$RUNNER_TEMP/release.jks"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -59,6 +59,12 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
+
+      # Apart, as a shared path would move the APKs the release job copies.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rassh-bundle
+          path: app/build/outputs/bundle/release/*.aab
 
   # Publish the signed APK when versionName has no release yet.
   # Forks have no signing key, and two pushes of a new version must not race.

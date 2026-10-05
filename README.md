@@ -237,8 +237,9 @@ or only the ABIs given as arguments. The programs go to
 `app/src/main/jniLibs`, with the license files shown in the About dialog.
 
 The workflow in `.github/workflows/build.yml` does the same on every push
-and keeps the APKs as artifacts. Local release builds, and those of pull
-requests from forks, are unsigned.
+and keeps the APKs as artifacts, and the release app bundle for Google
+Play as a separate one. Local release builds, and those of pull requests
+from forks, are unsigned.
 
 ## Releases
 
