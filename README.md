@@ -133,7 +133,8 @@ cannot be reached without the local network permission. Hosts reached
 through a VPN or the mobile network, and port forwards on 127.0.0.1, do
 not need it.
 
-rassh collects no data, see the [privacy policy](PRIVACY.md).
+rassh collects no data, see the [privacy policy](PRIVACY.md), also
+linked from the About dialog.
 
 ## Key storage
 

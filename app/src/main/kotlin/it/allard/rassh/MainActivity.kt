@@ -3,6 +3,7 @@ package it.allard.rassh
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -444,8 +445,18 @@ class MainActivity : Activity(), SessionService.Listener {
                     .setTitle(R.string.about)
                     .setMessage(getString(R.string.about_text, version, ssh) + "\n\n" + licenses)
                     .setPositiveButton(android.R.string.ok, null)
+                    .setNeutralButton(R.string.privacy) { _, _ -> openPrivacy() }
                     .show()
             }
+        }
+    }
+
+    /* Google Play wants the privacy policy reachable from the app. */
+    private fun openPrivacy() {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)))
+        } catch (e: ActivityNotFoundException) {
+            toast(getString(R.string.no_browser, PRIVACY_URL))
         }
     }
 
@@ -528,5 +539,6 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val LOCALHOST = "localhost"
         private const val REQUEST_EXPORT = 1
         private const val REQUEST_IMPORT = 2
+        private const val PRIVACY_URL = "https://github.com/renaudallard/rassh/blob/main/PRIVACY.md"
     }
 }
