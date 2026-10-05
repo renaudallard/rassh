@@ -382,7 +382,8 @@ private fun Activity.askPassphrase(title: Int, choose: Boolean, cancelled: () ->
         .setNegativeButton(R.string.cancel, null)
         .show()
     var used = false
-    dialog.setOnDismissListener {
+    /* Taken away with the screen, the export would leave its empty file. */
+    dismissWithScreen(dialog) {
         first.text.clear()
         second.text.clear()
         if (!used) cancelled()
@@ -404,6 +405,4 @@ private fun Activity.askPassphrase(title: Int, choose: Boolean, cancelled: () ->
         dialog.dismiss()
         use(pass)
     }
-    /* Taken away with the screen, the export would leave its empty file. */
-    dismissWithScreen(dialog)
 }

@@ -141,12 +141,13 @@ fun Intent.forSession(session: Session): Intent =
     putExtra(EXTRA_SESSION, session.id).putExtra(EXTRA_OPENED, session.opened)
 
 /*
- * Dismiss dialog when the screen goes, recreated or finished. Android
- * only takes its window away, and its dismiss listener, which cleans up
- * after what it asked, would never run.
+ * Call dismissed once dialog is gone, also when the screen goes, recreated
+ * or finished: Android then only takes its window away, and the cleanup
+ * after what it asked would never run. dismissed runs after the screen is
+ * destroyed then, isDestroyed tells.
  */
-fun Activity.dismissWithScreen(dialog: Dialog) {
-    registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+fun Activity.dismissWithScreen(dialog: Dialog, dismissed: () -> Unit) {
+    val watch = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityPreDestroyed(activity: Activity) {
             if (dialog.isShowing) dialog.dismiss()
         }
@@ -158,5 +159,10 @@ fun Activity.dismissWithScreen(dialog: Dialog) {
         override fun onActivityStopped(activity: Activity) {}
         override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) {}
         override fun onActivityDestroyed(activity: Activity) {}
-    })
+    }
+    registerActivityLifecycleCallbacks(watch)
+    dialog.setOnDismissListener {
+        unregisterActivityLifecycleCallbacks(watch)
+        dismissed()
+    }
 }

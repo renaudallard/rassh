@@ -98,10 +98,9 @@ private fun Activity.vaultInvalidated(vault: Vault, closed: () -> Unit = {}) {
         /* A new vault is set up from the main screen, see MainActivity.setUp(). */
         .setPositiveButton(R.string.vault_reset) { _, _ -> vault.reset() }
         .setNegativeButton(R.string.cancel, null)
-        .setOnDismissListener { closed() }
         .show()
     /* closed() cleans up what the caller asked for, an export file for one. */
-    dismissWithScreen(dialog)
+    dismissWithScreen(dialog, closed)
 }
 
 /* Whether the vault file holds keys, as it does when it cannot be read. */
