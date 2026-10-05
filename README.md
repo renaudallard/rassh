@@ -133,6 +133,8 @@ cannot be reached without the local network permission. Hosts reached
 through a VPN or the mobile network, and port forwards on 127.0.0.1, do
 not need it.
 
+rassh collects no data, see the [privacy policy](PRIVACY.md).
+
 ## Key storage
 
 Private keys are sealed in `~/.ssh/keys.vault`, each with AES-256-GCM
