@@ -185,6 +185,39 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun cancelDuringLstatOpensNothing() {
+        /* Cancel pressed while the server answers LSTAT, OPEN would truncate the file. */
+        var cancelled = false
+        var opened = false
+        val fake = FakeServer { type, id, _ ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                7 -> {
+                    cancelled = true
+                    FakeServer.packet(105) { writeInt(id); writeInt(0) }
+                }
+                3 -> {
+                    opened = true
+                    FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+                }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        assertFailsWith<SftpCancelledException> {
+            client.upload(java.io.ByteArrayInputStream(ByteArray(10)), "/f") { !cancelled }
+        }
+        assertTrue(!opened)
+    }
+
+    @Test(timeout = TIMEOUT)
     fun longPathRefused() {
         val fake = FakeServer { type, id, _ ->
             when (type) {
