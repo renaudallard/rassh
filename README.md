@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/github/actions/workflow/status/renaudallard/rassh/build.yml?style=flat-square&label=build" alt="Build"/>
   </a>
   <img src="https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white&style=flat-square" alt="Android 13 or newer"/>
-  <img src="https://img.shields.io/badge/OpenSSH-10.5p1-1C2833?style=flat-square" alt="OpenSSH 10.5p1"/>
+  <img src="https://img.shields.io/badge/OpenSSH-10.6p1-1C2833?style=flat-square" alt="OpenSSH 10.6p1"/>
   <img src="https://img.shields.io/badge/LibreSSL-4.3.3-F2C232?style=flat-square" alt="LibreSSL 4.3.3"/>
   <a href="./LICENSE">
     <img src="https://img.shields.io/badge/license-ISC-green.svg?style=flat-square" alt="ISC license"/>
@@ -27,7 +27,7 @@
 
 <p align="center">
   <b>An SSH client for Android built around the real OpenSSH.</b><br/>
-  OpenSSH 10.5p1 and LibreSSL 4.3.3 running on a pseudo-terminal, an xterm
+  OpenSSH 10.6p1 and LibreSSL 4.3.3 running on a pseudo-terminal, an xterm
   compatible terminal emulator, and the keys a phone keyboard lacks.
 </p>
 
@@ -44,7 +44,7 @@ keys are encrypted and unlocked with it.
 ## Features
 
 - **OpenSSH programs** - `ssh`, `ssh-keygen`, `ssh-agent`, `ssh-add`, `scp`
-  and `sftp` from OpenSSH 10.5p1, built with LibreSSL 4.3.3
+  and `sftp` from OpenSSH 10.6p1, built with LibreSSL 4.3.3
 - **Extra keys** - a row above the soft keyboard with `ESC` `/` `|` `-`
   `HOME` `↑` `END` `PGUP` and `TAB` `CTRL` `ALT` `~` `←` `↓` `→` `PGDN`.
   `CTRL` and `ALT` apply to the next key, typed or tapped, and `ESC`,
@@ -79,7 +79,10 @@ keys are encrypted and unlocked with it.
   are loaded, unless asked with `-A`
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
-  key, show, copy or share public keys
+  key, show, copy or share public keys. OpenSSH 10.6 renamed the
+  experimental `ssh-mldsa44-ed25519@openssh.com` keys, mldsa44-ed25519
+  keys made with older versions of rassh no longer load and must be
+  generated again
 - **File browser** - from the menu of a saved host: browse, download,
   upload, rename, delete and create folders over SFTP, through `ssh`, so
   the host's options, jump hosts and keys apply, but not its port
@@ -261,7 +264,7 @@ As of October 2026, from each project's own pages and sources.
 
 | | rassh | Termux + openssh | ConnectBot | Termius | Haven |
 | --- | --- | --- | --- | --- | --- |
-| SSH code | OpenSSH 10.5p1 | OpenSSH 10.5p1 | sshlib | proprietary | JSch |
+| SSH code | OpenSSH 10.6p1 | OpenSSH 10.5p1 | sshlib | proprietary | JSch |
 | License | ISC | GPLv3 | Apache-2.0 | proprietary | AGPL-3.0 |
 | Hosts in `~/.ssh/config` | yes | yes | no | no | no |
 | Jump hosts | yes | yes | yes | yes | yes |
