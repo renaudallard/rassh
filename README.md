@@ -16,7 +16,7 @@
   </a>
   <img src="https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white&style=flat-square" alt="Android 13 or newer"/>
   <img src="https://img.shields.io/badge/OpenSSH-10.5p1-1C2833?style=flat-square" alt="OpenSSH 10.5p1"/>
-  <img src="https://img.shields.io/badge/LibreSSL-4.3.2-F2C232?style=flat-square" alt="LibreSSL 4.3.2"/>
+  <img src="https://img.shields.io/badge/LibreSSL-4.3.3-F2C232?style=flat-square" alt="LibreSSL 4.3.3"/>
   <a href="./LICENSE">
     <img src="https://img.shields.io/badge/license-ISC-green.svg?style=flat-square" alt="ISC license"/>
   </a>
@@ -27,7 +27,7 @@
 
 <p align="center">
   <b>An SSH client for Android built around the real OpenSSH.</b><br/>
-  OpenSSH 10.5p1 and LibreSSL 4.3.2 running on a pseudo-terminal, an xterm
+  OpenSSH 10.5p1 and LibreSSL 4.3.3 running on a pseudo-terminal, an xterm
   compatible terminal emulator, and the keys a phone keyboard lacks.
 </p>
 
@@ -44,7 +44,7 @@ keys are encrypted and unlocked with it.
 ## Features
 
 - **OpenSSH programs** - `ssh`, `ssh-keygen`, `ssh-agent`, `ssh-add`, `scp`
-  and `sftp` from OpenSSH 10.5p1, built with LibreSSL 4.3.2
+  and `sftp` from OpenSSH 10.5p1, built with LibreSSL 4.3.3
 - **Extra keys** - a row above the soft keyboard with `ESC` `/` `|` `-`
   `HOME` `↑` `END` `PGUP` and `TAB` `CTRL` `ALT` `~` `←` `↓` `→` `PGDN`.
   `CTRL` and `ALT` apply to the next key, typed or tapped, and `ESC`,
