@@ -37,15 +37,16 @@ There is no SSH reimplementation: `ssh`, `sftp`, `scp`, `ssh-agent`,
 `ssh-add` and `ssh-keygen` are the OpenSSH programs, built with LibreSSL
 and upstream defaults, without distribution patches or a system-wide
 `ssh_config`, so what works with `ssh` on an OpenBSD box works here,
-`~/.ssh/config` included. FIDO security keys and PKCS#11 are left out,
-see [Limitations](#limitations). Once a fingerprint is enrolled, private
-keys are encrypted and unlocked with it.
+`~/.ssh/config` included, apart from agent forwarding and
+`LocalCommand`, see [Agent](#features). FIDO security keys and PKCS#11
+are left out, see [Limitations](#limitations). Once a fingerprint is
+enrolled, private keys are encrypted and unlocked with it.
 
 ## Features
 
 - **OpenSSH programs** - `ssh`, `ssh-keygen`, `ssh-agent`, `ssh-add`, `scp`
   and `sftp` from OpenSSH 10.6p1, built with LibreSSL 4.3.3
-- **Extra keys** - a row above the soft keyboard with `ESC` `/` `|` `-`
+- **Extra keys** - two rows below the terminal, `ESC` `/` `|` `-`
   `HOME` `↑` `END` `PGUP` and `TAB` `CTRL` `ALT` `~` `←` `↓` `→` `PGDN`.
   `CTRL` and `ALT` apply to the next key, typed or tapped, and `ESC`,
   `TAB`, `HOME`, `END`, arrows and page keys repeat while held
@@ -67,7 +68,8 @@ keys are encrypted and unlocked with it.
   `ServerAliveInterval`, `Compression`, `StrictHostKeyChecking` or
   `LogLevel`, have a list of values each. Left at Default, an option
   writes no line, and the value shown next to Default is what `ssh -G`
-  gives the saved host without it, from `Host *` blocks or ssh itself
+  gives the saved host without it, from its other options, `Host *`
+  blocks or ssh itself
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
@@ -91,21 +93,24 @@ keys are encrypted and unlocked with it.
   keys made with older versions of rassh no longer load and must be
   generated again
 - **File browser** - from the menu of a saved host: browse, download,
-  upload, rename, delete and create folders over SFTP, through `ssh`, so
-  the host's options, jump hosts and keys apply, but not its port
-  forwards, as with `sftp`
+  upload, rename, delete files and empty folders and create folders over
+  SFTP, through `ssh`, so the host's options, jump hosts and keys apply,
+  but not its port forwards, as with `sftp`
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with
   a passphrase, see [Moving to another phone](#moving-to-another-phone)
-- **Changed host keys** - when ssh refuses a server whose key changed,
-  a warning offers to remove the old key, then connecting again shows the
-  fingerprint of the new one to confirm. The host is resolved from the
-  local configuration with `ssh -G`, so only its own keys are removed
+- **Changed host keys** - when `ssh`, `sftp` or the file browser is
+  refused by a server whose key changed, a warning offers to remove the
+  old key, then connecting again shows the fingerprint of the new one to
+  confirm. The host is resolved from the local configuration with
+  `ssh -G`, so only its own keys are removed
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
-  Opening a second one to the same saved host, or with the same quick
-  connect text, asks first, and such sessions show when they were opened
+  Opening a second one to the same saved host, with `ssh`, `sftp` or
+  `scp`, or with the same quick connect text, asks first. Sessions
+  reaching the same server, local shells included, show when they were
+  opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, which sends the arrow keys to full screen programs like vim or
@@ -117,8 +122,9 @@ keys are encrypted and unlocked with it.
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
   system monospace font for a proportional one
-- **Hardware keyboards** - arrows, Home, End, Page Up and Down, Insert,
-  Delete, F1 to F12, Ctrl and Alt
+- **Hardware keyboards** - Esc, Tab and Shift-Tab, arrows, Home, End,
+  Page Up and Down, Insert, Delete, F1 to F12, Ctrl and Alt, right Alt
+  as AltGr and dead keys
 
 ---
 
@@ -136,7 +142,7 @@ and install it. It needs Android 13 or newer on an `arm64-v8a` or
 | Notifications | The notification keeping sessions alive |
 | Foreground service | Keeping sessions open in the background |
 | Biometric | Unlocking the encrypted keys |
-| All files access | Reading and writing your files with sftp, scp and the local shell, asked when sftp or scp is first used |
+| All files access | Reading and writing your files with sftp, scp and the local shell, asked each time sftp or scp starts without it, which can go on in the app's private directory instead |
 
 On Android 17 hosts on the LAN (RFC 1918, CGNAT and link-local addresses)
 cannot be reached without the local network permission. Hosts reached
@@ -182,34 +188,39 @@ Public keys stay in clear next to the vault. For an `IdentityFile` whose
 private key is gone, `ssh` takes the public key next to it and finds the
 private one in the agent, so `IdentityFile` lines name vault keys as
 usual, and a certificate next to the key, `<key>-cert.pub`, is used too.
-Renaming or deleting a key in the app takes both along.
+Renaming or deleting a key in the app takes both along, and renaming
+also updates the `IdentityFile` and `CertificateFile` lines of
+`~/.ssh/config` naming them.
 Lines naming the `.pub` of a vault key, as older versions wrote them,
 are pointed back at the key.
 
 ## Moving to another phone
 
 Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
-the keys with their public keys and certificates, and the settings to a
-file sealed with a passphrase of at least
+the keys of `~/.ssh` with their public keys and certificates, and the
+font size to a file sealed with a passphrase of at least
 8 characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
 with 600,000 iterations. Reading the keys takes a fingerprint. Android
 backup stays off, since the vault cannot leave the phone that made it.
+Files read through `Include` and keys kept outside `~/.ssh` are not
+exported.
 
 Import reads the file on the other phone and asks whether to append or
 replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
-  the missing `known_hosts` lines and the settings not set yet. Only
+  the missing `known_hosts` lines and the font size if not set yet. Only
   `Host` blocks naming a single host are taken: global options, `Match`
   blocks and `Host` blocks with wildcards or several names are left out,
   as they could change the hosts already there.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
-  the settings of the file in place of yours. They are written first,
+  the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed.
 
-Storing keys in the vault takes a fingerprint. Keys exported without
-their public key, or over 64 KiB, are written in clear, as they were,
-the former moving into the vault once their public key is made. On a
+Storing keys in the vault takes a fingerprint, and an import that would
+put more than 64 keys in it stops before writing anything. Keys exported
+without their public key, or over 64 KiB, are written in clear, as they
+were, the former moving into the vault once their public key is made. On a
 phone without a fingerprint enrolled, all keys come in clear and move
 into the vault once one is. Only import files you made: the
 hosts of an export can run commands through `ProxyCommand` or
@@ -230,7 +241,7 @@ app/      Android application
 | **PATH** | `~/bin` holds links named after the programs and comes first in `PATH`: `ssh` finds itself there for `ProxyJump`, as do `scp`, `sftp` and `ProxyCommand ssh -W` lines |
 | **getpwuid** | Bionic reports `/data` as the home of app users. The programs are linked with `-Wl,--wrap=getpwuid` and `native/homedir.c` answers `$HOME` |
 | **Files** | The browser runs `ssh -s host sftp` with pipes as its standard input and output and speaks SFTP version 3 to it. ssh keeps the terminal for its messages and questions, shown while connecting |
-| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, initialises the SSHFP resolver without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, keeps no `known_hosts.old` when ssh adds host keys and moves the `ControlMaster` socket into place with `renameat2()`, since Android refuses `link()` to apps |
+| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, initialises the SSHFP resolver without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, keeps no `known_hosts.old` when ssh rewrites the file for `UpdateHostKeys` and moves the `ControlMaster` socket into place with `renameat2()`, since Android refuses `link()` to apps |
 
 ## Building
 
@@ -247,7 +258,8 @@ native/build.sh
 `native/build.sh` downloads the LibreSSL and OpenSSH release tarballs from
 cdn.openbsd.org, checks their SHA-256 and builds `arm64-v8a` and `x86_64`,
 or only the ABIs given as arguments. The programs go to
-`app/src/main/jniLibs`, with the license files shown in the About dialog.
+`app/src/main/jniLibs`, and their license files, shown in the About
+dialog, to `app/src/main/assets/licenses`.
 
 The workflow in `.github/workflows/build.yml` does the same on every push
 and keeps the APKs as artifacts, and the release app bundle for Google
@@ -271,7 +283,7 @@ As of October 2026, from each project's own pages and sources.
 
 | | rassh | Termux + openssh | ConnectBot | Termius | Haven |
 | --- | --- | --- | --- | --- | --- |
-| SSH code | OpenSSH 10.6p1 | OpenSSH 10.5p1 | sshlib | proprietary | JSch |
+| SSH code | OpenSSH 10.6p1 | OpenSSH 10.6p1 | sshlib | proprietary | JSch, sshlib in preview |
 | License | ISC | GPLv3 | Apache-2.0 | proprietary | AGPL-3.0 |
 | Hosts in `~/.ssh/config` | yes | yes | no | no | no |
 | Jump hosts | yes | yes | yes | yes | yes |
