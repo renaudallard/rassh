@@ -76,6 +76,8 @@
     <string name="port_label">Port</string>
     <string name="identity_label">Identity file</string>
     <string name="identity_default">Default keys</string>
+    <string name="only_label">Use only this key, without trying the others</string>
+    <string name="error_only">Remove IdentitiesOnly to use only this key</string>
     <string name="local_forwards_label">Local forwards</string>
     <string name="remote_forwards_label">Remote forwards</string>
     <string name="dynamic_forwards_label">Dynamic forwards</string>

@@ -60,7 +60,10 @@ keys are encrypted and unlocked with it.
   a host, renaming a key, removing a changed host key or an Append import
   then stops with a message. A checkbox
   attaches to the last tmux session or starts one, with
-  `RemoteCommand tmux a || tmux` and `RequestTTY yes`
+  `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
+  the identity file, makes `ssh` use only that key with
+  `IdentitiesOnly yes`, without trying the other keys of the agent
+  when the server refuses it
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the

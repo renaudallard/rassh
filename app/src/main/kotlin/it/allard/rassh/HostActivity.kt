@@ -7,6 +7,7 @@ import android.system.ErrnoException
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
@@ -30,6 +31,7 @@ class HostActivity : Activity() {
     private lateinit var user: EditText
     private lateinit var port: EditText
     private lateinit var identity: Spinner
+    private lateinit var only: CheckBox
     private lateinit var local: EditText
     private lateinit var remote: EditText
     private lateinit var dynamic: EditText
@@ -48,6 +50,7 @@ class HostActivity : Activity() {
         user = findViewById(R.id.user)
         port = findViewById(R.id.port)
         identity = findViewById(R.id.identity)
+        only = findViewById(R.id.only)
         local = findViewById(R.id.local)
         remote = findViewById(R.id.remote)
         dynamic = findViewById(R.id.dynamic)
@@ -76,6 +79,14 @@ class HostActivity : Activity() {
             identities = identities + host.identityFile
         val labels = listOf(getString(R.string.identity_default)) + identities
         identity.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+        /* Without a key of its own, IdentitiesOnly would leave the host with ssh's default files. */
+        identity.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                only.isEnabled = position > 0
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
 
         if (savedInstanceState == null) {
             name.setText(host.name)
@@ -83,13 +94,18 @@ class HostActivity : Activity() {
             user.setText(host.user)
             port.setText(host.port)
             identity.setSelection(identities.indexOf(host.identityFile) + 1)
+            /* The IdentitiesOnly line of a host with a key belongs to the checkbox. */
+            val restrict = host.identityFile.isNotEmpty() && host.other.any { isOnlyLine(it) }
+            only.isChecked = restrict
             local.setText(host.localForwards.joinToString("\n"))
             remote.setText(host.remoteForwards.joinToString("\n"))
             dynamic.setText(host.dynamicForwards.joinToString("\n"))
             /* The tmux lines belong to the checkbox, not to the other options. */
             val attach = host.other.any { isTmuxLine(it) }
             tmux.isChecked = attach
-            val rest = if (attach) host.other.filterNot { isTmuxLine(it) || isTtyLine(it) } else host.other
+            val rest = host.other.filterNot {
+                attach && (isTmuxLine(it) || isTtyLine(it)) || restrict && isOnlyLine(it)
+            }
             other.setText(rest.joinToString("\n"))
         }
     }
@@ -139,9 +155,14 @@ class HostActivity : Activity() {
             other.error = getString(R.string.error_tmux)
             ok = false
         }
+        val selected = identity.selectedItemPosition
+        val restrict = selected > 0 && only.isChecked
+        if (restrict && lines(other).any { keyword(it) == "identitiesonly" }) {
+            other.error = getString(R.string.error_only)
+            ok = false
+        }
         if (!ok) return
 
-        val selected = identity.selectedItemPosition
         val host = Host(
             name = n,
             hostName = h,
@@ -151,7 +172,8 @@ class HostActivity : Activity() {
             localForwards = lines(local),
             remoteForwards = lines(remote),
             dynamicForwards = lines(dynamic),
-            other = lines(other) + if (tmux.isChecked) TMUX_LINES else emptyList(),
+            other = lines(other) + (if (restrict) listOf(ONLY_LINE) else emptyList()) +
+                if (tmux.isChecked) TMUX_LINES else emptyList(),
         )
         config.put(original, host)
         val text = config.toString()
@@ -244,10 +266,15 @@ class HostActivity : Activity() {
         private val TMUX_LINES = listOf("RemoteCommand $TMUX_COMMAND", "RequestTTY yes")
         private val TMUX_KEYWORDS = setOf("remotecommand", "requesttty")
 
+        private const val ONLY_LINE = "IdentitiesOnly yes"
+
         private fun keyword(line: String): String? = SshConfig.keyword(line)?.first?.lowercase()
 
         private fun isTmuxLine(line: String): Boolean =
             SshConfig.keyword(line)?.let { it.first.equals("RemoteCommand", true) && it.second == TMUX_COMMAND } == true
+
+        private fun isOnlyLine(line: String): Boolean =
+            SshConfig.keyword(line)?.let { it.first.equals("IdentitiesOnly", true) && it.second.equals("yes", true) } == true
 
         private fun isTtyLine(line: String): Boolean =
             SshConfig.keyword(line)?.let { it.first.equals("RequestTTY", true) && it.second.equals("yes", true) } == true
