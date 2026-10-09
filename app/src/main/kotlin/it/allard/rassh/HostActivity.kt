@@ -11,7 +11,10 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
+import android.widget.TextView
+import it.allard.rassh.config.Choices
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
 import java.io.File
@@ -37,6 +40,11 @@ class HostActivity : Activity() {
     private lateinit var dynamic: EditText
     private lateinit var other: EditText
     private lateinit var tmux: CheckBox
+    private lateinit var choicesToggle: TextView
+    private lateinit var choices: LinearLayout
+    /* One per entry of Choices.ALL, "Default" first, then its values. */
+    private val spinners = mutableListOf<Spinner>()
+    private val items = mutableListOf<MutableList<String>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +64,10 @@ class HostActivity : Activity() {
         dynamic = findViewById(R.id.dynamic)
         other = findViewById(R.id.other)
         tmux = findViewById(R.id.tmux)
+        choicesToggle = findViewById(R.id.choices_toggle)
+        choices = findViewById(R.id.choices)
+        addChoices()
+        choicesToggle.setOnClickListener { showChoices(choices.visibility != View.VISIBLE) }
 
         paths = Paths(this)
         val config = try {
@@ -106,7 +118,71 @@ class HostActivity : Activity() {
             val rest = host.other.filterNot {
                 attach && (isTmuxLine(it) || isTtyLine(it)) || restrict && isOnlyLine(it)
             }
-            other.setText(rest.joinToString("\n"))
+            val (taken, left) = Choices.take(rest)
+            Choices.ALL.forEachIndexed { i, c -> spinners[i].setSelection(c.values.indexOf(taken[c]) + 1) }
+            showChoices(taken.isNotEmpty())
+            other.setText(left.joinToString("\n"))
+        } else {
+            /* Built in code, the spinners do not keep their state themselves. */
+            savedInstanceState.getIntArray(STATE_CHOICES)?.forEachIndexed { i, p -> spinners.getOrNull(i)?.setSelection(p) }
+            showChoices(savedInstanceState.getBoolean(STATE_SHOWN))
+        }
+        if (original != null && host.name == original) showDefaults(config, host)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putIntArray(STATE_CHOICES, spinners.map { it.selectedItemPosition }.toIntArray())
+        outState.putBoolean(STATE_SHOWN, choices.visibility == View.VISIBLE)
+    }
+
+    private fun addChoices() {
+        for (c in Choices.ALL) {
+            val row = layoutInflater.inflate(R.layout.choice, choices, false)
+            val label = row.findViewById<TextView>(R.id.label)
+            val spinner = row.findViewById<Spinner>(R.id.value)
+            val values = (listOf(getString(R.string.choice_default)) + c.values).toMutableList()
+            spinner.id = View.generateViewId()
+            spinner.isSaveEnabled = false
+            spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, values)
+            label.text = c.keyword
+            label.labelFor = spinner.id
+            spinners.add(spinner)
+            items.add(values)
+            choices.addView(row)
+        }
+    }
+
+    private fun showChoices(show: Boolean) {
+        choices.visibility = if (show) View.VISIBLE else View.GONE
+        choicesToggle.setText(if (show) R.string.choices_hide else R.string.choices_show)
+    }
+
+    /*
+     * Name what each choice left unset gives the host, as ssh reads the
+     * saved config without the lines of the choices. ssh may run Match
+     * exec, not on the UI thread.
+     */
+    private fun showDefaults(config: SshConfig, host: Host) {
+        val name = host.name
+        val taken = Choices.take(host.other).first
+        config.put(name, host.copy(other = host.other.filterNot { Choices.of(it) in taken }))
+        val text = config.toString()
+        thread(name = "show-defaults") {
+            val values = try {
+                val (out, status) = dump(text, name)
+                if (status == 0) Choices.effective(out) else emptyMap()
+            } catch (_: IOException) {
+                emptyMap()
+            }
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                Choices.ALL.forEachIndexed { i, c ->
+                    val value = values[c] ?: return@forEachIndexed
+                    items[i][0] = getString(R.string.choice_default_value, value)
+                    (spinners[i].adapter as ArrayAdapter<*>).notifyDataSetChanged()
+                }
+            }
         }
     }
 
@@ -155,6 +231,14 @@ class HostActivity : Activity() {
             other.error = getString(R.string.error_tmux)
             ok = false
         }
+        val chosen = Choices.ALL.withIndex().mapNotNull { (i, c) ->
+            spinners[i].selectedItemPosition.takeIf { it > 0 }?.let { c to c.values[it - 1] }
+        }.toMap()
+        val set = lines(other).firstNotNullOfOrNull { line -> Choices.of(line)?.takeIf { it in chosen } }
+        if (set != null) {
+            other.error = getString(R.string.error_choice, set.keyword)
+            ok = false
+        }
         val selected = identity.selectedItemPosition
         val restrict = selected > 0 && only.isChecked
         if (restrict && lines(other).any { keyword(it) == "identitiesonly" }) {
@@ -172,8 +256,8 @@ class HostActivity : Activity() {
             localForwards = lines(local),
             remoteForwards = lines(remote),
             dynamicForwards = lines(dynamic),
-            other = lines(other) + (if (restrict) listOf(ONLY_LINE) else emptyList()) +
-                if (tmux.isChecked) TMUX_LINES else emptyList(),
+            other = lines(other) + chosen.map { (c, v) -> Choices.line(c, v) } +
+                (if (restrict) listOf(ONLY_LINE) else emptyList()) + if (tmux.isChecked) TMUX_LINES else emptyList(),
         )
         config.put(original, host)
         val text = config.toString()
@@ -225,6 +309,13 @@ class HostActivity : Activity() {
      */
     @Throws(IOException::class)
     private fun refusal(text: String, name: String): String? {
+        val (out, status) = dump(text, name)
+        return if (status == 0) null else out
+    }
+
+    /* The output of ssh -G for name with text as its config, and its exit status. */
+    @Throws(IOException::class)
+    private fun dump(text: String, name: String): Pair<String, Int> {
         /* Its own, a check left running by a recreated screen may still use another. */
         val file = File.createTempFile("config", ".check", paths.tmp)
         try {
@@ -233,7 +324,7 @@ class HostActivity : Activity() {
             val argv = listOf("ssh", "-G", "-F", file.path, "-o", "CanonicalizeHostname=no",
                 "-o", "CanonicalizePermittedCNAMEs=none", name)
             val (out, status) = execute(paths.ssh, argv, paths.env, paths.home.path)
-            return if (status == 0) null else out.replace(file.path, "config")
+            return Pair(out.replace(file.path, "config"), status)
         } finally {
             file.delete()
         }
@@ -257,6 +348,8 @@ class HostActivity : Activity() {
 
     companion object {
         private const val MENU_SAVE = 1
+        private const val STATE_CHOICES = "choices"
+        private const val STATE_SHOWN = "choices_shown"
 
         /*
          * Attach to the last tmux session or start one, with plain

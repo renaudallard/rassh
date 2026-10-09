@@ -85,6 +85,11 @@
     <string name="dynamic_hint">One port per line, e.g. 1080</string>
     <string name="tmux_label">Attach to tmux, or start it</string>
     <string name="error_tmux">Remove RemoteCommand and RequestTTY to use tmux</string>
+    <string name="choices_show">Common options ▸</string>
+    <string name="choices_hide">Common options ▾</string>
+    <string name="choice_default">Default</string>
+    <string name="choice_default_value">Default (%1$s)</string>
+    <string name="error_choice">%1$s is already set in common options</string>
     <string name="other_label">Other ssh_config options</string>
     <string name="other_hint">One per line, e.g. Compression yes</string>
     <string name="save">Save</string>

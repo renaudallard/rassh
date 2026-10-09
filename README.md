@@ -63,7 +63,11 @@ keys are encrypted and unlocked with it.
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
   the identity file, makes `ssh` use only that key with
   `IdentitiesOnly yes`, without trying the other keys of the agent
-  when the server refuses it
+  when the server refuses it. Common options, such as
+  `ServerAliveInterval`, `Compression`, `StrictHostKeyChecking` or
+  `LogLevel`, have a list of values each. Left at Default, an option
+  writes no line, and the value shown next to Default is what `ssh -G`
+  gives the saved host without it, from `Host *` blocks or ssh itself
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
