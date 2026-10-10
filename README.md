@@ -194,6 +194,14 @@ also updates the `IdentityFile` and `CertificateFile` lines of
 Lines naming the `.pub` of a vault key, as older versions wrote them,
 are pointed back at the key.
 
+Root can read every file, but a copy of the vault reveals nothing: the
+Keystore key never leaves the TEE or StrongBox, and every use of it
+needs a fingerprint checked there. Keys still in clear are read
+directly. Root can also run code inside the app or the agent, so it
+can take the decrypted keys at the next fingerprint, or sign with them
+until they leave the agent. Keys on a phone where untrusted code ran
+as root should be treated as exposed and replaced.
+
 ## Moving to another phone
 
 Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
