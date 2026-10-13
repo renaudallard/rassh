@@ -58,6 +58,9 @@ class TerminalTest {
         assertEquals("a", t.line(-2))
         assertEquals("b", t.line(-1))
         assertEquals("a\nb\nc\nd", t.text(-2, 0, 1, 9))
+        /* Rows gone from the history are skipped at once, not walked. */
+        assertEquals("a\nb\nc\nd", t.text(Int.MIN_VALUE, 5, 1, 9))
+        assertEquals("", t.text(Int.MIN_VALUE, 0, -3, 9))
     }
 
     @Test

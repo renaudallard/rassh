@@ -155,8 +155,8 @@ class Terminal(
      */
     fun text(startY: Int, startX: Int, endY: Int, endX: Int): String {
         val sb = StringBuilder()
-        for (y in startY..endY) {
-            if (y < -screen.historySize || y >= rows) continue
+        /* Only the rows that exist, a selection may reach far above them. */
+        for (y in maxOf(startY, -screen.historySize)..minOf(endY, rows - 1)) {
             val row = row(y)
             /* Starting on the right half of a wide character takes all of it. */
             val from = if (y != startY) 0

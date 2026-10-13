@@ -307,8 +307,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (scrollOffset > 0) scrollOffset += added
         /* Main screen lines, even pushed by a resize on the alternate screen, where a selection stays. */
         if (hasSelection && !selectionOnAlt) {
-            anchorY -= added
-            pointY -= added
+            /* Not wrapping around: rows that far up have left the history, see Terminal.text(). */
+            anchorY = (anchorY.toLong() - added).coerceAtLeast(Int.MIN_VALUE.toLong()).toInt()
+            pointY = (pointY.toLong() - added).coerceAtLeast(Int.MIN_VALUE.toLong()).toInt()
         }
     }
 
