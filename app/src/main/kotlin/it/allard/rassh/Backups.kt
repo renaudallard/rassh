@@ -353,7 +353,8 @@ private fun dropStrayFiles(paths: Paths, items: List<Backup.Item>, name: String,
 private fun Context.putSetting(item: Backup.Item) {
     if (item.name != TerminalView.PREF_FONT_SIZE) return
     val size = String(item.data).toFloatOrNull() ?: return
-    if (size < TerminalView.MIN_FONT_SIZE || size > TerminalView.MAX_FONT_SIZE) return
+    /* Written so that NaN, in no range, is refused too. */
+    if (!(size >= TerminalView.MIN_FONT_SIZE && size <= TerminalView.MAX_FONT_SIZE)) return
     getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE).edit().putFloat(item.name, size).apply()
 }
 
