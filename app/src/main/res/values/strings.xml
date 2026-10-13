@@ -91,7 +91,7 @@
     <string name="choice_default_value">Default (%1$s)</string>
     <string name="error_choice">%1$s is already set in common options</string>
     <string name="other_label">Other ssh_config options</string>
-    <string name="other_hint">One per line, e.g. Compression yes</string>
+    <string name="other_hint">One per line, e.g. ProxyJump jump.example.org</string>
     <string name="save">Save</string>
     <string name="error_name">Name is required, must not start with - nor contain spaces, wildcards or characters like @ / ; $ | ( )</string>
     <string name="error_name_used">This name is already used</string>
