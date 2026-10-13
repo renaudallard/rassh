@@ -228,13 +228,20 @@ class SshConfig private constructor(
             }
             /*
              * Comments ending the file, a blank line apart from the last
-             * block, belong to no host. Right below its options, they are
-             * options commented out.
+             * block, belong to no host. Right below its options, up to a
+             * blank line, they are options commented out.
              */
             var footer = emptyList<String>()
             if (keyword != null) {
                 val comments = takeComments(lines, first, true)
-                if (lines.lastOrNull()?.isBlank() == true) footer = comments else lines.addAll(comments)
+                val gap = comments.subList(0, comments.indexOfLast { it.isNotBlank() } + 1).indexOfLast { it.isBlank() }
+                val cut = when {
+                    lines.lastOrNull()?.isBlank() == true -> 0
+                    gap >= 0 -> gap + 1
+                    else -> comments.size
+                }
+                lines.addAll(comments.subList(0, cut))
+                footer = comments.subList(cut, comments.size)
                 blocks.add(Block(leading, keyword, value, lines, first))
             }
             return SshConfig(header, blocks, footer)
