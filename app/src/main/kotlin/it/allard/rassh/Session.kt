@@ -138,11 +138,13 @@ class Session(
             }
             /*
              * Let the reader take what the program wrote last, then end
-             * any sequence it left unfinished before writing ours. A
-             * process left with the terminal open keeps the reader going.
+             * any sequence it left unfinished before writing ours, after
+             * a soft reset of the line drawing, attributes and modes it
+             * may have left set. A process left with the terminal open
+             * keeps the reader going.
              */
             readerDone.await(DRAIN_MILLIS, TimeUnit.MILLISECONDS)
-            val message = "\r\n" + exitMessage(status) + "\r\n"
+            val message = SOFT_RESET + "\r\n" + exitMessage(status) + "\r\n"
             synchronized(terminal) {
                 terminal.resetParser()
                 terminal.feed(message.toByteArray())
@@ -302,6 +304,7 @@ class Session(
             """Host key for (\S+) has changed and you have requested strict checking\.\r*\n""" +
                 """Host key verification failed\.\r*\n(?:\r?Connection closed\.? *\r*\n){0,2}$""")
         private const val SSH_FAILED = 255
+        private const val SOFT_RESET = "\u001b[!p"
         private const val MAX_PENDING = 1 shl 20
         private const val DRAIN_MILLIS = 500L
         private const val CLOSE_MILLIS = 2000L
