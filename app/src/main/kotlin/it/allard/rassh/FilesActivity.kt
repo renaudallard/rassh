@@ -312,6 +312,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     private fun download(e: SftpEntry, dir: String) {
+        client() ?: return
         downloading = path(dir, e.name)
         val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(e.name.substringAfterLast('.', "").lowercase())
         startActivityForResult(
@@ -437,8 +438,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }) {}
     }
 
+    /* Dialogs take the client once confirmed, ssh may have exited meanwhile. */
     private fun rename(e: SftpEntry, dir: String) {
-        val c = client() ?: return
+        client() ?: return
         val shown = shownName(e.name)
         val field = pathField(shown)
         val dialog = AlertDialog.Builder(this)
@@ -459,15 +461,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
+            val c = client() ?: return@setOnClickListener
             run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
         }
     }
 
     private fun delete(e: SftpEntry, dir: String) {
-        val c = client() ?: return
+        client() ?: return
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.delete_file, shownName(e.name)))
             .setPositiveButton(R.string.delete) { _, _ ->
+                val c = client() ?: return@setPositiveButton
                 val p = path(dir, e.name)
                 run({ if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p) }) { load(dir) }
             }
@@ -476,7 +480,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     private fun newFolder() {
-        val c = client() ?: return
+        client() ?: return
         val dir = cwd ?: return
         val field = pathField("")
         val dialog = AlertDialog.Builder(this)
@@ -492,6 +496,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 return@setOnClickListener
             }
             dialog.dismiss()
+            val c = client() ?: return@setOnClickListener
             run({ c.mkdir(path(dir, name)) }) { load(dir) }
         }
     }
