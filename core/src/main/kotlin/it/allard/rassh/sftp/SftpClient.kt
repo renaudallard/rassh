@@ -320,7 +320,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         } catch (_: EOFException) {
             throw IOException("connection closed")
         }
-        if (length < 1 || length > MAX_PACKET) throw IOException("bad packet length $length")
+        /* Mostly text from the shell, as sftp tells, see get_msg_extended() in sftp-client.c. */
+        if (length < 1 || length > MAX_PACKET)
+            throw IOException("bad packet length $length, ensure the remote shell produces no output for non-interactive sessions")
         val packet = ByteArray(length)
         /* Cut in the middle as well, the end would otherwise show as "null". */
         try {
