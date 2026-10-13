@@ -43,16 +43,19 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
  * The lines of file holding a key of name, hashed or not. ssh-keygen
  * lists @cert-authority and @revoked lines with CA or REVOKED after the
  * number, they are kept, as ssh-keygen -R does. Kept as text, the
- * numbers change with any other removal before the user decides.
+ * numbers change with any other removal before the user decides. The
+ * text is the line ssh-keygen prints under each number, as the file may
+ * change in between, compared without the trailing blanks it may lose.
  */
 @Throws(IOException::class)
 private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     val out = runProgram(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
-    val lines = file.readText().split('\n')
-    return FOUND.findAll(out).mapNotNull { lines.getOrNull(it.groupValues[1].toInt() - 1) }.toSet()
+        .split('\n')
+    val found = out.indices.filter { FOUND.matches(out[it]) }.mapNotNull { out.getOrNull(it + 1)?.trimEnd() }.toSet()
+    return file.readText().split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
-private val FOUND = Regex("""^# Host .* found: line (\d+)[ \t]*$""", RegexOption.MULTILINE)
+private val FOUND = Regex("""# Host .* found: line \d+[ \t]*""")
 
 /*
  * Remove the lines of file found in gone. ssh-keygen -R cannot, it keeps
