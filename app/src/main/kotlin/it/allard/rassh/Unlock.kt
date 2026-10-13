@@ -20,9 +20,17 @@ private const val KEY_LIFETIME = 60
 
 /**
  * Ask for a fingerprint, then call use with the vault key, zeroed
- * afterwards. failed is called when the user cancels or it fails.
+ * afterwards. failed is called when the user cancels or it fails,
+ * dismissed when the prompt is closed otherwise, with Back or by the
+ * system when the app is left or the screen turns off.
  */
-fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {}, use: (ByteArray) -> Unit) {
+fun Activity.withVaultKey(
+    vault: Vault,
+    reason: String,
+    failed: () -> Unit = {},
+    dismissed: () -> Unit = failed,
+    use: (ByteArray) -> Unit,
+) {
     val cipher = try {
         vault.cipher()
     } catch (_: KeyPermanentlyInvalidatedException) {
@@ -45,12 +53,13 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
     }
     /* The cancel button and the error callback may both report the end. */
     var finished = false
-    fun fail() {
+    fun end(then: () -> Unit) {
         if (!finished) {
             finished = true
-            failed()
+            then()
         }
     }
+    fun fail() = end(failed)
     val prompt = BiometricPrompt.Builder(this)
         .setTitle(getString(R.string.unlock_title))
         .setSubtitle(reason)
@@ -82,9 +91,10 @@ fun Activity.withVaultKey(vault: Vault, reason: String, failed: () -> Unit = {},
             }
 
             override fun onAuthenticationError(code: Int, message: CharSequence) {
-                if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED &&
-                    code != BiometricPrompt.BIOMETRIC_ERROR_CANCELED)
-                    toast(message.toString())
+                if (code == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED ||
+                    code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED)
+                    return end(dismissed)
+                toast(message.toString())
                 fail()
             }
         })

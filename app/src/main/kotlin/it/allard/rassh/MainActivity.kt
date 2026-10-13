@@ -269,10 +269,11 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
+        /* Only the Cancel button connects without keys, a prompt closed by leaving the app starts nothing. */
         withVaultKey(vault, getString(R.string.unlock_reason), {
             /* Not once the screen is gone, its dialog dismissed then, see dismissWithScreen(). */
             if (!isDestroyed && !isFinishing) start(service, l, l.path, l.argv, emptyList())
-        }) { key ->
+        }, {}) { key ->
             val pipes = try {
                 keyPipes(vault, key, names)
             } catch (e: IOException) {

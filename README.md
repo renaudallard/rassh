@@ -181,8 +181,9 @@ There is no PIN fallback.
   failed login, they leave it 60 seconds after the fingerprint, or when
   the screen turns off, and the agent ends with the connection. A login
   that takes longer, such as one waiting on a new host key to be
-  confirmed, goes on without them. Cancelling connects without them,
-  for password logins.
+  confirmed, goes on without them. The Cancel button of the prompt
+  connects without them, for password logins, while closing it with
+  Back, leaving the app or turning the screen off connects nothing.
 
 Public keys stay in clear next to the vault. For an `IdentityFile` whose
 private key is gone, `ssh` takes the public key next to it and finds the
