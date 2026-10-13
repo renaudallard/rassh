@@ -50,6 +50,7 @@ data class Host(
 class SshConfig private constructor(
     private val header: List<String>,
     private val blocks: MutableList<Block>,
+    private val footer: List<String>,
 ) {
     /*
      * leading holds the comment lines right above the Host or Match line,
@@ -137,6 +138,7 @@ class SshConfig private constructor(
             sb.append(block.line ?: "${block.keyword} ${block.value}").append('\n')
             for (line in block.lines) sb.append(line).append('\n')
         }
+        for (line in footer) sb.append(line).append('\n')
         return sb.toString()
     }
 
@@ -206,13 +208,7 @@ class SshConfig private constructor(
                      * header, a comment so apart is about the whole file.
                      */
                     val above = if (keyword == null) header else lines
-                    fun comment(l: String) =
-                        l.trim().startsWith("#") && line.startsWith(l.takeWhile { c -> c.isWhitespace() })
-                    val run = if (keyword == null) above.takeLastWhile { comment(it) }
-                        else above.takeLastWhile { it.isBlank() || comment(it) }
-                    val start = run.indexOfFirst { it.isNotBlank() }
-                    val comments = if (start < 0) emptyList() else run.subList(start, run.size).toList()
-                    repeat(comments.size) { above.removeAt(above.size - 1) }
+                    val comments = takeComments(above, line, keyword != null)
                     if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
                     leading = comments
                     keyword = kv.first
@@ -225,8 +221,24 @@ class SshConfig private constructor(
                     lines.add(line)
                 }
             }
+            /* Comments ending the file, taken as those above a block would be, belong to no host. */
+            val footer = if (keyword == null) emptyList() else takeComments(lines, first, true)
             if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
-            return SshConfig(header, blocks)
+            return SshConfig(header, blocks, footer)
+        }
+
+        /*
+         * Remove and return the comments ending above, not indented beyond
+         * line, from the first one: blank lines may come between them when
+         * apart is set.
+         */
+        private fun takeComments(above: MutableList<String>, line: String, apart: Boolean): List<String> {
+            fun comment(l: String) = l.trim().startsWith("#") && line.startsWith(l.takeWhile { it.isWhitespace() })
+            val run = above.takeLastWhile { apart && it.isBlank() || comment(it) }
+            val start = run.indexOfFirst { it.isNotBlank() }
+            val comments = if (start < 0) emptyList() else run.subList(start, run.size).toList()
+            repeat(comments.size) { above.removeAt(above.size - 1) }
+            return comments
         }
 
         /**

@@ -245,6 +245,22 @@ class SshConfigTest {
     }
 
     @Test
+    fun commentsEndingTheFileStay() {
+        val text = "Host a\n    User x\n\nHost b\n    User y\n    # b option\n\n# Host old\n#     HostName z\n"
+        val removed = SshConfig.parse(text)
+        removed.remove("b")
+        assertEquals("Host a\n    User x\n\n# Host old\n#     HostName z\n", removed.toString())
+        val edited = SshConfig.parse(text)
+        assertEquals(listOf("# b option"), edited.find("b")!!.other)
+        edited.put("b", edited.find("b")!!.copy(user = "z"))
+        assertTrue(edited.toString().endsWith("    User z\n    # b option\n\n# Host old\n#     HostName z\n"))
+        val added = SshConfig.parse(text)
+        added.put(null, Host("c", user = "w"))
+        assertTrue(added.toString().endsWith("Host c\n    User w\n\n# Host old\n#     HostName z\n"))
+        assertEquals(text, SshConfig.parse(text).toString())
+    }
+
+    @Test
     fun hostLineWithAComment() {
         val config = SshConfig.parse("Host web # office\n    User a\n")
         assertEquals(listOf("web"), config.hosts.map { it.name })
