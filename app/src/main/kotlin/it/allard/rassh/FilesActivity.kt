@@ -133,9 +133,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         s.listener = this
         terminal.session = s
         actionBar?.title = s.name
-        connect(s)
         /* ssh may have given up before this screen listened, sessionsChanged() then never came. */
-        if (!s.isRunning) offerNewHostKey(Paths(this), s)
+        if (s.isRunning) connect(s) else sessionsChanged()
     }
 
     /* Start SFTP once ssh is through, it may first ask in the terminal. */
@@ -179,7 +178,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
     }
 
-    private fun client() = session?.sftp
+    /* Kept by the session once ssh is gone, its pipes closed. */
+    private fun client() = session?.takeIf { it.isRunning }?.sftp
 
     private fun takePending() {
         val (code, data) = pendingResult ?: return
@@ -336,10 +336,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK || data == null) return
-        if (client() == null)
-            pendingResult = Pair(requestCode, data)
-        else
+        if (client() != null) {
             handleResult(requestCode, data)
+        } else {
+            pendingResult = Pair(requestCode, data)
+            if (session?.isRunning == false) dropPending()
+        }
     }
 
     private fun handleResult(requestCode: Int, data: Intent) {
@@ -515,7 +517,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun failed(e: Throwable) {
         if (e is SftpCancelledException) return
-        if (session?.sftp == null) {
+        if (client() == null) {
             status.setText(R.string.files_not_connected)
             dropPending()
         }
@@ -597,6 +599,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             entries = emptyList()
             adapter.items = emptyList()
             showTerminal(true)
+            dropPending()
             offerNewHostKey(Paths(this), s)
         }
     }
