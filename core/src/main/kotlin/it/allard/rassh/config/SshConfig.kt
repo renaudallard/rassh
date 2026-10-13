@@ -228,9 +228,17 @@ class SshConfig private constructor(
                     lines.add(line)
                 }
             }
-            /* Comments ending the file, taken as those above a block would be, belong to no host. */
-            val footer = if (keyword == null) emptyList() else takeComments(lines, first, true)
-            if (keyword != null) blocks.add(Block(leading, keyword, value, lines, first))
+            /*
+             * Comments ending the file, a blank line apart from the last
+             * block, belong to no host. Right below its options, they are
+             * options commented out.
+             */
+            var footer = emptyList<String>()
+            if (keyword != null) {
+                val comments = takeComments(lines, first, true)
+                if (lines.lastOrNull()?.isBlank() == true) footer = comments else lines.addAll(comments)
+                blocks.add(Block(leading, keyword, value, lines, first))
+            }
             return SshConfig(header, blocks, footer)
         }
 

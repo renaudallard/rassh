@@ -261,6 +261,10 @@ class SshConfigTest {
         added.put(null, Host("c", user = "w"))
         assertTrue(added.toString().endsWith("Host c\n    User w\n\n# Host old\n#     HostName z\n"))
         assertEquals(text, SshConfig.parse(text).toString())
+        val below = SshConfig.parse("Host b\n    HostName x\n#    Port 2222\n")
+        assertEquals(listOf("#    Port 2222"), below.find("b")!!.other)
+        below.put(null, Host("c", user = "w"))
+        assertTrue(below.toString().startsWith("Host b\n    HostName x\n#    Port 2222\nHost c\n"))
     }
 
     @Test
