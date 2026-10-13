@@ -101,6 +101,9 @@ class SshConfigTest {
         assertEquals(listOf("a" to "x"), config.hosts.map { it.name to it.user })
         config.remove("a")
         assertEquals(0, config.hosts.size)
+        val renamed = SshConfig.parse("Host a\n    User x\n\nHost a\n    Port 2222\n")
+        renamed.put("a", renamed.find("a")!!.copy(name = "b"))
+        assertEquals("Host b\n    User x\n\nHost b\n    Port 2222\n", renamed.toString())
     }
 
     @Test

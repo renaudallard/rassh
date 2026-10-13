@@ -107,6 +107,13 @@ class SshConfig private constructor(
             /* The Host line stays as written while the name does, with its comment. */
             val line = if (host.name == old) blocks[i].line else null
             blocks[i] = Block(blocks[i].leading, "Host", host.name, render(host), line)
+            /* Later blocks of the old name are renamed too, as remove() takes them all. */
+            if (host.name != old) {
+                for (j in i + 1 until blocks.size) {
+                    val b = blocks[j]
+                    if (b.name == old) blocks[j] = Block(b.leading, b.keyword, host.name, b.lines)
+                }
+            }
         } else {
             val at = blocks.indexOfFirst { !it.isHost }
             blocks.add(if (at < 0) blocks.size else at, Block(emptyList(), "Host", host.name, render(host)))
