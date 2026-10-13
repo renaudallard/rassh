@@ -106,6 +106,7 @@ child(const char *path, char **argv, char **envp, const char *cwd,
 	static const char	 nofd[] = "rassh: cannot pass descriptor\r\n";
 	static const char	 msg[] = "rassh: cannot execute program\r\n";
 	struct sigaction	 sa;
+	struct termios		 t;
 	sigset_t		 set;
 	int			*fd;
 	int			 i, sig;
@@ -116,6 +117,11 @@ child(const char *path, char **argv, char **envp, const char *cwd,
 		(void)sigaction(sig, &sa, NULL);
 	(void)sigemptyset(&set);
 	(void)sigprocmask(SIG_SETMASK, &set, NULL);
+	/* Erase takes back a whole UTF-8 character, here and on the server. */
+	if (tcgetattr(STDIN_FILENO, &t) == 0) {
+		t.c_iflag |= IUTF8;
+		(void)tcsetattr(STDIN_FILENO, TCSANOW, &t);
+	}
 	/* Move the descriptors above their targets first so none is clobbered. */
 	for (i = 0; i < nfds + nstdio; i++) {
 		fd = i < nfds ? &fds[i] : &stdio[i - nfds];
