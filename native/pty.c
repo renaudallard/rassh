@@ -3,6 +3,7 @@
  */
 
 #include <sys/ioctl.h>
+#include <sys/resource.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -117,6 +118,8 @@ child(const char *path, char **argv, char **envp, const char *cwd,
 		(void)sigaction(sig, &sa, NULL);
 	(void)sigemptyset(&set);
 	(void)sigprocmask(SIG_SETMASK, &set, NULL);
+	/* Not the raised priority of the app thread that forked. */
+	(void)setpriority(PRIO_PROCESS, 0, 0);
 	/* Erase takes back a whole UTF-8 character, here and on the server. */
 	if (tcgetattr(STDIN_FILENO, &t) == 0) {
 		t.c_iflag |= IUTF8;
