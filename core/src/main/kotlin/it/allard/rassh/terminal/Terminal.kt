@@ -664,7 +664,9 @@ class Terminal(
         }
     }
 
+    /* Erasing ends a pending wrap, as in xterm: the next character overwrites the last column. */
     private fun eraseCells(from: Int, to: Int) {
+        wrapPending = false
         if (from >= to) return
         val row = screen.row(cursorY)
         splitAt(row, from)
@@ -697,7 +699,10 @@ class Terminal(
                 for (y in 0 until cursorY) clearRow(y, style)
                 eraseLine(1)
             }
-            2 -> for (y in 0 until rows) clearRow(y, style)
+            2 -> {
+                for (y in 0 until rows) clearRow(y, style)
+                wrapPending = false
+            }
             3 -> screen.clearHistory()
         }
     }

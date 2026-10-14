@@ -401,4 +401,14 @@ class TerminalTest {
         t.put("\u4e2dz")
         assertEquals("\u4e2dz", t.text(0, 1, 0, 2))
     }
+
+    @Test
+    fun eraseEndsAPendingWrap() {
+        for (erase in listOf("\u001b[K", "\u001b[X", "\u001b[J", "\u001b[2J")) {
+            val t = term(columns = 10, rows = 2)
+            t.put("0123456789" + erase + "X")
+            assertEquals(9, t.cursorX, erase)
+            assertEquals(0, t.cursorY, erase)
+        }
+    }
 }
