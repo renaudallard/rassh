@@ -151,6 +151,10 @@ cannot be reached without the local network permission. Hosts reached
 through a VPN or the mobile network, and port forwards on 127.0.0.1, do
 not need it.
 
+Local and dynamic forwards listen on 127.0.0.1, which Android shares
+between all apps: while the connection is up, any app on the phone can
+use them, and a dynamic forward lets it reach whatever the server can.
+
 rassh collects no data, see the [privacy policy](PRIVACY.md), also
 linked from the About dialog.
 
