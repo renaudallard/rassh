@@ -2,7 +2,9 @@
 
 rassh is an SSH client. It does not collect, store or share any personal
 data with its developer or with third parties. It contains no analytics,
-advertising, crash reporting or third-party libraries.
+advertising or crash reporting code. The only third-party code it ships
+is OpenSSH, LibreSSL, the Kotlin standard library and the DejaVu fonts,
+none of which collects data or contacts any server but yours.
 
 ## Network
 
