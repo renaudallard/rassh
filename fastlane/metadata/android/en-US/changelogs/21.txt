@@ -1,0 +1,2 @@
+- No change in the app
+- The APK no longer carries the dependency list encrypted for Google, which F-Droid refuses
