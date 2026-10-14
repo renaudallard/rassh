@@ -70,7 +70,11 @@ class Terminal(
     private var utf8Min = 0
     private var intermediate = 0
     private var prefix = 0
-    /* A CSI xterm drops whole, with a private marker after another or after its parameters. */
+    /*
+     * A CSI xterm drops whole: a private marker after another or after
+     * parameters, a parameter, marker or second intermediate after an
+     * intermediate.
+     */
     private var voided = false
     private val params = IntArray(MAX_PARAMS)
     private val subParam = BooleanArray(MAX_PARAMS)
@@ -374,7 +378,7 @@ class Terminal(
     }
 
     private fun csi(c: Int) {
-        /* After an intermediate byte xterm takes no parameter or marker: the sequence is dropped. */
+        /* After an intermediate byte xterm takes no parameter or marker, see voided. */
         if (intermediate != 0 && c in 0x30..0x3f) {
             voided = true
             return
@@ -387,7 +391,7 @@ class Terminal(
                 colon = c == ':'.code
             }
             in 0x3c..0x3f -> if (prefix == 0 && nparams == 0 && param < 0) prefix = c else voided = true
-            in 0x20..0x2f -> intermediate = c
+            in 0x20..0x2f -> if (intermediate == 0) intermediate = c else voided = true
             in 0x40..0x7e -> {
                 pushParam()
                 state = GROUND

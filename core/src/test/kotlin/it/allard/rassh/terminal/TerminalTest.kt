@@ -496,6 +496,9 @@ class TerminalTest {
         t.put("\u001b[?7l\u001b[!1p0123456789X")
         assertEquals("012345678X", t.line(0))
         assertEquals("", t.line(1))
+        val two = term(columns = 10, rows = 2)
+        two.put("\u001b[?7l\u001b[!!p0123456789X")
+        assertEquals("012345678X", two.line(0))
     }
 
     @Test
