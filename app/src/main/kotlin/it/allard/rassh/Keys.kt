@@ -46,6 +46,19 @@ object Keys {
             .sorted()
 
     /*
+     * Private keys in clear in dir named in a way isValidName() refuses,
+     * made in the local shell or by an old version. They stay out of the
+     * vault and of exports until renamed.
+     */
+    fun misnamed(dir: File): List<String> =
+        dir.listFiles().orEmpty()
+            .filter {
+                it.isFile && !it.name.startsWith(".") && !it.name.endsWith(".pub") && !it.name.endsWith(".tmp") &&
+                    !isValidName(it.name) && isPrivateKey(it)
+            }
+            .map { it.name }
+
+    /*
      * A plain file name that does not clash with other ssh files. Names
      * end up in IdentityFile lines, where ssh expands % and ${} and
      * parses quotes, so only a safe set of characters is allowed.

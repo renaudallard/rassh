@@ -173,7 +173,10 @@ There is no PIN fallback.
   imported, are moved into the vault after a fingerprint, once their
   public key sits next to them, if the vault has room and the key is not
   over 64 KiB. One named as a key of the vault never replaces it, it
-  stays in clear unless it is the same key.
+  stays in clear unless it is the same key. Names hold letters, digits,
+  `.`, `_` and `-` only, as they go into `IdentityFile` lines: a key
+  named otherwise, made in the local shell for instance, is listed with
+  a note and stays out of the vault and of exports until renamed.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add` loads the keys through
   pipes into an agent started for that connection alone, so the

@@ -117,10 +117,14 @@ class KeysActivity : Activity() {
             toldVault = true
             Keys.plaintext(paths.sshDir)
         }
+        keys = (keys + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
             val pub = Keys.publicKey(paths.sshDir, name)
-            name to (pub?.split(' ')?.let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }?.trim()
-                ?: getString(R.string.public_key_missing))
+            name to when {
+                !Keys.isValidName(name) -> getString(R.string.key_name_not_allowed)
+                pub != null -> pub.split(' ').let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }.trim()
+                else -> getString(R.string.public_key_missing)
+            }
         }
     }
 
