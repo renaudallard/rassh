@@ -41,16 +41,16 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Not recreated, which would drop a key import still reading its file. -->
+        <!-- Not recreated, which would drop a key import still reading its file, assetsPaths for a new colour palette. -->
         <activity
             android:name=".KeysActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender|assetsPaths"
             android:exported="false" />
 
-        <!-- Not recreated, which would leave a running transfer without its screen. -->
+        <!-- Not recreated, which would leave a running transfer without its screen, assetsPaths for a new colour palette. -->
         <activity
             android:name=".FilesActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode|fontScale|locale|layoutDirection|fontWeightAdjustment|colorMode|mcc|mnc|touchscreen|grammaticalGender|assetsPaths"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
