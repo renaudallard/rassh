@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.net.Uri
-import android.provider.DocumentsContract
 import android.system.ErrnoException
 import android.text.InputType
 import android.text.TextUtils
@@ -26,15 +25,12 @@ private const val KNOWN_HOSTS = "known_hosts"
 
 /**
  * Seal the hosts, keys and settings into uri with a passphrase. The file
- * picker created uri, it is deleted when the export does not happen.
+ * picker created uri or picked a file to replace: when the export does
+ * not happen, a new file is deleted, one replaced only once written to.
  */
 fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     fun discard() {
-        try {
-            DocumentsContract.deleteDocument(contentResolver, uri)
-        } catch (_: Exception) {
-            /* Not every provider deletes, the file is then left empty. */
-        }
+        if (isEmptyDocument(uri)) deleteDocument(uri)
     }
     askPassphrase(R.string.export, true, { discard() }) { pass ->
         fun export(key: ByteArray?) {
@@ -47,14 +43,17 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                 return
             }
             thread(name = "export") {
+                /* Truncated once opened, the file replaced is lost then and goes as well. */
+                var opened = false
                 val error = try {
                     val sealed = Backup.seal(pass, items)
                     val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
+                    opened = true
                     out.use { it.write(sealed) }
                     null
                 } catch (e: Exception) {
                     if (!isFileError(e)) throw e
-                    discard()
+                    if (opened) deleteDocument(uri) else discard()
                     e.message
                 } finally {
                     items.forEach { it.data.fill(0) }

@@ -5,7 +5,6 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.text.format.Formatter
 import android.view.Menu
@@ -195,25 +194,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         if (code == REQUEST_DOWNLOAD && isEmptyDocument(uri)) deleteDocument(uri)
     }
 
-    /*
-     * A document the picker made for a download is empty, an existing one
-     * picked to be replaced may not be: it is only removed once written to.
-     */
-    private fun isEmptyDocument(uri: Uri): Boolean =
-        try {
-            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use {
-                it.moveToFirst() && !it.isNull(0) && it.getLong(0) == 0L
-            } == true
-        } catch (_: Exception) {
-            false
-        }
-
-    private fun deleteDocument(uri: Uri) {
-        try {
-            DocumentsContract.deleteDocument(contentResolver, uri)
-        } catch (_: Exception) {
-        }
-    }
 
     /* Hidden, it takes the keyboard it may have opened for a password along. */
     private fun showTerminal(show: Boolean) {

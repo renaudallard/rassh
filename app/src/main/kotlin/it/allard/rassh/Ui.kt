@@ -7,8 +7,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -131,6 +134,27 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
  */
 fun isFileError(e: Exception): Boolean =
     e is IOException || e is SecurityException || e is IllegalArgumentException
+
+/*
+ * A document the picker made to save into is empty, an existing one
+ * picked to be replaced may not be: it is only removed once written to.
+ */
+fun Context.isEmptyDocument(uri: Uri): Boolean =
+    try {
+        contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use {
+            it.moveToFirst() && !it.isNull(0) && it.getLong(0) == 0L
+        } == true
+    } catch (_: Exception) {
+        false
+    }
+
+/* Not every provider deletes, the file is then left empty. */
+fun Context.deleteDocument(uri: Uri) {
+    try {
+        DocumentsContract.deleteDocument(contentResolver, uri)
+    } catch (_: Exception) {
+    }
+}
 
 /*
  * An intent for the screen of session. Ids start again in a new process,
