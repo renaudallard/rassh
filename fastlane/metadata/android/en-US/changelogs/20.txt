@@ -1,0 +1,2 @@
+- No change in the app
+- The build no longer depends on the tools of the machine it runs on, so F-Droid can reproduce the release APK
