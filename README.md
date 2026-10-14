@@ -288,6 +288,14 @@ or only the ABIs given as arguments. The programs go to
 `app/src/main/jniLibs`, and their license files, shown in the About
 dialog, to `app/src/main/assets/licenses`.
 
+The core tests include a fuzz test feeding the terminal random text,
+controls and escape sequences, 200 runs by default. A failure names the
+seed that replays it. For a longer search:
+
+```sh
+RASSH_FUZZ_RUNS=5000 ./gradlew :core:test --tests '*TerminalFuzzTest' --rerun
+```
+
 The workflow in `.github/workflows/build.yml` does the same on every push
 and keeps the APKs as artifacts, and the release app bundle for Google
 Play as a separate one. Release builds are signed only when
