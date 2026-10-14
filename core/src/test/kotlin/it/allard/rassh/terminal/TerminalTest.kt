@@ -445,4 +445,15 @@ class TerminalTest {
         assertEquals("0123456789", t.line(0))
         assertEquals("X", t.line(1))
     }
+
+    @Test
+    fun scrollUpKeepsTheHistory() {
+        val t = term(columns = 10, rows = 3)
+        t.put("a\r\nb\r\nc\u001b[2S")
+        assertEquals(2, t.historySize)
+        assertEquals("a", t.line(-2))
+        assertEquals("c", t.line(0))
+        t.put("\u001b[2;3r\u001b[S")
+        assertEquals(2, t.historySize)
+    }
 }

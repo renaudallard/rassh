@@ -451,7 +451,8 @@ class Terminal(
                 wrapPending = false
             }
             'P'.code -> deleteCells(count(0))
-            'S'.code -> screen.scrollUp(top, bottom, count(0), eraseStyle(), false)
+            /* Into the history from the top of the screen, as a line feed, as in xterm. */
+            'S'.code -> screen.scrollUp(top, bottom, count(0), eraseStyle(), top == 0)
             'T'.code -> if (nparams <= 1) screen.scrollDown(top, bottom, count(0), eraseStyle())
             'X'.code -> eraseCells(cursorX, minOf(columns, cursorX + count(0)))
             'Z'.code -> tabBackward(count(0))
