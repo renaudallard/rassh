@@ -324,7 +324,7 @@ class MainActivity : Activity(), SessionService.Listener {
      */
     private fun localShell() {
         val service = binding.service ?: return
-        val l = Launch(getString(R.string.local_shell), SHELL, listOf("sh"), paths.home.path, LOCALHOST)
+        val l = Launch(getString(R.string.local_shell), SHELL, listOf("sh"), paths.home.path, LOCAL)
         start(service, l, l.path, l.argv, emptyList())
     }
 
@@ -541,8 +541,12 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val MENU_IMPORT = 10
         private const val MENU_FILES = 11
         private const val MENU_LOCAL = 12
-        /* The server of local shells, for the labels of sessions opened together. */
-        private const val LOCALHOST = "localhost"
+        /*
+         * The server of local shells, for the labels of sessions opened
+         * together. Empty, as no destination is: a host named localhost
+         * is another server.
+         */
+        private const val LOCAL = ""
         private const val REQUEST_EXPORT = 1
         private const val REQUEST_IMPORT = 2
         private const val PRIVACY_URL = "https://github.com/renaudallard/rassh/blob/main/PRIVACY.md"
