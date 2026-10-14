@@ -38,6 +38,8 @@ class MainActivity : Activity(), SessionService.Listener {
     private var declined = emptySet<String>()
     private var toldConfig = false
     private var toldVault = false
+    /* The vault names and config time useKeyNames() last went through. */
+    private var keyNamesDone: Pair<List<String>, Long>? = null
     private var protecting = false
 
     /* Each vault question is asked once while the vault is missing, see setUp(). */
@@ -151,9 +153,16 @@ class MainActivity : Activity(), SessionService.Listener {
             toldVault = true
             emptyList()
         }
-        /* The config it cannot rewrite is said once, not at every focus. */
+        /*
+         * Only when the vault or the config changed, it reads the whole
+         * config. The config it cannot rewrite is said once, not at every
+         * focus.
+         */
         try {
-            useKeyNames(paths, names)
+            if (keyNamesDone != Pair(names, paths.config.lastModified())) {
+                useKeyNames(paths, names)
+                keyNamesDone = Pair(names, paths.config.lastModified())
+            }
         } catch (e: IOException) {
             if (!toldConfig) toast(getString(R.string.config_failed, e.message))
             toldConfig = true
