@@ -121,6 +121,18 @@ class Terminal(
         stringEscape = false
     }
 
+    /**
+     * Back to the main screen once the program ended, with its history:
+     * nothing could leave the alternate one any more. The cursor goes
+     * where 1049 saved it, else it stays.
+     */
+    fun leaveAltScreen() {
+        if (screen !== alt) return
+        val saved = main.saved != null
+        useAltScreen(false)
+        if (saved) restoreCursor()
+    }
+
     private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {
         val s = buffer.saved ?: return
         /* No longer at the last column of the new width, the wrap pending goes. */

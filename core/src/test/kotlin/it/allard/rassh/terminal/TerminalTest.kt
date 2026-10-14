@@ -419,4 +419,17 @@ class TerminalTest {
         assertEquals("0123456789", t.line(0))
         assertEquals("X", t.line(1))
     }
+
+    @Test
+    fun leavesTheAltScreenWhereItWasEntered() {
+        val t = term(columns = 10, rows = 4)
+        t.put("main\r\n\u001b[?1049hvim\u001b[3;5H")
+        t.leaveAltScreen()
+        assertFalse(t.isAltScreen)
+        assertEquals("main", t.line(0))
+        assertEquals(1, t.cursorY)
+        assertEquals(0, t.cursorX)
+        t.leaveAltScreen()
+        assertFalse(t.isAltScreen)
+    }
 }

@@ -140,13 +140,14 @@ class Session(
              * Let the reader take what the program wrote last, then end
              * any sequence it left unfinished before writing ours, after
              * a soft reset of the line drawing, attributes and modes it
-             * may have left set. A process left with the terminal open
-             * keeps the reader going.
+             * may have left set, on the main screen. A process left with
+             * the terminal open keeps the reader going.
              */
             readerDone.await(DRAIN_MILLIS, TimeUnit.MILLISECONDS)
             val message = SOFT_RESET + "\r\n" + exitMessage(status) + "\r\n"
             synchronized(terminal) {
                 terminal.resetParser()
+                terminal.leaveAltScreen()
                 terminal.feed(message.toByteArray())
             }
             handler.post { finished(status) }
