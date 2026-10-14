@@ -100,6 +100,8 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
 @Throws(IOException::class)
 private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): List<Backup.Item> {
     val items = mutableListOf<Backup.Item>()
+    /* Zeroed with the items on a failure, some may not be among them yet. */
+    var secrets = emptyList<ByteArray>()
     try {
         for (name in listOf(CONFIG, KNOWN_HOSTS)) {
             val f = File(paths.sshDir, name)
@@ -107,11 +109,12 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         }
         val sealed = vault.names()
         val names = Keys.list(paths.sshDir, vault)
+        /* From one reading of the vault. */
+        val inVault = names.filter { it in sealed }
+        if (inVault.isNotEmpty()) secrets = vault.readAll(key ?: throw IOException("keys locked"), inVault)
         for (name in names) {
-            val secret = if (name in sealed)
-                vault.read(key ?: throw IOException("keys locked"), name)
-            else
-                File(paths.sshDir, name).readBytes()
+            val i = inVault.indexOf(name)
+            val secret = if (i >= 0) secrets[i] else File(paths.sshDir, name).readBytes()
             items.add(Backup.Item(Backup.KEY, name, secret))
             for (suffix in Keys.suffixes(name, names)) {
                 val file = File(paths.sshDir, name + suffix)
@@ -125,9 +128,11 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         }
     } catch (e: GeneralSecurityException) {
         items.forEach { it.data.fill(0) }
+        secrets.forEach { it.fill(0) }
         throw IOException(e)
     } catch (e: IOException) {
         items.forEach { it.data.fill(0) }
+        secrets.forEach { it.fill(0) }
         throw e
     }
     return items

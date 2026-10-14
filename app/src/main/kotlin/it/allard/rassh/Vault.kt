@@ -174,12 +174,29 @@ class Vault(private val paths: Paths) {
 
     /** The private key stored as name, the caller zeroes it. */
     @Throws(IOException::class)
-    fun read(dataKey: ByteArray, name: String): ByteArray {
-        val entry = load()?.second?.find { it.name == name } ?: throw IOException("no key $name")
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dataKey, "AES"), GCMParameterSpec(TAG_BITS, entry.iv))
-        cipher.updateAAD(name.toByteArray())
-        return cipher.doFinal(entry.data)
+    fun read(dataKey: ByteArray, name: String): ByteArray = readAll(dataKey, listOf(name))[0]
+
+    /*
+     * The private keys stored as names, in their order, from one reading
+     * of the vault. The caller zeroes them, they are zeroed on a failure.
+     */
+    @Throws(IOException::class)
+    fun readAll(dataKey: ByteArray, names: List<String>): List<ByteArray> {
+        val entries = load()?.second ?: throw IOException("no vault")
+        val secrets = mutableListOf<ByteArray>()
+        try {
+            for (name in names) {
+                val entry = entries.find { it.name == name } ?: throw IOException("no key $name")
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dataKey, "AES"), GCMParameterSpec(TAG_BITS, entry.iv))
+                cipher.updateAAD(name.toByteArray())
+                secrets.add(cipher.doFinal(entry.data))
+            }
+        } catch (e: Exception) {
+            secrets.forEach { it.fill(0) }
+            throw e
+        }
+        return secrets
     }
 
     @Throws(IOException::class)

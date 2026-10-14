@@ -268,16 +268,16 @@ fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<Parcel
     if (names.size > Keys.MAX_COUNT) throw IOException("more than ${Keys.MAX_COUNT} keys")
     val pipes = mutableListOf<ParcelFileDescriptor>()
     try {
-        for (name in names) {
-            /* Decrypted first, so that a failure leaves no pipe end open. */
-            val secret = vault.read(dataKey, name)
-            try {
+        /* Decrypted first, from one reading of the vault, so that a failure leaves no pipe end open. */
+        val secrets = vault.readAll(dataKey, names)
+        try {
+            for (secret in secrets) {
                 val p = ParcelFileDescriptor.createPipe()
                 pipes.add(p[0])
                 ParcelFileDescriptor.AutoCloseOutputStream(p[1]).use { it.write(secret) }
-            } finally {
-                secret.fill(0)
             }
+        } finally {
+            secrets.forEach { it.fill(0) }
         }
     } catch (e: GeneralSecurityException) {
         pipes.forEach { it.close() }
