@@ -341,8 +341,13 @@ class MainActivity : Activity(), SessionService.Listener {
         AlertDialog.Builder(this)
             .setMessage(R.string.storage_rationale)
             .setPositiveButton(R.string.open_settings) { _, _ ->
-                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.fromParts("package", packageName, null)))
+                /* Android warns that some phones have no such screen. */
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.fromParts("package", packageName, null)))
+                } catch (_: ActivityNotFoundException) {
+                    toast(getString(R.string.no_storage_settings))
+                }
             }
             .setNeutralButton(R.string.continue_anyway) { _, _ -> action(paths.home.path) }
             .setNegativeButton(R.string.cancel, null)
