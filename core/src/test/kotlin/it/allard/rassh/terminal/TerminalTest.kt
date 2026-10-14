@@ -469,6 +469,9 @@ class TerminalTest {
         val t = term()
         t.put("ab\u001b[1?Kc")
         assertEquals("abc", t.line(0))
+        val two = term(columns = 10, rows = 4)
+        two.put("\u001b[2;3r\u001b[=?6h\u001b[1;1H")
+        assertEquals(0, two.cursorY)
     }
 
     @Test
