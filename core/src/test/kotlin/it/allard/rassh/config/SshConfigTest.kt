@@ -270,6 +270,10 @@ class SshConfigTest {
         assertEquals(listOf("# Port 22"), both.find("b")!!.other)
         both.remove("b")
         assertEquals("# Host old\n#     HostName z\n", both.toString())
+        val notes = SshConfig.parse("Host b\n    User y\n# Port 22\n\n# note 1\n\n# note 2\n")
+        assertEquals(listOf("# Port 22"), notes.find("b")!!.other)
+        notes.remove("b")
+        assertEquals("# note 1\n\n# note 2\n", notes.toString())
     }
 
     @Test
