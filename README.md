@@ -181,7 +181,8 @@ There is no PIN fallback.
   stays in clear unless it is the same key. Names hold letters, digits,
   `.`, `_` and `-` only, as they go into `IdentityFile` lines: a key
   named otherwise, made in the local shell for instance, is listed with
-  a note and stays out of the vault and of exports until renamed.
+  a note and stays out of the vault and of exports until renamed. A key
+  that is a link stays in clear, the file it names would be left behind.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add` loads the keys through
   pipes into an agent started for that connection alone, so the

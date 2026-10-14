@@ -11,6 +11,7 @@ import android.security.keystore.KeyPermanentlyInvalidatedException
 import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import java.security.GeneralSecurityException
 import java.security.ProviderException
 
@@ -181,8 +182,11 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
         toast(getString(R.string.vault_error, e.message))
         return done(false)
     }
+    /* Not a link: deleting it would leave the key it names in clear. */
     val (taken, fresh) = Keys.plaintext(paths.sshDir).filter {
-        Keys.publicKey(paths.sshDir, it) != null && File(paths.sshDir, it).length() <= Keys.MAX_SIZE
+        val file = File(paths.sshDir, it)
+        Keys.publicKey(paths.sshDir, it) != null && file.length() <= Keys.MAX_SIZE &&
+            !Files.isSymbolicLink(file.toPath())
     }.partition { it in stored }
     val pending = taken + fresh.take(maxOf(Keys.MAX_COUNT - stored.size, 0))
     if (pending.isEmpty()) return done(true)

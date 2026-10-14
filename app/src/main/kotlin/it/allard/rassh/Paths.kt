@@ -9,6 +9,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
+import java.nio.file.Files
 
 /** Where things live. $HOME is the app files directory. */
 class Paths(context: Context) {
@@ -83,15 +84,17 @@ class Paths(context: Context) {
 
     @Throws(IOException::class)
     fun writePrivate(file: File, data: ByteArray) {
-        val tmp = File(file.path + ".tmp")
+        /* Through a link, made in the local shell for instance, the file it names is replaced. */
+        val target = if (Files.isSymbolicLink(file.toPath())) file.canonicalFile else file
+        val tmp = File(target.path + ".tmp")
         try {
             FileOutputStream(tmp).use {
                 it.write(data)
                 it.fd.sync()
             }
             Os.chmod(tmp.path, "600".toInt(8))
-            if (!tmp.renameTo(file)) throw IOException("rename ${tmp.path}")
-            val dir = Os.open(file.parent, OsConstants.O_RDONLY, 0)
+            if (!tmp.renameTo(target)) throw IOException("rename ${tmp.path}")
+            val dir = Os.open(target.parent, OsConstants.O_RDONLY, 0)
             try {
                 Os.fsync(dir)
             } finally {
