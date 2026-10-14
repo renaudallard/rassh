@@ -194,7 +194,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         if (code == REQUEST_DOWNLOAD && isEmptyDocument(uri)) deleteDocument(uri)
     }
 
-
     /* Hidden, it takes the keyboard it may have opened for a password along. */
     private fun showTerminal(show: Boolean) {
         terminal.visibility = if (show) View.VISIBLE else View.GONE
