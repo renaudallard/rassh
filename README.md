@@ -38,9 +38,10 @@ There is no SSH reimplementation: `ssh`, `sftp`, `scp`, `ssh-agent`,
 and upstream defaults, without distribution patches or a system-wide
 `ssh_config`, so what works with `ssh` on an OpenBSD box works here,
 `~/.ssh/config` included, apart from agent forwarding and
-`LocalCommand`, see [Agent](#features). FIDO security keys and PKCS#11
-are left out, see [Limitations](#limitations). Once a fingerprint is
-enrolled, private keys are encrypted and unlocked with it.
+`LocalCommand`, see [Agent](#features) and [Key storage](#key-storage).
+FIDO security keys and PKCS#11 are left out, see
+[Limitations](#limitations). Once a fingerprint is enrolled, private
+keys are encrypted and unlocked with it.
 
 ## Features
 
@@ -51,8 +52,8 @@ enrolled, private keys are encrypted and unlocked with it.
   `CTRL` and `ALT` apply to the next key, typed or tapped, and `ESC`,
   `TAB`, `HOME`, `END`, arrows and page keys repeat while held
 - **Saved hosts** - kept as `Host` blocks of `~/.ssh/config`: host name,
-  user, port, identity file, local, remote and dynamic forwards, plus any
-  other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
+  user, port, identity file, local, remote and dynamic forwards, plus
+  any other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
   included, and their comments are left untouched, the comments of an
   edited host stay among its other options, but not one ending its host
   name, user, port or identity file line. Further `Host` blocks of the
@@ -62,11 +63,12 @@ enrolled, private keys are encrypted and unlocked with it.
   that is not UTF-8 is never rewritten: saving or deleting a host,
   renaming a key, removing a changed host key or an Append import then
   stops with a message. One that is a link is rewritten in the file it
-  names. A checkbox attaches to the last tmux session or starts one, with
-  `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
-  the identity file, makes `ssh` use only that key with
-  `IdentitiesOnly yes`, without trying the other keys of the agent
-  when the server refuses it. Common options, such as
+  names, but a changed host key is only offered for removal from a
+  `known_hosts` in `~/.ssh`. A checkbox attaches to the last tmux
+  session or starts one, with `RemoteCommand tmux a || tmux` and
+  `RequestTTY yes`. Another, under the identity file, makes `ssh` use
+  only that key with `IdentitiesOnly yes`, without trying the other keys
+  of the agent when the server refuses it. Common options, such as
   `ServerAliveInterval`, `Compression`, `StrictHostKeyChecking` or
   `LogLevel`, have a list of values each. Left at Default, an option
   writes no line, and the value shown next to Default is what `ssh -G`
@@ -116,10 +118,10 @@ enrolled, private keys are encrypted and unlocked with it.
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, scrollback with a
   swipe, which sends the arrow keys to full screen programs like vim or
-  less, pinch to zoom, long press to select and copy. As in xterm, a
-  paste, also one from the keyboard's clipboard, turns control
-  characters other than tab and newline into spaces, so that it cannot
-  send ^C or end a bracketed paste
+  less, pinch to zoom, long press to select and copy. A paste, also
+  one from the keyboard's clipboard, turns control characters other
+  than tab and newline into spaces, more than xterm does by default, so
+  that it cannot send ^C or end a bracketed paste
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
@@ -239,14 +241,15 @@ replace:
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed.
 
-Storing keys in the vault takes a fingerprint, and an import that would
-put more than 64 keys in it stops before writing anything. Keys exported
-without their public key, or over 64 KiB, are written in clear, as they
-were, the former moving into the vault once their public key is made. On a
-phone without a fingerprint enrolled, all keys come in clear and move
-into the vault once one is. Only import files you made: the
-hosts of an export can run commands through `ProxyCommand` or
-`LocalCommand`, and its `known_hosts` decides which servers are trusted.
+Storing keys in the vault takes a fingerprint, cancelling it imports
+nothing, and an import that would put more than 64 keys in it stops
+before writing anything. Keys exported without their public key, or over
+64 KiB, are written in clear, as they were, the former moving into the
+vault once their public key is made. On a phone without a fingerprint
+enrolled, all keys come in clear and move into the vault once one is.
+Only import files you made: the hosts of an export can run commands
+through `ProxyCommand` or `LocalCommand`, and its `known_hosts` decides
+which servers are trusted.
 
 ## How it works
 
@@ -287,16 +290,19 @@ dialog, to `app/src/main/assets/licenses`.
 
 The workflow in `.github/workflows/build.yml` does the same on every push
 and keeps the APKs as artifacts, and the release app bundle for Google
-Play as a separate one. Local release builds, and those of pull requests
-from forks, are unsigned.
+Play as a separate one. Release builds are signed only when
+`RASSH_KEYSTORE_FILE` names the keystore and the password and alias
+variables below are set, so those of pull requests from forks are
+unsigned.
 
 ## Releases
 
 Bumping `versionName` in `app/build.gradle.kts` and pushing to `main`
 publishes a release tagged `v<versionName>` with the signed APK. Pushes
-whose version already has a release publish nothing. The notes of a
-version go in `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt`,
-500 characters at most.
+whose version already has a release publish nothing. F-Droid takes the
+notes of a version from
+`fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, 500
+characters at most.
 
 Release APKs are signed with the key held in the repository secrets
 `RASSH_KEYSTORE` (base64 PKCS12 keystore), `RASSH_KEYSTORE_PASSWORD`,
@@ -316,7 +322,7 @@ As of October 2026, from each project's own pages and sources.
 | Private keys | vault sealed by the Keystore, fingerprint on every use | files | encrypted, or kept in the Keystore | app vault, or kept in the Keystore | sealed by the Keystore |
 | Signing inside the Keystore | none | none | RSA, ECDSA P-256, P-384, P-521 | ECDSA P-256 (reported by users, not documented) | none |
 | FIDO security keys | no | no | no | yes | yes |
-| mosh | no | yes | not released | yes | yes |
+| mosh | no | yes | yes | yes | yes |
 | SFTP | file browser, command line | command line | no | file browser | file browser |
 
 rassh is the only one running OpenSSH behind an SSH interface, so
