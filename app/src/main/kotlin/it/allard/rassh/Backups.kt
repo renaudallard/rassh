@@ -93,6 +93,8 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         }
         val sealed = vault.names()
         val names = Keys.list(paths.sshDir, vault)
+        /* Allowed by 0.1.2 and 0.1.3, refused by every import since. */
+        names.firstOrNull { !Keys.isValidName(it) }?.let { throw IOException(getString(R.string.export_bad_name, it)) }
         for (name in names) {
             val secret = if (name in sealed)
                 vault.read(key ?: throw IOException("keys locked"), name)
