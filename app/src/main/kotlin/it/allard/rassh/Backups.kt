@@ -32,6 +32,20 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     fun discard() {
         if (isEmptyDocument(uri)) deleteDocument(uri)
     }
+    /*
+     * A key named as 0.1.2 and 0.1.3 allowed, refused by every import
+     * since, said before the passphrase and the fingerprint are asked.
+     */
+    val misnamed = try {
+        Keys.list(paths.sshDir, vault).firstOrNull { !Keys.isValidName(it) }
+    } catch (_: IOException) {
+        null
+    }
+    if (misnamed != null) {
+        discard()
+        toast(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
+        return
+    }
     askPassphrase(R.string.export, true, { discard() }) { pass ->
         fun export(key: ByteArray?) {
             val items = try {
@@ -93,8 +107,6 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         }
         val sealed = vault.names()
         val names = Keys.list(paths.sshDir, vault)
-        /* Allowed by 0.1.2 and 0.1.3, refused by every import since. */
-        names.firstOrNull { !Keys.isValidName(it) }?.let { throw IOException(getString(R.string.export_bad_name, it)) }
         for (name in names) {
             val secret = if (name in sealed)
                 vault.read(key ?: throw IOException("keys locked"), name)
