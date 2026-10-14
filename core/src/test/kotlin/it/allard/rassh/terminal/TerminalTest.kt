@@ -431,5 +431,10 @@ class TerminalTest {
         assertEquals(0, t.cursorX)
         t.leaveAltScreen()
         assertFalse(t.isAltScreen)
+        /* An old DECSC is not where 1047 left the main screen. */
+        val old = term(columns = 10, rows = 6)
+        old.put("\u001b7l1\r\nl2\r\nl3\r\n\u001b[?1047hALT")
+        old.leaveAltScreen()
+        assertEquals(3, old.cursorY)
     }
 }

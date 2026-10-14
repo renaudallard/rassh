@@ -28,6 +28,8 @@ class Terminal(
     private val main = ScreenBuffer(columns, rows, historySize)
     private val alt = ScreenBuffer(columns, rows, 0)
     private var screen = main
+    /* On the alternate screen through 1049, which saved the cursor of the main one. */
+    private var altBy1049 = false
 
     var title = ""
         private set
@@ -124,13 +126,14 @@ class Terminal(
     /**
      * Back to the main screen once the program ended, with its history:
      * nothing could leave the alternate one any more. The cursor goes
-     * where 1049 saved it, else it stays.
+     * where 1049 saved it, else it stays: a cursor saved on the main
+     * screen by an earlier DECSC is from another time.
      */
     fun leaveAltScreen() {
         if (screen !== alt) return
-        val saved = main.saved != null
+        val restore = altBy1049
         useAltScreen(false)
-        if (saved) restoreCursor()
+        if (restore) restoreCursor()
     }
 
     private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {
@@ -509,6 +512,7 @@ class Terminal(
             1049 -> if (on) {
                 saveCursor()
                 useAltScreen(true)
+                altBy1049 = true
                 eraseDisplay(2)
             } else {
                 useAltScreen(false)
@@ -520,6 +524,7 @@ class Terminal(
 
     private fun useAltScreen(on: Boolean) {
         screen = if (on) alt else main
+        if (!on) altBy1049 = false
         wrapPending = false
     }
 
@@ -804,6 +809,7 @@ class Terminal(
         newLineMode = false
         bracketedPaste = false
         screen = main
+        altBy1049 = false
         main.saved = null
         alt.saved = null
         main.clearHistory()
