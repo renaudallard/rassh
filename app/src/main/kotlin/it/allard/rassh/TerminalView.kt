@@ -26,6 +26,8 @@ import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import it.allard.rassh.terminal.KeyEncoder
 import it.allard.rassh.terminal.KeyEncoder.Key
 import it.allard.rassh.terminal.Terminal
@@ -80,6 +82,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     /* Selection between two cells, rows are terminal rows, negative in the history. */
     private var hasSelection = false
+    /* Back clears a selection first, as in a text field, registered while there is one. */
+    private val clearOnBack = OnBackInvokedCallback { clearSelection() }
+    private var backWatched = false
     private var dragging = false
     private var anchorX = 0
     private var anchorY = 0
@@ -115,6 +120,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             pointY = y
             hasSelection = true
             dragging = true
+            watchBack(true)
             invalidate()
         }
     })
@@ -331,11 +337,26 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun clearSelection() {
         hasSelection = false
+        watchBack(false)
         dragging = false
         val mode = actionMode
         actionMode = null
         mode?.finish()
         invalidate()
+    }
+
+    /* The latest callback of a priority comes first, before that of the screen. */
+    private fun watchBack(on: Boolean) {
+        if (on == backWatched) return
+        val dispatcher = findOnBackInvokedDispatcher() ?: return
+        if (on) dispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, clearOnBack)
+        else dispatcher.unregisterOnBackInvokedCallback(clearOnBack)
+        backWatched = on
+    }
+
+    override fun onDetachedFromWindow() {
+        watchBack(false)
+        super.onDetachedFromWindow()
     }
 
     private fun showSelectionMenu() {
