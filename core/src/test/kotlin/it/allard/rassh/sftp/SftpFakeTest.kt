@@ -192,7 +192,7 @@ class SftpFakeTest {
         val fake = FakeServer { type, id, _ ->
             when (type) {
                 1 -> FakeServer.packet(2) { writeInt(3) }
-                7 -> {
+                7, 17 -> {
                     cancelled = true
                     FakeServer.packet(105) { writeInt(id); writeInt(0) }
                 }
@@ -214,6 +214,37 @@ class SftpFakeTest {
         assertFailsWith<SftpCancelledException> {
             client.upload(java.io.ByteArrayInputStream(ByteArray(10)), "/f") { !cancelled }
         }
+        assertTrue(!opened)
+    }
+
+    @Test(timeout = TIMEOUT)
+    fun uploadOverAFifoRefused() {
+        var opened = false
+        val fake = FakeServer { type, id, _ ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                7, 17 -> FakeServer.packet(105) {
+                    writeInt(id)
+                    writeInt(4)
+                    writeInt(if (type == 7) 0xa1ff else 0x11a4)
+                }
+                3 -> {
+                    opened = true
+                    FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
+                }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        val e = assertFailsWith<java.io.IOException> { client.upload(java.io.ByteArrayInputStream(ByteArray(10)), "/f") }
+        assertEquals("not a regular file", e.message)
         assertTrue(!opened)
     }
 

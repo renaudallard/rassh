@@ -216,7 +216,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
      * OpenSSH's sftp: the file keeps its owner, group, permissions and
      * links. A stopped upload of a new file removes it, one replacing a
      * file leaves it cut short, as one through a link, even a dangling
-     * one. progress works as in download().
+     * one. Only a regular file is replaced: the server opening a FIFO
+     * would wait for a reader and answer nothing more. progress works as
+     * in download().
      */
     @Synchronized
     @Throws(IOException::class)
@@ -227,6 +229,15 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         } catch (e: SftpException) {
             if (e.status != SftpException.NO_SUCH_FILE) throw e
             false
+        }
+        if (existed) {
+            val target = try {
+                stat(path)
+            } catch (e: SftpException) {
+                if (e.status != SftpException.NO_SUCH_FILE) throw e
+                null
+            }
+            if (target?.permissions != null && !target.isFile) throw IOException("not a regular file")
         }
         /*
          * Stopped before it began, as between the files of an upload, it
