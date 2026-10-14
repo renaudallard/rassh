@@ -180,7 +180,8 @@ class MainActivity : Activity(), SessionService.Listener {
         askedReset = false
         toldNoBiometric = false
         askedSetUp = false
-        if (protecting) return
+        /* Nothing goes into a vault it cannot read, protectKeys() would say so again. */
+        if (protecting || toldVault) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
         protecting = true
