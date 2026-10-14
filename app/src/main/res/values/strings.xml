@@ -16,6 +16,7 @@
     <string name="delete_host">Delete host %1$s?</string>
     <string name="invalid_arguments">Unbalanced quotes in arguments</string>
     <string name="start_failed">Cannot start %1$s: %2$s</string>
+    <string name="start_background">Android does not allow it while the app is in the background</string>
     <string name="config_failed">Cannot write ssh config: %1$s</string>
     <string name="config_read_failed">Cannot read ssh config: %1$s</string>
     <string name="ssh_dir_failed">Cannot create ~/.ssh: %1$s</string>

@@ -137,7 +137,7 @@ class SessionService : Service() {
                 /* From the background, Android refuses it: the session goes, not the app. */
                 _sessions.remove(session)
                 session.close()
-                throw IOException(e.message, e)
+                throw IOException(getString(R.string.start_background), e)
             }
         }
         changed()
