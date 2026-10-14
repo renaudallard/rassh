@@ -148,7 +148,7 @@ fun Context.isEmptyDocument(uri: Uri): Boolean =
         false
     }
 
-/* Not every provider deletes, the file is then left empty. */
+/* Not every provider deletes, the file is then left as it is. */
 fun Context.deleteDocument(uri: Uri) {
     try {
         DocumentsContract.deleteDocument(contentResolver, uri)
