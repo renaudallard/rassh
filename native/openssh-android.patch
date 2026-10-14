@@ -1,6 +1,26 @@
 --- a/hostfile.c
 +++ b/hostfile.c
-@@ -723,6 +723,8 @@
+@@ -718,11 +718,27 @@
+ 		fp = NULL;
+ 		ctx.modified = 1;
+ 	}
+-	fclose(ctx.out);
++	/* A full disk must not leave a truncated file in place of the old one. */
++	if (ferror(ctx.out) || fflush(ctx.out) != 0 ||
++	    fsync(fileno(ctx.out)) == -1) {
++		oerrno = errno;
++		error_f("write \"%s\": %s", temp, strerror(oerrno));
++		r = SSH_ERR_SYSTEM_ERROR;
++		goto fail;
++	}
++	if (fclose(ctx.out) != 0) {
++		ctx.out = NULL;
++		oerrno = errno;
++		error_f("close \"%s\": %s", temp, strerror(oerrno));
++		r = SSH_ERR_SYSTEM_ERROR;
++		goto fail;
++	}
+ 	ctx.out = NULL;
  
  	if (ctx.modified) {
  		/* Backup the original file and replace it with the temporary */
@@ -9,7 +29,7 @@
  		if (unlink(back) == -1 && errno != ENOENT) {
  			oerrno = errno;
  			error_f("unlink %.100s: %s", back, strerror(errno));
-@@ -736,6 +738,7 @@
+@@ -736,6 +752,7 @@
  			r = SSH_ERR_SYSTEM_ERROR;
  			goto fail;
  		}
