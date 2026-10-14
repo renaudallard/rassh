@@ -359,10 +359,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         super.onDetachedFromWindow()
     }
 
-    /* Hidden, as the terminal of the file browser, its selection would take a Back nobody sees. */
+    /*
+     * Hidden itself, as the terminal of the file browser, its selection
+     * would take a Back nobody sees. Not when the screen is left, which
+     * hides the whole window.
+     */
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
-        if (!isShown && hasSelection) clearSelection()
+        if (changedView === this && visibility != VISIBLE && hasSelection) clearSelection()
     }
 
     private fun showSelectionMenu() {
