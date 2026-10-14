@@ -308,7 +308,7 @@ fun withAgent(argv: List<String>, names: List<String>): List<String> {
     val files = names.indices.joinToString(" ") { "/dev/fd/${3 + it}" }
     val quoted = names.map { "'" + it.replace("'", "'\\''") + "'" }
     val links = quoted.withIndex().joinToString("") { (i, name) -> " && ln -s /dev/fd/${3 + i} \"\$d\"/$name" }
-    val keys = quoted.joinToString(" ")
+    val keys = quoted.joinToString(" ") { "./$it" }
     /*
      * The agent writes its variables to stdout, which the file browser
      * reads, and ssh-add writes there on some errors. The shell cannot
@@ -317,8 +317,8 @@ fun withAgent(argv: List<String>, names: List<String>): List<String> {
      *
      * ssh-add opens the keys through links named after them, in a
      * directory of the connection, so that a passphrase prompt says
-     * which key it is for rather than /dev/fd/3. A -- comes first as a
-     * name may start with -.
+     * which key it is for rather than /dev/fd/3. Given as ./name, as a
+     * name may start with - and ssh-add reads - as its standard input.
      *
      * The shell outlives the program here, a Ctrl-C the program handles,
      * as sftp does, must not end the shell with it: a trap catching
@@ -329,7 +329,7 @@ fun withAgent(argv: List<String>, names: List<String>): List<String> {
         "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "d=\"\$TMPDIR/keys.\$\$\"; rm -rf \"\$d\"; mkdir -m 700 \"\$d\"$links && " +
-        "(cd \"\$d\" && exec ssh-add -t $KEY_LIFETIME -- $keys) >&2; rm -rf \"\$d\"; " +
+        "(cd \"\$d\" && exec ssh-add -t $KEY_LIFETIME $keys) >&2; rm -rf \"\$d\"; " +
         "cat $files >/dev/null 2>&1; " +
         "trap : INT; \"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
     return listOf("sh", "-c", script) + argv
