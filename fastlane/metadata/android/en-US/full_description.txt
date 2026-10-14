@@ -1,0 +1,37 @@
+rassh is an SSH client built around the real OpenSSH 10.6p1 and LibreSSL 4.3.3. There is no SSH reimplementation: ssh, sftp, scp, ssh-agent, ssh-add and ssh-keygen are the OpenSSH programs, so what works with ssh on a computer works here, ~/.ssh/config included.
+
+FILE TRANSFERS WITH YOUR PHONE'S STORAGE
+• sftp and scp work straight from your phone's folders: Download, DCIM, Documents or any other
+• Copy whole folders with put -r, get -r and scp -r, or many files at once with wildcards
+• A file browser over SFTP to browse, download, upload, rename, delete and create folders
+• This needs All files access, asked only when you first open sftp or scp. Without it, transfers work from the app's private folder
+
+TERMINAL
+• xterm compatible terminal with colours and alternate screen, for vim, tmux, htop and the like
+• A row of keys a phone keyboard lacks: Esc, Tab, Ctrl, Alt, arrows, Home, End, Page Up and Down
+• Several sessions at once, kept open in the background
+• A host option to attach to your last tmux session or start one
+
+HOSTS
+• Saved as Host blocks in ~/.ssh/config: user, port, identity file, local, remote and dynamic forwards, jump hosts, and any other ssh_config option
+• Your own blocks, Host * and Match included, stay untouched, and ssh checks the file before it is saved
+• Quick connect with plain ssh arguments, like -p 2222 me@example.org or -J jump host
+
+KEYS
+• Generate ed25519, ecdsa, rsa and post-quantum mldsa44-ed25519 keys, or import your own
+• Private keys are encrypted with a key held in the Android Keystore and unlocked with your fingerprint
+• Each connection gets its own ssh-agent holding the keys only while it logs in, so jump hosts, sftp and scp use them without writing them to disk
+• A warning when a server's host key changes, with the new fingerprint to confirm
+
+LOCAL SHELL
+• Android's own shell and toolbox, with the OpenSSH programs first in PATH, and access to your files with All files access
+
+MOVING TO ANOTHER PHONE
+• Hosts, keys and settings exported in one file encrypted with a passphrase
+
+PRIVACY
+No ads, no analytics, no tracking. rassh connects only to the servers you choose.
+
+Open source under the ISC license: https://github.com/renaudallard/rassh
+
+rassh is not affiliated with the OpenSSH or LibreSSL projects.

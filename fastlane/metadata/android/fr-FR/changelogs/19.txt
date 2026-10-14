@@ -1,0 +1,9 @@
+- Un disque plein ne vide plus known_hosts
+- VerifyHostKeyDNS trouve les enregistrements SSHFP
+- Quitter l'app pendant la demande d'empreinte ne connecte plus
+- Retour arrière efface les caractères accentués en entier
+- Une session finie dans vim ou tmux revient à l'écran principal
+- Les grands dossiers ne figent plus l'explorateur
+- La demande de phrase secrète nomme la clé
+- Annuler un export garde le fichier qu'il devait remplacer
+- Autres corrections, meilleure compatibilité xterm

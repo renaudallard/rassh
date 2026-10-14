@@ -1,0 +1,9 @@
+- A full disk no longer empties known_hosts
+- VerifyHostKeyDNS finds SSHFP records
+- Leaving the app during the fingerprint prompt no longer connects
+- Backspace removes whole accented characters
+- A session ending inside vim or tmux returns to the main screen
+- Large folders no longer freeze the file browser
+- Passphrase prompts name the key
+- Cancelling an export keeps the file it was to replace
+- Many smaller fixes and xterm compatibility improvements

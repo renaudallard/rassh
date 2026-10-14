@@ -254,6 +254,7 @@ hosts of an export can run commands through `ProxyCommand` or
 native/   build script for LibreSSL and OpenSSH, JNI pty helper
 core/     terminal emulator, ssh_config editor, SFTP client and export format, plain Kotlin/JVM
 app/      Android application
+fastlane/ store descriptions, screenshots and changelogs, read by F-Droid
 ```
 
 | | |
@@ -293,7 +294,9 @@ from forks, are unsigned.
 
 Bumping `versionName` in `app/build.gradle.kts` and pushing to `main`
 publishes a release tagged `v<versionName>` with the signed APK. Pushes
-whose version already has a release publish nothing.
+whose version already has a release publish nothing. The notes of a
+version go in `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt`,
+500 characters at most.
 
 Release APKs are signed with the key held in the repository secrets
 `RASSH_KEYSTORE` (base64 PKCS12 keystore), `RASSH_KEYSTORE_PASSWORD`,

@@ -1,0 +1,37 @@
+rassh est un client SSH construit autour du vrai OpenSSH 10.6p1 et de LibreSSL 4.3.3. Pas de réimplémentation de SSH : ssh, sftp, scp, ssh-agent, ssh-add et ssh-keygen sont les programmes d'OpenSSH, donc ce qui marche avec ssh sur un ordinateur marche ici, ~/.ssh/config compris.
+
+TRANSFERTS AVEC LE STOCKAGE DU TÉLÉPHONE
+• sftp et scp travaillent directement dans les dossiers du téléphone : Download, DCIM, Documents ou tout autre
+• Copiez des dossiers entiers avec put -r, get -r et scp -r, ou de nombreux fichiers d'un coup avec des jokers
+• Un navigateur de fichiers SFTP pour parcourir, télécharger, envoyer, renommer, supprimer et créer des dossiers
+• Cela demande l'accès à tous les fichiers, demandé seulement à la première ouverture de sftp ou scp. Sans lui, les transferts se font depuis le dossier privé de l'appli
+
+TERMINAL
+• Terminal compatible xterm avec couleurs et écran alternatif, pour vim, tmux, htop et les autres
+• Une rangée de touches absentes du clavier du téléphone : Échap, Tab, Ctrl, Alt, flèches, Début, Fin, Page préc. et suiv.
+• Plusieurs sessions à la fois, gardées ouvertes en arrière-plan
+• Une option d'hôte pour rejoindre votre dernière session tmux ou en démarrer une
+
+HÔTES
+• Enregistrés comme blocs Host dans ~/.ssh/config : utilisateur, port, fichier d'identité, redirections locales, distantes et dynamiques, hôtes de rebond, et toute autre option de ssh_config
+• Vos propres blocs, Host * et Match compris, restent intacts, et ssh vérifie le fichier avant son enregistrement
+• Connexion rapide avec de simples arguments ssh, comme -p 2222 moi@example.org ou -J rebond hôte
+
+CLÉS
+• Générez des clés ed25519, ecdsa, rsa et post-quantiques mldsa44-ed25519, ou importez les vôtres
+• Les clés privées sont chiffrées avec une clé conservée dans l'Android Keystore et déverrouillées par votre empreinte
+• Chaque connexion a son propre ssh-agent qui ne garde les clés que pendant la connexion, pour que les hôtes de rebond, sftp et scp les utilisent sans les écrire sur le disque
+• Un avertissement quand la clé d'un serveur change, avec la nouvelle empreinte à confirmer
+
+SHELL LOCAL
+• Le shell et la boîte à outils d'Android, avec les programmes OpenSSH en tête du PATH, et l'accès à vos fichiers avec l'accès à tous les fichiers
+
+CHANGER DE TÉLÉPHONE
+• Hôtes, clés et réglages exportés dans un seul fichier chiffré par une phrase de passe
+
+CONFIDENTIALITÉ
+Pas de publicité, pas de statistiques, pas de pistage. rassh ne se connecte qu'aux serveurs que vous choisissez.
+
+Logiciel libre sous licence ISC : https://github.com/renaudallard/rassh
+
+rassh n'est pas affilié aux projets OpenSSH ou LibreSSL.
