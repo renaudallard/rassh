@@ -83,10 +83,12 @@ class SshConfig private constructor(
         blocks.find { it.name == name }?.let { toHost(it) }
 
     /**
-     * Whether a Host line names name, alone or with others. ssh matches
-     * host names in lower case and takes the first value it finds, a new
-     * block for name would change that host. The blocks of except, the
-     * ones put() renames when renaming it, do not count.
+     * Whether a Host line names name, alone or with others, in any case:
+     * ssh matches Host patterns case-sensitively, but host names are not,
+     * as in DNS, so Web and web cannot be two hosts. ssh takes the first
+     * value it finds, a new block for name would change that host. The
+     * blocks of except, the ones put() renames when renaming it, do not
+     * count.
      */
     fun isUsed(name: String, except: String? = null): Boolean =
         blocks.any { b ->
