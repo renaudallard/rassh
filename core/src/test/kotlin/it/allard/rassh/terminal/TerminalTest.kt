@@ -456,4 +456,11 @@ class TerminalTest {
         t.put("\u001b[2;3r\u001b[S")
         assertEquals(2, t.historySize)
     }
+
+    @Test
+    fun longTitleNotCutInACharacter() {
+        val t = term()
+        t.put("\u001b]0;" + "a".repeat(255) + "\ud83d\ude00\u0007")
+        assertEquals("a".repeat(255), t.title)
+    }
 }

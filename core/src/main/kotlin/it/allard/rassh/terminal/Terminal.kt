@@ -630,7 +630,9 @@ class Terminal(
         if (semi < 0) return
         when (s.substring(0, semi)) {
             "0", "2" -> {
-                title = s.substring(semi + 1).take(MAX_TITLE)
+                /* Not cut between the two halves of a character beyond U+FFFF. */
+                val cut = s.substring(semi + 1).take(MAX_TITLE)
+                title = if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut
                 client.titleChanged(title)
             }
         }
