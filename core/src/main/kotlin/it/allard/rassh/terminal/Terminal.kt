@@ -123,8 +123,9 @@ class Terminal(
 
     private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {
         val s = buffer.saved ?: return
+        /* No longer at the last column of the new width, the wrap pending goes. */
         buffer.saved = SavedCursor(minOf(s.x, columns - 1), y.coerceIn(0, rows - 1), s.style,
-            s.originMode, s.g0Graphics, s.g1Graphics, s.useG1)
+            s.originMode, s.g0Graphics, s.g1Graphics, s.useG1, false)
     }
 
     fun resize(columns: Int, rows: Int) {
@@ -736,12 +737,12 @@ class Terminal(
 
     private fun saveCursor() {
         screen.saved = SavedCursor(cursorX, cursorY, style, originMode,
-            g0Graphics, g1Graphics, useG1)
+            g0Graphics, g1Graphics, useG1, wrapPending)
     }
 
     private fun restoreCursor() {
         /* Nothing saved restores the defaults, home, plain text and charsets, as in xterm. */
-        val s = screen.saved ?: SavedCursor(0, 0, TextStyle.NORMAL, false, false, false, false)
+        val s = screen.saved ?: SavedCursor(0, 0, TextStyle.NORMAL, false, false, false, false, false)
         cursorX = minOf(s.x, columns - 1)
         cursorY = minOf(s.y, rows - 1)
         style = s.style
@@ -752,7 +753,7 @@ class Terminal(
         g0Graphics = s.g0Graphics
         g1Graphics = s.g1Graphics
         useG1 = s.useG1
-        wrapPending = false
+        wrapPending = s.wrapPending
     }
 
     private fun alignmentTest() {

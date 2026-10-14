@@ -411,4 +411,12 @@ class TerminalTest {
             assertEquals(0, t.cursorY, erase)
         }
     }
+
+    @Test
+    fun restoredCursorKeepsItsPendingWrap() {
+        val t = term(columns = 10, rows = 3)
+        t.put("0123456789\u001b7\u001b[3;1Hstatus\u001b8X")
+        assertEquals("0123456789", t.line(0))
+        assertEquals("X", t.line(1))
+    }
 }
