@@ -33,8 +33,8 @@ class KeysActivity : Activity() {
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
     private var resumed = false
-    /* A key imported while the screen was away, its public key is made on return. */
-    private var deriveLater: String? = null
+    /* Keys imported while the screen was away, their public keys are made on return. */
+    private val deriveLater = mutableListOf<String>()
     private val binding = ServiceBinding(this) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,10 +59,9 @@ class KeysActivity : Activity() {
         super.onResume()
         resumed = true
         load()
-        deriveLater?.let {
-            deriveLater = null
-            derivePublicKey(it)
-        }
+        val names = deriveLater.toList()
+        deriveLater.clear()
+        names.forEach { derivePublicKey(it) }
     }
 
     override fun onPause() {
@@ -254,7 +253,7 @@ class KeysActivity : Activity() {
                     /* Android refuses to start the session from the background. */
                     if (error != null) toast(getString(R.string.import_failed, error))
                     else if (resumed) derivePublicKey(n)
-                    else deriveLater = n
+                    else deriveLater.add(n)
                 }
             }
         }
