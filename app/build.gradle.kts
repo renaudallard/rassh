@@ -51,6 +51,11 @@ android {
             useLegacyPackaging = true
         }
     }
+
+    /* F-Droid refuses the dependency list Google encrypts into the APK signing block. */
+    dependenciesInfo {
+        includeInApk = false
+    }
 }
 
 dependencies {
