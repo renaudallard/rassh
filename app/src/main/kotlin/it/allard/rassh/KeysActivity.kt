@@ -205,13 +205,26 @@ class KeysActivity : Activity() {
             importKey(uri)
     }
 
+    /* Not on the main thread, the provider may be slow. */
     private fun displayName(uri: Uri): String =
-        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-            if (c.moveToFirst()) c.getString(0)?.let { Keys.safeName(it) } else null
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0)?.let { Keys.safeName(it) } else null
+            }
+        } catch (e: Exception) {
+            if (!isFileError(e)) throw e
+            null
         } ?: "id_imported"
 
     private fun importKey(uri: Uri) {
-        val name = pathField(displayName(uri))
+        thread(name = "key-name") {
+            val n = displayName(uri)
+            runOnUiThread { if (!isDestroyed) askKeyName(uri, n) }
+        }
+    }
+
+    private fun askKeyName(uri: Uri, suggested: String) {
+        val name = pathField(suggested)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.import_key)
             .setMessage(R.string.key_name)

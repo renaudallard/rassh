@@ -376,13 +376,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The server says what exists in dir, the listing shown may be another one. */
     private fun confirmUpload(uris: List<Uri>, dir: String) {
         val c = client() ?: return
-        val names = uris.map { remoteName(it) }
-        /* They would replace each other without a word. */
-        if (names.toSet().size != names.size) {
-            toast(getString(R.string.upload_same_name))
-            return
-        }
-        run({ names.any { exists(c, path(dir, it)) } }) { clash ->
+        /* The names come from the providers, which may be slow, on the worker too. */
+        run({
+            val names = uris.map { remoteName(it) }
+            /* They would replace each other without a word. */
+            if (names.toSet().size != names.size) null else Pair(names, names.any { exists(c, path(dir, it)) })
+        }) { found ->
+            val (names, clash) = found ?: return@run toast(getString(R.string.upload_same_name))
             if (!clash) {
                 uploadAll(uris, names, dir)
                 return@run
