@@ -32,6 +32,9 @@ class KeysActivity : Activity() {
     private var protecting = false
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
+    private var resumed = false
+    /* A key imported while the screen was away, its public key is made on return. */
+    private var deriveLater: String? = null
     private val binding = ServiceBinding(this) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +57,17 @@ class KeysActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        resumed = true
         load()
+        deriveLater?.let {
+            deriveLater = null
+            derivePublicKey(it)
+        }
+    }
+
+    override fun onPause() {
+        resumed = false
+        super.onPause()
     }
 
     /*
@@ -234,7 +247,10 @@ class KeysActivity : Activity() {
                 }
                 runOnUiThread {
                     if (isDestroyed) return@runOnUiThread
-                    if (error != null) toast(getString(R.string.import_failed, error)) else derivePublicKey(n)
+                    /* Android refuses to start the session from the background. */
+                    if (error != null) toast(getString(R.string.import_failed, error))
+                    else if (resumed) derivePublicKey(n)
+                    else deriveLater = n
                 }
             }
         }

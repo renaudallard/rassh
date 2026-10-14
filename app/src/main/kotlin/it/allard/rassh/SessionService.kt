@@ -130,8 +130,16 @@ class SessionService : Service() {
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
             { getString(R.string.session_exited, it) }, { changed() }, pipes)
         _sessions.add(session)
-        if (!foreground)
-            startForegroundService(Intent(this, SessionService::class.java))
+        if (!foreground) {
+            try {
+                startForegroundService(Intent(this, SessionService::class.java))
+            } catch (e: IllegalStateException) {
+                /* From the background, Android refuses it: the session goes, not the app. */
+                _sessions.remove(session)
+                session.close()
+                throw IOException(e.message, e)
+            }
+        }
         changed()
         return session
     }
