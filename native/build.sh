@@ -97,13 +97,15 @@ build_abi()
 	# Without HAVE_ATTRIBUTE__SENTINEL__, OpenSSH defines __sentinel__
 	# away and breaks the attribute in the bionic headers. Bionic only
 	# provides bzero() as a macro, which the configure link test misses.
+	# The xauth path is fixed, configure would put the one of the build
+	# host into ssh.
 	unpack "$work/openssh-$OPENSSH_VERSION.tar.gz" "$dir/openssh"
 	patch -d "$dir/openssh" -p1 < "$native/openssh-android.patch"
 	(
 		cd "$dir/openssh"
 		./configure --host="$target" --with-ssl-dir="$prefix" \
 		    --disable-security-key --disable-pkcs11 \
-		    --sysconfdir=/etc/ssh \
+		    --sysconfdir=/etc/ssh --with-xauth=/usr/bin/xauth \
 		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__" ac_cv_func_bzero=yes \
 		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid -Wl,--wrap=res_query" \
 		    LIBS="$dir/homedir.o $dir/dns.o"
