@@ -27,7 +27,7 @@ import kotlin.concurrent.thread
 class Session(
     val id: Int,
     val name: String,
-    /** The server the session reaches, null for local programs. */
+    /** The server the session reaches, null for the file browser, empty for local shells. */
     val server: String?,
     /** The ssh arguments naming the destination, for ssh -G, or null. */
     val target: List<String>?,
