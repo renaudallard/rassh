@@ -384,7 +384,12 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             t.text(sy, sx, ey, ex)
         }
         val clipboard = context.getSystemService(ClipboardManager::class.java)
-        clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), text))
+        try {
+            clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), text))
+        } catch (_: RuntimeException) {
+            /* Over the binder limit, about 1 MB, the clipboard service refuses it. */
+            context.toast(context.getString(R.string.copy_too_large))
+        }
     }
 
     /** Send the clipboard, bracketed when the program asked for it. */
