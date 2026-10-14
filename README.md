@@ -55,11 +55,13 @@ enrolled, private keys are encrypted and unlocked with it.
   other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
   included, and their comments are left untouched, the comments of an
   edited host stay among its other options, but not one ending its host
-  name, user, port or identity file line. ssh checks the file before
-  it is saved, since one bad line would stop every host. A config or
-  `known_hosts` that is not UTF-8 is never rewritten: saving or deleting
-  a host, renaming a key, removing a changed host key or an Append import
-  then stops with a message. A checkbox
+  name, user, port or identity file line. Further `Host` blocks of the
+  same name only change with it: renaming the host renames them,
+  deleting it deletes them. ssh checks the file before it is saved,
+  since one bad line would stop every host. A config or `known_hosts`
+  that is not UTF-8 is never rewritten: saving or deleting a host,
+  renaming a key, removing a changed host key or an Append import then
+  stops with a message. A checkbox
   attaches to the last tmux session or starts one, with
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
   the identity file, makes `ssh` use only that key with
