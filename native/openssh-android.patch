@@ -5,15 +5,15 @@
  		ctx.modified = 1;
  	}
 -	fclose(ctx.out);
-+	/* A full disk must not leave a truncated file in place of the old one. */
-+	if (ferror(ctx.out) || fflush(ctx.out) != 0 ||
-+	    fsync(fileno(ctx.out)) == -1) {
++	/* A full disk must not leave a truncated copy in its place. */
++	if (ctx.modified && (ferror(ctx.out) || fflush(ctx.out) != 0 ||
++	    fsync(fileno(ctx.out)) == -1)) {
 +		oerrno = errno;
 +		error_f("write \"%s\": %s", temp, strerror(oerrno));
 +		r = SSH_ERR_SYSTEM_ERROR;
 +		goto fail;
 +	}
-+	if (fclose(ctx.out) != 0) {
++	if (fclose(ctx.out) != 0 && ctx.modified) {
 +		ctx.out = NULL;
 +		oerrno = errno;
 +		error_f("close \"%s\": %s", temp, strerror(oerrno));
@@ -25,7 +25,7 @@
  	if (ctx.modified) {
  		/* Backup the original file and replace it with the temporary */
 +#ifndef __ANDROID__
-+		/* Android refuses link() to apps, the rename alone is atomic. */
++		/* Android refuses link() to apps, rename alone is atomic. */
  		if (unlink(back) == -1 && errno != ENOENT) {
  			oerrno = errno;
  			error_f("unlink %.100s: %s", back, strerror(errno));
