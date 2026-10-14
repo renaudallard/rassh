@@ -123,13 +123,16 @@ class Vault(private val paths: Paths) {
         return key
     }
 
+    /** Add keys, by name, replacing those of their names, in one write. */
     @Throws(IOException::class)
-    fun add(dataKey: ByteArray, name: String, secret: ByteArray) {
+    fun addAll(dataKey: ByteArray, keys: List<Pair<String, ByteArray>>) {
+        if (keys.isEmpty()) return
         val v = load() ?: throw IOException("no vault")
-        val others = v.second.filter { it.name != name }
+        val names = keys.map { it.first }.toSet()
+        val others = v.second.filter { it.name !in names }
         /* All are loaded together for a connection, more could not be. */
-        if (others.size >= Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
-        save(v.first, others + seal(dataKey, name, secret))
+        if (others.size + names.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
+        save(v.first, others + keys.map { seal(dataKey, it.first, it.second) })
     }
 
     /**

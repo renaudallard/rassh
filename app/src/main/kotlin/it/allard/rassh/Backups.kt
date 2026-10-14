@@ -309,8 +309,16 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
     }
     val names = present + keys.map { it.name }
+    /*
+     * Into the vault or in clear, see sealable(), the vault in one write
+     * once the stray files of their names went: a key must not end up
+     * paired with the public key of another.
+     */
+    for (item in keys) dropStrayFiles(paths, items, item.name, names)
+    val sealed = keys.filter { sealable(items, it, seal) }
+    if (sealed.isNotEmpty()) vault.addAll(key ?: throw IOException("keys locked"), sealed.map { it.name to it.data })
     for (item in keys) {
-        storeKey(paths, vault, key, items, item, names, seal)
+        if (item !in sealed) paths.writePrivate(File(dir, item.name), item.data)
         for (suffix in Keys.suffixes(item.name, names)) {
             items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let {
                 paths.writePrivate(File(dir, it.name), it.data)
@@ -345,17 +353,6 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
  */
 private fun sealable(items: List<Backup.Item>, key: Backup.Item, seal: Boolean): Boolean =
     seal && key.data.size <= Keys.MAX_SIZE && items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" }
-
-/* Into the vault or in clear, see sealable(). */
-@Throws(IOException::class)
-private fun storeKey(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>, item: Backup.Item,
-    names: List<String>, seal: Boolean) {
-    dropStrayFiles(paths, items, item.name, names)
-    if (sealable(items, item, seal))
-        vault.add(key ?: throw IOException("keys locked"), item.name, item.data)
-    else
-        paths.writePrivate(File(paths.sshDir, item.name), item.data)
-}
 
 /*
  * A key imported: a public key or certificate of its name the file does

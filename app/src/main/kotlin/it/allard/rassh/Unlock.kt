@@ -187,30 +187,30 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
     val pending = taken + fresh.take(maxOf(Keys.MAX_COUNT - stored.size, 0))
     if (pending.isEmpty()) return done(true)
     withVaultKey(vault, getString(R.string.protect_reason), { done(false) }) { key ->
-        /* Named as a stored key, a different one, as copied by scp, must not replace it. */
+        /*
+         * Named as a stored key, a different one, as copied by scp, must not
+         * replace it, the same key is left by a move cut short. The others
+         * go into the vault in one write.
+         */
         val kept = mutableListOf<String>()
+        val moved = mutableListOf<String>()
+        val adding = mutableListOf<Pair<String, ByteArray>>()
         try {
-            for (name in pending) {
-                val file = File(paths.sshDir, name)
-                val secret = file.readBytes()
-                try {
-                    if (name in stored) {
-                        /* The same key is left by a move cut short. */
-                        val sealed = vault.read(key, name)
-                        val same = sealed.contentEquals(secret)
-                        sealed.fill(0)
-                        if (!same) {
-                            kept.add(name)
-                            continue
-                        }
-                    } else {
-                        vault.add(key, name, secret)
-                    }
-                } finally {
+            val known = pending.filter { it in stored }
+            val sealed = vault.readAll(key, known)
+            try {
+                for ((i, name) in known.withIndex()) {
+                    val secret = File(paths.sshDir, name).readBytes()
+                    if (sealed[i].contentEquals(secret)) moved.add(name) else kept.add(name)
                     secret.fill(0)
                 }
-                file.delete()
+            } finally {
+                sealed.forEach { it.fill(0) }
             }
+            for (name in pending.filter { it !in stored })
+                adding.add(name to File(paths.sshDir, name).readBytes())
+            vault.addAll(key, adding)
+            moved.addAll(adding.map { it.first })
         } catch (e: IOException) {
             /* Like a refusal, not to ask again at once for the same keys. */
             toast(getString(R.string.vault_error, e.message))
@@ -218,7 +218,10 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
         } catch (e: GeneralSecurityException) {
             toast(getString(R.string.vault_error, e.message))
             return@withVaultKey done(false)
+        } finally {
+            adding.forEach { it.second.fill(0) }
         }
+        for (name in moved) File(paths.sshDir, name).delete()
         if (kept.isNotEmpty()) {
             toast(getString(R.string.vault_name_taken, kept.joinToString(", ")))
             /* Not asked again for them, as for a refusal. */
