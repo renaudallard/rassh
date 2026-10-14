@@ -541,8 +541,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setView(dialogLayout(bar, count))
             .setNegativeButton(R.string.cancel, null)
             .setCancelable(false)
-            /* Back while stopping leaves the browser, ending a connection that may be stalled. */
-            .setOnCancelListener { finish() }
+            /*
+             * Back while stopping hangs up a connection that may be
+             * stalled. The browser stays: a download fails then, and can
+             * still remove what it wrote, Android takes back the right
+             * to the file once the screen is gone.
+             */
+            .setOnCancelListener { session?.close() }
             .show()
         dialog.setCanceledOnTouchOutside(false)
         /*
