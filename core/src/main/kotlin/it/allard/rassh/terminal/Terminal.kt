@@ -769,7 +769,8 @@ class Terminal(
         /* Nothing saved restores the defaults, home, plain text and charsets, as in xterm. */
         val s = screen.saved ?: SavedCursor(0, 0, TextStyle.NORMAL, false, false, false, false, false)
         cursorX = minOf(s.x, columns - 1)
-        cursorY = minOf(s.y, rows - 1)
+        /* In origin mode no lower than the bottom margin, as in xterm's CursorSet(). */
+        cursorY = minOf(s.y, if (s.originMode) bottom - 1 else rows - 1)
         style = s.style
         fg = TextStyle.fg(style)
         bg = TextStyle.bg(style)

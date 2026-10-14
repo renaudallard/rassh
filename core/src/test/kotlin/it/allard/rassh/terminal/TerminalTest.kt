@@ -479,4 +479,11 @@ class TerminalTest {
         assertEquals("XEEEEEEEEE", t.line(0))
         assertEquals(0, TextStyle.flags(t.row(0).style[0]))
     }
+
+    @Test
+    fun restoredCursorStaysAboveTheBottomMargin() {
+        val t = term(columns = 10, rows = 6)
+        t.put("\u001b[2;5r\u001b[?6h\u001b[4;1H\u001b7\u001b[1;2r\u001b8X")
+        assertEquals(1, t.cursorY)
+    }
 }
