@@ -522,8 +522,13 @@ class MainActivity : Activity(), SessionService.Listener {
          * itself, sftp does not.
          */
         private val NO_COMMAND = listOf("-o", "RemoteCommand=none", "-o", "RequestTTY=no")
-        /* Without the host's forwards, as sftp does: they would clash with a terminal's or go with the browser. */
-        private val FILES = listOf("-o", "ClearAllForwardings=yes")
+        /*
+         * Without the host's forwards, as sftp does: they would clash with
+         * a terminal's or go with the browser. Nor its LocalCommand, as
+         * sftp does too: what it prints would go into the SFTP pipe. The
+         * one of clearAfterLogin() comes first and still runs.
+         */
+        private val FILES = listOf("-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no")
         private const val MENU_ADD = 1
         private const val MENU_SESSIONS = 2
         private const val MENU_KEYS = 3
