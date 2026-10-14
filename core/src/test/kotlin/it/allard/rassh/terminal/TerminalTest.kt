@@ -489,4 +489,12 @@ class TerminalTest {
         t.put("\u001b[2;5r\u001b[?6h\u001b[4;1H\u001b7\u001b[1;2r\u001b8X")
         assertEquals(1, t.cursorY)
     }
+
+    @Test
+    fun parameterAfterAnIntermediateVoidsTheSequence() {
+        val t = term(columns = 10, rows = 2)
+        t.put("\u001b[?7l\u001b[!1p0123456789X")
+        assertEquals("012345678X", t.line(0))
+        assertEquals("", t.line(1))
+    }
 }

@@ -374,6 +374,11 @@ class Terminal(
     }
 
     private fun csi(c: Int) {
+        /* After an intermediate byte xterm takes no parameter or marker: the sequence is dropped. */
+        if (intermediate != 0 && c in 0x30..0x3f) {
+            voided = true
+            return
+        }
         when (c) {
             in '0'.code..'9'.code ->
                 param = minOf(maxOf(param, 0) * 10 + (c - '0'.code), MAX_PARAM_VALUE)
