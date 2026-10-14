@@ -30,6 +30,19 @@ class TerminalRow(columns: Int, style: Long) {
         wrapped = false
     }
 
+    /*
+     * Drop the cells blank in the default style at the end, a row going
+     * into the history keeps its memory for what it shows. Readers take
+     * columns as the width of the row, not of the screen.
+     */
+    fun trimEnd() {
+        var end = text.size
+        while (end > 0 && text[end - 1] == 0 && style[end - 1] == TextStyle.NORMAL) end--
+        if (end == text.size) return
+        text = text.copyOf(end)
+        style = style.copyOf(end)
+    }
+
     /** Text of the cells in [from, to), without trailing blanks. */
     /*
      * Trailing blanks are dropped. A row going on in the next, trim false,

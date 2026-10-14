@@ -33,6 +33,7 @@ class ScreenBuffer(columns: Int, rows: Int, private val maxHistory: Int) {
             val gone = lines[top]
             System.arraycopy(lines, top + 1, lines, top, bottom - top - 1)
             if (keep && maxHistory > 0) {
+                gone.trimEnd()
                 history.addLast(gone)
                 historyAdded++
                 if (history.size > maxHistory)

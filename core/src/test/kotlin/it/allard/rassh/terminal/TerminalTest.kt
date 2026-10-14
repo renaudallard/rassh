@@ -505,4 +505,16 @@ class TerminalTest {
         assertEquals("0123456789", t.line(0))
         assertEquals("X", t.line(1))
     }
+
+    @Test
+    fun historyRowsKeepOnlyWhatTheyShow() {
+        val t = term(columns = 10, rows = 2)
+        t.put("ab\r\n\u001b[44m  \u001b[m\r\n0123456789x\r\n")
+        assertEquals(3, t.historySize)
+        assertEquals(2, t.row(-3).columns)
+        /* Spaces in a colour stay, the blank cells after them go. */
+        assertEquals(2, t.row(-2).columns)
+        assertEquals(10, t.row(-1).columns)
+        assertEquals("ab\n\n0123456789x", t.text(-3, 0, 0, 9))
+    }
 }
