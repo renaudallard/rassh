@@ -17,6 +17,8 @@
     <string name="invalid_arguments">Unbalanced quotes in arguments</string>
     <string name="start_failed">Cannot start %1$s: %2$s</string>
     <string name="config_failed">Cannot write ssh config: %1$s</string>
+    <string name="config_read_failed">Cannot read ssh config: %1$s</string>
+    <string name="ssh_dir_failed">Cannot create ~/.ssh: %1$s</string>
     <string name="config_refused">ssh refuses this configuration: %1$s</string>
     <string name="config_check_failed">Cannot check the configuration: %1$s</string>
     <string name="sftp">sftp</string>

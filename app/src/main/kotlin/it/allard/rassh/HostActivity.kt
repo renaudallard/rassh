@@ -73,7 +73,7 @@ class HostActivity : Activity() {
         val config = try {
             readConfig()
         } catch (e: IOException) {
-            toast(e.toString())
+            toast(getString(R.string.config_read_failed, e.message))
             finish()
             return
         }

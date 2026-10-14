@@ -61,7 +61,7 @@ class MainActivity : Activity(), SessionService.Listener {
         try {
             paths.ensureSshDir()
         } catch (e: ErrnoException) {
-            toast(e.toString())
+            toast(getString(R.string.ssh_dir_failed, e.message))
         }
         Keys.removeLeftovers(paths.sshDir)
 
@@ -196,7 +196,7 @@ class MainActivity : Activity(), SessionService.Listener {
         hosts = try {
             readConfig().hosts
         } catch (e: IOException) {
-            toast(e.toString())
+            toast(getString(R.string.config_read_failed, e.message))
             emptyList()
         }
         adapter.items = hosts.map { it.name to summary(it) }
@@ -436,14 +436,14 @@ class MainActivity : Activity(), SessionService.Listener {
             val ssh = try {
                 runProgram(paths.ssh, listOf("ssh", "-V"), paths.env, paths.home.path)
             } catch (e: IOException) {
-                e.toString()
+                getString(R.string.start_failed, "ssh", e.message)
             }
             val licenses = try {
                 assets.list("licenses").orEmpty().sorted().joinToString("\n\n") { name ->
                     assets.open("licenses/$name").bufferedReader().use { it.readText() }
                 }
             } catch (e: IOException) {
-                e.toString()
+                e.message.orEmpty()
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
