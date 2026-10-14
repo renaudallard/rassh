@@ -37,6 +37,7 @@ class MainActivity : Activity(), SessionService.Listener {
     private lateinit var vault: Vault
     private var declined = emptySet<String>()
     private var toldConfig = false
+    private var toldVault = false
     private var protecting = false
 
     /* Each vault question is asked once while the vault is missing, see setUp(). */
@@ -142,10 +143,12 @@ class MainActivity : Activity(), SessionService.Listener {
      * same ones, and name vault keys in IdentityFile lines, see useKeyNames().
      */
     private fun protect() {
+        /* A vault it cannot read is said once too, see below. */
         val names = try {
-            vault.names()
+            vault.names().also { toldVault = false }
         } catch (e: IOException) {
-            toast(getString(R.string.vault_error, e.message))
+            if (!toldVault) toast(getString(R.string.vault_error, e.message))
+            toldVault = true
             emptyList()
         }
         /* The config it cannot rewrite is said once, not at every focus. */
