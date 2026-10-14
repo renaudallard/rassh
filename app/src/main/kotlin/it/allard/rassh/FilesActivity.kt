@@ -204,9 +204,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* up for the parent folder, entered even when it cannot be listed, Back must not get stuck below it. */
     private fun load(path: String, up: Boolean = false) {
         val c = client() ?: return
+        /* The rows are made on the worker too, a large folder would hold the screen. */
         run({
             val dir = c.realpath(path)
-            Pair(dir, c.list(dir).sortedWith(compareBy({ !it.attrs.isDirectory }, { it.name.lowercase() })))
+            val found = c.list(dir).sortedWith(compareBy({ !it.attrs.isDirectory }, { it.name.lowercase() }))
+            /* Made for each listing, a format keeps the time zone it was made in. */
+            val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+            Triple(dir, found, found.map { Pair(label(it), describe(it.attrs, date)) })
         }, { e ->
             failed(e)
             /* The folder shows empty with the reason, the status would otherwise stay on connecting. */
@@ -217,15 +221,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 status.text = getString(R.string.files_failed, e.message)
                 adapter.items = emptyList()
             }
-        }) { (dir, found) ->
+        }) { (dir, found, rows) ->
             listed = true
             cwd = dir
             entries = found
             pathView.text = shownName(dir)
             status.setText(R.string.files_empty)
-            /* Made for each listing, a format keeps the time zone it was made in. */
-            val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-            adapter.items = found.map { Pair(label(it), describe(it.attrs, date)) }
+            adapter.items = rows
             list.setSelection(0)
         }
     }
