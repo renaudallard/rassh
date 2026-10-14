@@ -497,4 +497,12 @@ class TerminalTest {
         assertEquals("012345678X", t.line(0))
         assertEquals("", t.line(1))
     }
+
+    @Test
+    fun backTabKeepsAPendingWrap() {
+        val t = term(columns = 10, rows = 2)
+        t.put("0123456789\u001b[ZX")
+        assertEquals("0123456789", t.line(0))
+        assertEquals("X", t.line(1))
+    }
 }

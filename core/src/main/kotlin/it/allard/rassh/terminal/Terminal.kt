@@ -686,8 +686,8 @@ class Terminal(
         }
     }
 
+    /* A pending wrap stays, as in xterm's TabToPrevStop(): the next character starts a line. */
     private fun tabBackward(n: Int) {
-        wrapPending = false
         repeat(minOf(n, columns)) {
             var x = cursorX - 1
             while (x > 0 && !tabStops[x]) x--
