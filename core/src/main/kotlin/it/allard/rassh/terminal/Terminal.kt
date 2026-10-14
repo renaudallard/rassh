@@ -70,6 +70,8 @@ class Terminal(
     private var utf8Min = 0
     private var intermediate = 0
     private var prefix = 0
+    /* A CSI xterm drops whole, with a private marker after its parameters. */
+    private var voided = false
     private val params = IntArray(MAX_PARAMS)
     private val subParam = BooleanArray(MAX_PARAMS)
     private var nparams = 0
@@ -335,6 +337,7 @@ class Terminal(
                 param = -1
                 colon = false
                 prefix = 0
+                voided = false
                 intermediate = 0
                 state = CSI
             }
@@ -378,12 +381,12 @@ class Terminal(
                 pushParam()
                 colon = c == ':'.code
             }
-            in 0x3c..0x3f -> if (nparams == 0 && param < 0) prefix = c
+            in 0x3c..0x3f -> if (nparams == 0 && param < 0) prefix = c else voided = true
             in 0x20..0x2f -> intermediate = c
             in 0x40..0x7e -> {
                 pushParam()
                 state = GROUND
-                dispatchCsi(c)
+                if (!voided) dispatchCsi(c)
             }
         }
     }

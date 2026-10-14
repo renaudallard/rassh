@@ -463,4 +463,11 @@ class TerminalTest {
         t.put("\u001b]0;" + "a".repeat(255) + "\ud83d\ude00\u0007")
         assertEquals("a".repeat(255), t.title)
     }
+
+    @Test
+    fun markerAfterParametersVoidsTheSequence() {
+        val t = term()
+        t.put("ab\u001b[1?Kc")
+        assertEquals("abc", t.line(0))
+    }
 }
