@@ -40,7 +40,8 @@ object WcWidth {
 
     fun width(c: Int): Int {
         if (c < 0x300) return if (c in 0x20..0x7e || c >= 0xa0) 1 else 0
-        if (c in 0x1160..0x11ff || c == 0x200b) return 0
+        /* Hangul vowels and final consonants join the syllable before them, Extended-B ones too. */
+        if (c in 0x1160..0x11ff || c in 0xd7b0..0xd7c6 || c in 0xd7cb..0xd7fb || c == 0x200b) return 0
         when (Character.getType(c)) {
             Character.NON_SPACING_MARK.toInt(),
             Character.ENCLOSING_MARK.toInt(),
