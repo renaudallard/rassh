@@ -332,7 +332,8 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 - No mosh
 - `VerifyHostKeyDNS` finds no SSHFP records: the resolver ssh calls does
   not reach the phone's DNS servers from an app, so ssh falls back on
-  `known_hosts` without a word unless run with `-v`
+  `known_hosts`, and its question for a new host says that no matching
+  fingerprint was found in DNS
 - No mouse reporting
 - Combining characters are not rendered
 - Screen readers such as TalkBack do not read the terminal output
