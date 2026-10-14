@@ -62,10 +62,13 @@ object Keys {
     /* Only the start is read, any big file may sit in ~/.ssh. */
     private fun isPrivateKey(file: File): Boolean =
         try {
-            file.inputStream().use { it.readNBytes(PEM.size) }.contentEquals(PEM)
+            isPem(file.inputStream().use { it.readNBytes(PEM.size) })
         } catch (_: IOException) {
             false
         }
+
+    /** Whether data starts as a private key file does. */
+    fun isPem(data: ByteArray): Boolean = data.size >= PEM.size && PEM.indices.all { data[it] == PEM[it] }
 
     private val PEM = "-----BEGIN ".toByteArray()
 

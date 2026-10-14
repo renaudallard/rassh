@@ -219,7 +219,7 @@ class KeysActivity : Activity() {
                         ?: throw IOException("cannot open $uri")
                     try {
                         if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
-                        if (!key.startsWith(PEM_START)) throw IOException("not a private key")
+                        if (!Keys.isPem(key)) throw IOException("not a private key")
                         paths.ensureSshDir()
                         paths.writePrivate(File(paths.sshDir, n), key)
                     } finally {
@@ -413,10 +413,6 @@ class KeysActivity : Activity() {
         private const val MENU_GENERATE = 1
         private const val MENU_IMPORT = 2
         private const val REQUEST_IMPORT = 1
-        private val PEM_START = "-----BEGIN ".toByteArray()
-
-        private fun ByteArray.startsWith(prefix: ByteArray): Boolean =
-            size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
         private val KEY_TYPES = listOf("ed25519", "ecdsa", "rsa", "mldsa44-ed25519")
     }
 }
