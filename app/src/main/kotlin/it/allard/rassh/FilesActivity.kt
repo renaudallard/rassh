@@ -539,9 +539,22 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogLayout(bar, count))
-            .setNegativeButton(R.string.cancel) { _, _ -> cancelled.set(true) }
+            .setNegativeButton(R.string.cancel, null)
             .setCancelable(false)
+            /* Back while stopping leaves the browser, ending a connection that may be stalled. */
+            .setOnCancelListener { finish() }
             .show()
+        dialog.setCanceledOnTouchOutside(false)
+        /*
+         * Shown until the transfer stops: the worker may wait on a stalled
+         * connection, and what is asked next would queue behind it unseen.
+         */
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+            cancelled.set(true)
+            dialog.setTitle(R.string.stopping)
+            it.isEnabled = false
+            dialog.setCancelable(true)
+        }
         progressDialog = dialog
         var shown = 0L
         run({

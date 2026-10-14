@@ -176,4 +176,5 @@
     <string name="no_browser">No app can open %1$s</string>
     <string name="about_text">rassh %1$s\n%2$s</string>
     <string name="cancel">Cancel</string>
+    <string name="stopping">Stopping, Back leaves the browser</string>
 </resources>
