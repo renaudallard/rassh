@@ -359,6 +359,12 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         super.onDetachedFromWindow()
     }
 
+    /* Hidden, as the terminal of the file browser, its selection would take a Back nobody sees. */
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (!isShown && hasSelection) clearSelection()
+    }
+
     private fun showSelectionMenu() {
         actionMode = startActionMode(object : ActionMode.Callback2() {
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
