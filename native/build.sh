@@ -92,6 +92,7 @@ build_abi()
 	)
 
 	"$cc" -O2 -Wall -Wextra -c -o "$dir/homedir.o" "$native/homedir.c"
+	"$cc" -O2 -Wall -Wextra -c -o "$dir/dns.o" "$native/dns.c"
 
 	# Without HAVE_ATTRIBUTE__SENTINEL__, OpenSSH defines __sentinel__
 	# away and breaks the attribute in the bionic headers. Bionic only
@@ -104,8 +105,8 @@ build_abi()
 		    --disable-security-key --disable-pkcs11 \
 		    --sysconfdir=/etc/ssh \
 		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__" ac_cv_func_bzero=yes \
-		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid" \
-		    LIBS="$dir/homedir.o"
+		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid -Wl,--wrap=res_query" \
+		    LIBS="$dir/homedir.o $dir/dns.o"
 		make -j "$jobs" SSH_PROGRAM=ssh $PROGRAMS
 	)
 
