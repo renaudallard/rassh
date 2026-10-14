@@ -781,7 +781,11 @@ class Terminal(
         wrapPending = s.wrapPending
     }
 
+    /* As in xterm, origin mode and the attributes go, the colours stay. */
     private fun alignmentTest() {
+        originMode = false
+        flags = 0
+        style = TextStyle.encode(fg, bg, flags)
         for (y in 0 until rows) {
             val row = screen.row(y)
             row.text.fill('E'.code)

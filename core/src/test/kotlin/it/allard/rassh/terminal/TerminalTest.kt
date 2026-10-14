@@ -470,4 +470,13 @@ class TerminalTest {
         t.put("ab\u001b[1?Kc")
         assertEquals("abc", t.line(0))
     }
+
+    @Test
+    fun alignmentTestLeavesOriginMode() {
+        val t = term(columns = 10, rows = 4)
+        t.put("\u001b[?6h\u001b[1m\u001b#8\u001b[2;4r\u001b[1;1HX")
+        assertEquals(0, t.cursorY)
+        assertEquals("XEEEEEEEEE", t.line(0))
+        assertEquals(0, TextStyle.flags(t.row(0).style[0]))
+    }
 }
