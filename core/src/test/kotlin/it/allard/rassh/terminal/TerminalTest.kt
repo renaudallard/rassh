@@ -437,4 +437,12 @@ class TerminalTest {
         old.leaveAltScreen()
         assertEquals(3, old.cursorY)
     }
+
+    @Test
+    fun tabKeepsAPendingWrap() {
+        val t = term(columns = 10, rows = 2)
+        t.put("0123456789\tX")
+        assertEquals("0123456789", t.line(0))
+        assertEquals("X", t.line(1))
+    }
 }

@@ -663,9 +663,11 @@ class Terminal(
         wrapPending = false
     }
 
-    /* Beyond the width every tab lands at the edge, n is up to 65535. */
+    /*
+     * Beyond the width every tab lands at the edge, n is up to 65535. A
+     * pending wrap stays, as in xterm: it is only at the last column.
+     */
     private fun tabForward(n: Int) {
-        wrapPending = false
         repeat(minOf(n, columns)) {
             var x = cursorX + 1
             while (x < columns - 1 && !tabStops[x]) x++
