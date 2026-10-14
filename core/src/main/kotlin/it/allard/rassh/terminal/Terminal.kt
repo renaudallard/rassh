@@ -138,7 +138,7 @@ class Terminal(
 
     private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {
         val s = buffer.saved ?: return
-        /* No longer at the last column of the new width, the wrap pending goes. */
+        /* A resize ends the pending wrap, as it does for the cursor. */
         buffer.saved = SavedCursor(minOf(s.x, columns - 1), y.coerceIn(0, rows - 1), s.style,
             s.originMode, s.g0Graphics, s.g1Graphics, s.useG1, false)
     }
