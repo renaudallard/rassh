@@ -157,7 +157,11 @@ class Terminal(
         cursorY = screen.resize(columns, rows, cursorY)
         /* The saved cursor stays on its line, which moved with the cursor's. */
         screen.saved?.let { moveSaved(screen, it.y + cursorY - oldY, columns, rows) }
-        /* Without a saved cursor, as after 47 or 1047, nothing is dropped: the top goes to the history. */
+        /*
+         * Without a saved cursor, as after 47 or 1047, the bottom rows are
+         * kept: the top goes to the history, or is dropped on the alternate
+         * screen, which has none.
+         */
         val y = other.resize(columns, rows, other.saved?.y ?: (this.rows - 1))
         if (other.saved != null) moveSaved(other, y, columns, rows)
         val tabs = defaultTabs(columns)
@@ -680,7 +684,7 @@ class Terminal(
 
     /*
      * Beyond the width every tab lands at the edge, n is up to 65535. A
-     * pending wrap stays, as in xterm: it is only at the last column.
+     * pending wrap stays, as in xterm's TabToNextStop().
      */
     private fun tabForward(n: Int) {
         repeat(minOf(n, columns)) {

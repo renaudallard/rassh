@@ -186,7 +186,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         handleResult(code, data)
     }
 
-    /* Never connected: the empty file the picker made for a download goes, as when it fails. */
+    /* Not connected, or ssh gone: the empty file the picker made for a download goes, as when it fails. */
     private fun dropPending() {
         val (code, data) = pendingResult ?: return
         pendingResult = null

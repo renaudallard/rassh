@@ -426,9 +426,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (session?.isRunning != true) return
         val t = session?.terminal ?: return
         /*
-         * Control characters but tab and newline become spaces, as in
-         * xterm: ^C or ^Z would reach the remote terminal as signals, ESC
-         * could end a bracketed paste early or start a sequence.
+         * Control characters but tab and newline become spaces, more than
+         * xterm replaces by default: ^C or ^Z would reach the remote
+         * terminal as signals, ESC could end a bracketed paste early or
+         * start a sequence.
          */
         var s = text.replace("\r\n", "\r").replace('\n', '\r').replace(PASTE_CONTROLS, " ")
         if (synchronized(t) { t.bracketedPaste })

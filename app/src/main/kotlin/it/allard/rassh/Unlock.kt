@@ -18,7 +18,6 @@ import java.security.ProviderException
 /* The longest keys stay in the agent once loaded, in seconds. */
 private const val KEY_LIFETIME = 60
 
-
 /**
  * Ask for a fingerprint, then call use with the vault key, zeroed
  * afterwards. failed is called when the user cancels or it fails,

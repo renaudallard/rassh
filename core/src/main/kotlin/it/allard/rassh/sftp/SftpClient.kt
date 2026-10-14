@@ -472,7 +472,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     companion object {
         private const val VERSION = 3
         private const val BUFFER_SIZE = 65536
-        /* Read and write size, OpenSSH's own sftp uses the same. */
+        /* Read and write size, that of OpenSSH's sftp when the server announces no limits@openssh.com. */
         private const val CHUNK = 32768
         private const val MAX_REQUESTS = 16
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */

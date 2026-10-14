@@ -43,11 +43,11 @@ class TerminalRow(columns: Int, style: Long) {
         style = style.copyOf(end)
     }
 
-    /** Text of the cells in [from, to), without trailing blanks. */
-    /*
-     * Trailing blanks are dropped. A row going on in the next, trim false,
-     * keeps the spaces written, only the cells left empty go: the end of a
-     * row a wide character did not fit in, or emptied by a deletion.
+    /**
+     * Text of the cells in [from, to). With trim, trailing blanks are
+     * dropped. A row going on in the next, trim false, keeps the spaces
+     * written, only the cells left empty go: the end of a row a wide
+     * character did not fit in, or emptied by a deletion.
      */
     fun text(from: Int, to: Int, trim: Boolean = true): String {
         val sb = StringBuilder()

@@ -86,6 +86,6 @@ class SavedCursor(
     val g0Graphics: Boolean,
     val g1Graphics: Boolean,
     val useG1: Boolean,
-    /* A wrap pending at the last column, kept as xterm does. */
+    /* A pending wrap, kept as xterm does. */
     val wrapPending: Boolean,
 )

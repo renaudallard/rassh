@@ -8,7 +8,10 @@ import kotlin.concurrent.thread
 
 /* Replacing the known key of a host whose key changed. */
 
-/* The name and port a known_hosts line has for the target, as ssh -G resolves them. */
+/*
+ * The name a known_hosts line has for the target, as [host]:port off
+ * port 22, as ssh -G resolves it, and the files ssh looks in.
+ */
 private class KnownHost(val name: String, val files: List<File>)
 
 /*
