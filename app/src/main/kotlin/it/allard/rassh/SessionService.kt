@@ -60,6 +60,7 @@ class SessionService : Service() {
         }
         /* No session runs yet, sockets of agents are left by a killed app. */
         for (socket in agentSockets(paths)) socket.delete()
+        removeKeyLinks(paths)
         /* The socket of the agent shared by all sessions in older versions. */
         File(paths.tmp, "agent.sock").delete()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)

@@ -293,6 +293,9 @@ private const val AGENT_WAIT = "i=0; while [ ! -S \"\$SSH_AUTH_SOCK\" ] && [ \$i
 /* Agents of a connection, see withAgent(), named by the pid of their shell. */
 private val AGENT_SOCKET = Regex("""agent\.\d+""")
 
+/* Directories naming the keys of a connection for ssh-add, see withAgent(). */
+private val KEY_LINKS = Regex("""keys\.\d+""")
+
 /**
  * Run argv with an ssh-agent of its own holding the keys of keyPipes()
  * for KEY_LIFETIME, gone when the program exits, or at a Ctrl-C, which
@@ -301,13 +304,21 @@ private val AGENT_SOCKET = Regex("""agent\.\d+""")
  * another without keys in the middle of its login. ProxyJump and
  * LocalCommand reach it through SSH_AUTH_SOCK.
  */
-fun withAgent(argv: List<String>, keys: Int): List<String> {
-    val files = (0 until keys).joinToString(" ") { "/dev/fd/${3 + it}" }
+fun withAgent(argv: List<String>, names: List<String>): List<String> {
+    val files = names.indices.joinToString(" ") { "/dev/fd/${3 + it}" }
+    val quoted = names.map { "'" + it.replace("'", "'\\''") + "'" }
+    val links = quoted.withIndex().joinToString("") { (i, name) -> " && ln -s /dev/fd/${3 + i} \"\$d\"/$name" }
+    val keys = quoted.joinToString(" ")
     /*
      * The agent writes its variables to stdout, which the file browser
      * reads, and ssh-add writes there on some errors. The shell cannot
      * close descriptors above 9 and scp and sftp keep them, so what
      * ssh-add left unread in the pipes is drained.
+     *
+     * ssh-add opens the keys through links named after them, in a
+     * directory of the connection, so that a passphrase prompt says
+     * which key it is for rather than /dev/fd/3. A -- comes first as a
+     * name may start with -.
      *
      * The shell outlives the program here, a Ctrl-C the program handles,
      * as sftp does, must not end the shell with it: a trap catching
@@ -317,7 +328,9 @@ fun withAgent(argv: List<String>, keys: Int): List<String> {
     val script = "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
         "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
-        "ssh-add -t $KEY_LIFETIME $files >&2; cat $files >/dev/null 2>&1; " +
+        "d=\"\$TMPDIR/keys.\$\$\"; rm -rf \"\$d\"; mkdir -m 700 \"\$d\"$links && " +
+        "(cd \"\$d\" && exec ssh-add -t $KEY_LIFETIME -- $keys) >&2; rm -rf \"\$d\"; " +
+        "cat $files >/dev/null 2>&1; " +
         "trap : INT; \"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
     return listOf("sh", "-c", script) + argv
 }
@@ -329,6 +342,18 @@ fun clearAgents(paths: Paths) {
             runProgram(SHELL, listOf("sh", "-c", "exec ssh-add -D"), paths.env + "SSH_AUTH_SOCK=$socket", paths.home.path)
         } catch (_: IOException) {
         }
+    }
+}
+
+/*
+ * Remove the key directories of withAgent() left by a shell stopped in
+ * ssh-add. They hold links only, removed one by one: following them
+ * would reach the descriptors of this process.
+ */
+fun removeKeyLinks(paths: Paths) {
+    for (dir in paths.tmp.listFiles().orEmpty().filter { KEY_LINKS.matches(it.name) }) {
+        dir.listFiles().orEmpty().forEach { it.delete() }
+        dir.delete()
     }
 }
 
