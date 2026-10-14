@@ -4,10 +4,12 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewConfiguration
 import java.text.DateFormat
 import java.util.Date
 
@@ -19,6 +21,8 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The session to show, kept when the activity is recreated. */
     private var wanted = -1
     private var wantedOpened = -1L
+    /* When another session took the place of one gone, see closeSession(). */
+    private var replacedAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,11 +121,15 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         val service = binding.service ?: return
         /* A session to the same server may have come or gone. */
         session?.let { actionBar?.title = label(it) }
-        if (session?.let { it in service.sessions } != true)
+        if (session?.let { it in service.sessions } != true) {
+            replacedAt = SystemClock.uptimeMillis()
             show(service.sessions.lastOrNull())
+        }
     }
 
     private fun closeSession() {
+        /* The second tap of a double tap, or a repeated Enter, is not for the session now shown. */
+        if (SystemClock.uptimeMillis() - replacedAt < ViewConfiguration.getDoubleTapTimeout()) return
         val s = session ?: return
         binding.service?.remove(s)
     }
