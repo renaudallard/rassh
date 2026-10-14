@@ -258,8 +258,10 @@ fun rewriteIdentities(paths: Paths, files: Map<String, String>, certificates: Bo
 }
 
 /**
- * Pipes holding the named keys, to hand to ssh-add as /dev/fd/3 and up.
- * The write ends are filled and closed, the caller closes the read ends.
+ * Pipes holding the named keys, descriptors 3 and up of the program,
+ * which ssh-add opens through links named after the keys, see
+ * withAgent(). The write ends are filled and closed, the caller closes
+ * the read ends.
  */
 @Throws(IOException::class)
 fun keyPipes(vault: Vault, dataKey: ByteArray, names: List<String>): List<ParcelFileDescriptor> {
