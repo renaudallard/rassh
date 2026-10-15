@@ -387,6 +387,42 @@ class TerminalTest {
     }
 
     @Test
+    fun insertMode() {
+        val t = term()
+        t.put("abc\r\u001b[4hX")
+        assertEquals("Xabc", t.line(0))
+        t.put("\u001b[4lY")
+        assertEquals("XYbc", t.line(0))
+    }
+
+    @Test
+    fun newLineMode() {
+        val t = term()
+        t.put("ab\nc")
+        assertEquals("  c", t.line(1))
+        t.put("\u001b[20hd\ne")
+        assertEquals("e", t.line(2))
+    }
+
+    @Test
+    fun softResetRestoresModes() {
+        val t = term()
+        t.put("\u001b[?25l\u001b[4h\u001b[?6h\u001b[?7l\u001b[?1h\u001b[2;3r\u001b(0\u001b[1;31m\u001b7")
+        t.put("\u001b[!p")
+        assertTrue(t.cursorVisible)
+        assertFalse(t.applicationCursorKeys)
+        /* No origin mode nor margins, autowrap, no insert mode, ASCII, plain text. */
+        t.put("\u001b[H0123456789qr\u001b[Hx")
+        assertEquals("x123456789", t.line(0))
+        assertEquals("qr", t.line(1))
+        assertEquals(TextStyle.NORMAL, t.row(0).style[0])
+        /* The saved cursor went too, DECRC goes home. */
+        t.put("\u001b[3;4H\u001b8")
+        assertEquals(0, t.cursorX)
+        assertEquals(0, t.cursorY)
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")

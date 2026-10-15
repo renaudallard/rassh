@@ -47,4 +47,14 @@ class KeyEncoderTest {
         assertEquals("|", KeyEncoder.encode('|'.code, 0))
         assertEquals("😀", KeyEncoder.encode(0x1f600, 0))
     }
+
+    /* As XLookupString() maps the digits with Ctrl. */
+    @Test
+    fun controlDigits() {
+        val expected = mapOf('2' to 0x00, '3' to 0x1b, '4' to 0x1c, '5' to 0x1d, '6' to 0x1e, '7' to 0x1f, '8' to 0x7f)
+        for ((c, code) in expected)
+            assertEquals(code.toChar().toString(), KeyEncoder.encode(c.code, KeyEncoder.CTRL), "Ctrl-$c")
+        assertEquals("1", KeyEncoder.encode('1'.code, KeyEncoder.CTRL))
+        assertEquals("\u007f", KeyEncoder.encode('?'.code, KeyEncoder.CTRL))
+    }
 }
