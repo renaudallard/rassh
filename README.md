@@ -111,7 +111,8 @@ keys are encrypted and unlocked with it.
   was sent, writing again the last 2 MiB the server may have missed, as
   64 requests of 32 KiB are in flight. Otherwise the file starts again.
   A transfer stopped or refused by the server is not offered: a
-  download removes its partial file, an upload removes a new file.
+  download removes its partial file, an upload the file it created if
+  the connection still works, but not one a resumed upload found there.
   Deleting or editing the host drops what was cut short, as does a
   Replace import
 - **sftp and scp** - from the menu of a saved host, working from shared
