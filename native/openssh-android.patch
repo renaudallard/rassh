@@ -39,7 +39,7 @@
  			error_f("rename \"%s\" to \"%s\": %s", temp,
 --- a/misc.c
 +++ b/misc.c
-@@ -2947,11 +2947,14 @@
+@@ -2961,11 +2961,14 @@
  			    pw->pw_name, (u_int)pw->pw_gid, strerror(errno));
  			_exit(1);
  		}
@@ -137,7 +137,7 @@
  	}
 --- a/ssh-agent.c
 +++ b/ssh-agent.c
-@@ -2278,8 +2278,11 @@
+@@ -2283,8 +2283,11 @@
  	sanitise_stdfd();
  
  	/* drop */
