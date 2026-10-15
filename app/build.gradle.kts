@@ -14,7 +14,7 @@ android {
         versionName = "0.1.20"
     }
 
-    /* Release builds are signed only when the CI provides the keystore. */
+    /* Local release builds are signed when given the keystore, CI signs after the build. */
     val keystore = System.getenv("RASSH_KEYSTORE_FILE")
     if (keystore != null) {
         signingConfigs {
