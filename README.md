@@ -74,10 +74,9 @@ keys are encrypted and unlocked with it.
   writes no line, and the value shown next to Default is what `ssh -G`
   gives the saved host without it, from its other options, `Host *`
   blocks or ssh itself. A long press on a host opens its menu, dragging
-  it then to another row moves its block in the file, but never past a
-  `Match` block or a `Host` block with patterns, several names or its
-  own name: ssh takes the first value it finds, the host would get
-  other options
+  it then to another row moves its block in the file, but only past the
+  blocks of other saved hosts: ssh takes the first value it finds, past
+  a `Host *` or `Match` block the host would get other options
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
