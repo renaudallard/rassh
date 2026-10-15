@@ -772,7 +772,8 @@ class Terminal(
                 for (y in 0 until rows) clearRow(y, style)
                 wrapPending = false
             }
-            3 -> screen.clearHistory()
+            /* The history of the main screen, from either, as in xterm. */
+            3 -> main.clearHistory()
         }
     }
 

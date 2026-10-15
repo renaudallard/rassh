@@ -341,6 +341,15 @@ class TerminalTest {
     }
 
     @Test
+    fun eraseHistoryFromEitherScreen() {
+        val t = term(rows = 3)
+        t.put("1\r\n2\r\n3\r\n4\r\n5")
+        assertEquals(2, t.historySize)
+        t.put("\u001b[?1049h\u001b[3J\u001b[?1049l")
+        assertEquals(0, t.historySize)
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")
