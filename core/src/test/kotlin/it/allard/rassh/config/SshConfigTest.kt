@@ -291,6 +291,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun emptyWordBeforeTheKeywordStaysUnindented() {
+        val text = "Host web\n    HostName 192.0.2.1\n\"\" ProxyJump bastion\n"
+        val config = SshConfig.parse(text)
+        config.put("web", config.find("web")!!)
+        assertEquals(text + "\n", config.toString())
+    }
+
+    @Test
     fun hostLineWithAComment() {
         val config = SshConfig.parse("Host web # office\n    User a\n")
         assertEquals(listOf("web"), config.hosts.map { it.name })

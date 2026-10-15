@@ -203,7 +203,13 @@ class SshConfig private constructor(
         host.localForwards.forEach { add("LocalForward", it) }
         host.remoteForwards.forEach { add("RemoteForward", it) }
         host.dynamicForwards.forEach { add("DynamicForward", it) }
-        host.other.filter { it.isNotBlank() }.forEach { lines.add(INDENT + it.trim()) }
+        /*
+         * ssh skips one empty word before the keyword, the indentation or
+         * a leading "": such a line is only indented when ssh reads it
+         * the same way.
+         */
+        for (line in host.other.map { it.trim() }.filter { it.isNotEmpty() })
+            lines.add(if (keyword(INDENT + line) == keyword(line)) INDENT + line else line)
         lines.add("")
         return lines
     }
