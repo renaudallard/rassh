@@ -105,19 +105,28 @@ class SshConfig private constructor(
         val i = if (old == null) -1 else blocks.indexOfFirst { it.name == old }
         if (i >= 0) {
             /* The Host line stays as written while the name does, with its comment. */
-            val line = if (host.name == old) blocks[i].line else null
+            val line = if (host.name == old) blocks[i].line else renamed(blocks[i], host.name)
             blocks[i] = Block(blocks[i].leading, "Host", host.name, render(host), line)
             /* Later blocks of the old name are renamed too, as remove() takes them all. */
             if (host.name != old) {
                 for (j in i + 1 until blocks.size) {
                     val b = blocks[j]
-                    if (b.name == old) blocks[j] = Block(b.leading, b.keyword, host.name, b.lines)
+                    if (b.name == old) blocks[j] = Block(b.leading, b.keyword, host.name, b.lines, renamed(b, host.name))
                 }
             }
         } else {
             val at = blocks.indexOfFirst { !it.isHost }
             blocks.add(if (at < 0) blocks.size else at, Block(emptyList(), "Host", host.name, render(host)))
         }
+    }
+
+    /* The Host line of b naming name instead, what follows the old name, a comment, kept. */
+    private fun renamed(b: Block, name: String): String {
+        val line = b.line ?: return "${b.keyword} $name"
+        val (keyword, value) = keyword(line) ?: return "${b.keyword} $name"
+        val start = value.indexOfFirst { it != ' ' && it != '\t' }
+        val rest = if (start < 0) "" else argument(value, start)?.let { value.substring(it.second) }.orEmpty()
+        return line.takeWhile { it.isWhitespace() } + keyword + " " + name + rest
     }
 
     fun remove(name: String) {

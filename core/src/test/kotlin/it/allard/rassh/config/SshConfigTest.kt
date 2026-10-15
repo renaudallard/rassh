@@ -108,6 +108,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun renameKeepsHostLineComments() {
+        val config = SshConfig.parse("Host a # production\n    User x\n\nHost=a\t#more\n    Port 2222\n")
+        config.put("a", config.find("a")!!.copy(name = "b"))
+        assertEquals("Host b # production\n    User x\n\nHost b\t#more\n    Port 2222\n", config.toString())
+        assertEquals(listOf("b"), config.hosts.map { it.name })
+    }
+
+    @Test
     fun commentsStayAboveTheirBlock() {
         val text = "Host a\n    HostName a.example\n\n# Work servers\nHost b\n    HostName b.example\n" +
             "\n# Defaults for every host\nHost *\n    User me\n"
@@ -283,7 +291,7 @@ class SshConfigTest {
         config.put("web", Host("web", user = "b"))
         assertTrue(config.toString().startsWith("Host web # office\n    User b\n"))
         config.put("web", Host("www", user = "b"))
-        assertTrue(config.toString().startsWith("Host www\n"))
+        assertTrue(config.toString().startsWith("Host www # office\n"))
     }
 
     @Test
