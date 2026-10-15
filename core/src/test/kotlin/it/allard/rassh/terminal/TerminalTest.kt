@@ -359,7 +359,9 @@ class TerminalTest {
         t.put("\u001b[2H\u001b[M")
         assertEquals(1, t.historySize)
         /* The alternate screen has no history, the main one is left as it was. */
-        t.put("\u001b[?1049h\u001b[H\u001b[M\u001b[?1049l")
+        t.put("\u001b[?1049h\u001b[H\u001b[M")
+        assertEquals(0, t.historySize)
+        t.put("\u001b[?1049l")
         assertEquals(1, t.historySize)
     }
 
