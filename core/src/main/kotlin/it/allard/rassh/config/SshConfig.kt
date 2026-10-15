@@ -141,6 +141,28 @@ class SshConfig private constructor(
     }
 
     /**
+     * Move the block of name, the one hosts lists, to position to of
+     * hosts. ssh takes the first value it finds: the block only moves
+     * past blocks of other single hosts, false is returned with nothing
+     * changed when another block between could apply to it too.
+     */
+    fun move(name: String, to: Int): Boolean {
+        val firsts = blocks.indices.filter { blocks[it].isHost }.distinctBy { blocks[it].name }
+        val i = firsts.find { blocks[it].name == name } ?: return true
+        val j = firsts[to.coerceIn(firsts.indices)]
+        val between = if (i < j) i + 1..j else j until i
+        if (between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } })
+            return false
+        /* The last block may end without a blank line, which keeps it apart from the next one. */
+        val last = blocks.last()
+        blocks.add(j, blocks.removeAt(i))
+        val k = blocks.lastIndexOf(last)
+        if (k != blocks.lastIndex && last.lines.lastOrNull()?.isBlank() != true)
+            blocks[k] = Block(last.leading, last.keyword, last.value, last.lines + "", last.line)
+        return true
+    }
+
+    /**
      * Add the Host blocks of other whose names are not used here, as they
      * are written, like put() does. Its other lines and blocks are left
      * out, they could change the hosts already here. Returns the names

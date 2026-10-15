@@ -117,9 +117,20 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
 
     override fun getItemId(position: Int): Long = position.toLong()
 
+    /* The row shown as held, or -1. */
+    var held = -1
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val v = convertView
-            ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_2, parent, false)
+            ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_2, parent, false).apply {
+                background = context.obtainStyledAttributes(intArrayOf(android.R.attr.activatedBackgroundIndicator))
+                    .use { it.getDrawable(0) }
+            }
+        v.isActivated = position == held
         v.findViewById<TextView>(android.R.id.text1).text = items[position].first
         v.findViewById<TextView>(android.R.id.text2).text = items[position].second
         return v

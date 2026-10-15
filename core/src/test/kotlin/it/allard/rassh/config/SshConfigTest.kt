@@ -133,6 +133,50 @@ class SshConfigTest {
     }
 
     @Test
+    fun movesHost() {
+        val text = "# global\nUser me\n\n# Work\nHost a\n    HostName a.example\n\nHost b\n    Port 2222\n\n" +
+            "Host c\n    HostName c.example\n\nHost *\n    User you\n"
+        val up = SshConfig.parse(text)
+        assertTrue(up.move("c", 0))
+        assertEquals("# global\nUser me\n\nHost c\n    HostName c.example\n\n# Work\nHost a\n    HostName a.example\n\n" +
+            "Host b\n    Port 2222\n\nHost *\n    User you\n", up.toString())
+        val down = SshConfig.parse(text)
+        assertTrue(down.move("a", 1))
+        assertEquals(listOf("b", "a", "c"), SshConfig.parse(down.toString()).hosts.map { it.name })
+        assertTrue(down.move("a", 99))
+        assertEquals(listOf("b", "c", "a"), SshConfig.parse(down.toString()).hosts.map { it.name })
+        assertTrue(down.move("x", 0))
+        assertEquals(listOf("b", "c", "a"), down.hosts.map { it.name })
+    }
+
+    @Test
+    fun movesLastHostApart() {
+        val config = SshConfig.parse("Host a\n    User x\n\nHost b\n    User y\n")
+        assertTrue(config.move("b", 0))
+        assertEquals("Host b\n    User y\n\nHost a\n    User x\n\n", config.toString())
+        assertTrue(config.move("b", 1))
+        assertEquals("Host a\n    User x\n\nHost b\n    User y\n\n", config.toString())
+    }
+
+    @Test
+    fun movesOnlyPastOtherHosts() {
+        for (text in listOf(
+            "Host a\n    User x\n\nHost *\n    User y\n\nHost b\n",
+            "Host a\n    User x\n\nMatch host b\n    User y\n\nHost b\n",
+            "Host a\n    User x\n\nHost b a\n    User y\n\nHost b\n",
+            "Host a\n    User x\n\nHost b\n\nHost a\n    Port 2222\n\nHost c\n",
+            "Host a\n    User x\n\nHost A\n    Port 2222\n\nHost b\n",
+        )) {
+            val config = SshConfig.parse(text)
+            assertFalse(config.move("a", config.hosts.lastIndex))
+            assertEquals(text, config.toString())
+        }
+        val config = SshConfig.parse("Host a\n\nHost b\n\nHost a\n    Port 2222\n")
+        assertTrue(config.move("b", 0))
+        assertEquals("Host b\n\nHost a\n\nHost a\n    Port 2222\n", config.toString())
+    }
+
+    @Test
     fun replaceIdentities() {
         val text = """
             |IdentityFile ~/.ssh/id_rsa

@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
@@ -17,8 +18,11 @@ import android.system.ErrnoException
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
+import android.widget.AdapterView
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -31,6 +35,7 @@ import it.allard.rassh.config.SshConfig
 import java.io.IOException
 import java.time.LocalDate
 import kotlin.concurrent.thread
+import kotlin.math.abs
 
 class MainActivity : Activity(), SessionService.Listener {
     private lateinit var paths: Paths
@@ -49,11 +54,26 @@ class MainActivity : Activity(), SessionService.Listener {
     private lateinit var adapter: TwoLineAdapter
     private lateinit var quick: EditText
     private var hosts: List<Host> = emptyList()
+    private lateinit var list: ListView
+
+    /*
+     * The host a long press holds: its row, the one it was taken from,
+     * its menu, whether it moves, where the finger went down and where
+     * it is.
+     */
+    private var held = -1
+    private var heldFrom = -1
+    private var heldMenu: PopupMenu? = null
+    private var moving = false
+    private var downY = 0f
+    private var heldY = 0f
     private val binding = ServiceBinding(this) {
         it.addListener(this)
         invalidateOptionsMenu()
     }
 
+    /* The touch listener of the list only watches, the list still takes clicks. */
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -81,7 +101,7 @@ class MainActivity : Activity(), SessionService.Listener {
         findViewById<Button>(R.id.connect).setOnClickListener { quickConnect() }
 
         adapter = TwoLineAdapter(this)
-        val list = findViewById<ListView>(R.id.hosts)
+        list = findViewById(R.id.hosts)
         list.adapter = adapter
         list.emptyView = findViewById(R.id.empty)
         list.setOnItemClickListener { _, _, position, _ ->
@@ -89,8 +109,15 @@ class MainActivity : Activity(), SessionService.Listener {
             launch(Launch(name, paths.ssh, SSH + name, paths.home.path, name))
         }
         list.setOnItemLongClickListener { _, view, position, _ ->
-            hostMenu(view, hosts[position].name)
+            held = position
+            heldFrom = position
+            moving = false
+            heldMenu = hostMenu(view, hosts[position].name)
             true
+        }
+        list.setOnTouchListener { _, e ->
+            drag(e)
+            false
         }
 
         binding.bind()
@@ -212,7 +239,81 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.config_read_failed, e.message))
             emptyList()
         }
+        held = -1
+        adapter.held = -1
         adapter.items = hosts.map { it.name to summary(it) }
+    }
+
+    /*
+     * Once a long press shows the menu of a host, moving the finger
+     * closes it and takes the host along, its place in the config is
+     * saved when the finger is lifted. The list scrolls while the finger
+     * is near its top or bottom edge.
+     */
+    private fun drag(e: MotionEvent) {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                held = -1
+                downY = e.y
+            }
+            MotionEvent.ACTION_MOVE -> if (held >= 0) {
+                heldY = e.y
+                if (!moving && abs(heldY - downY) > ViewConfiguration.get(this).scaledTouchSlop) {
+                    moving = true
+                    heldMenu?.dismiss()
+                    heldMenu = null
+                    adapter.held = held
+                }
+                if (moving) {
+                    follow()
+                    list.removeCallbacks(scroll)
+                    list.postOnAnimation(scroll)
+                }
+            }
+            MotionEvent.ACTION_UP -> if (held >= 0) drop()
+            MotionEvent.ACTION_CANCEL -> if (held >= 0) loadHosts()
+        }
+    }
+
+    private fun follow() {
+        val to = list.pointToPosition(list.width / 2, heldY.toInt().coerceIn(0, list.height - 1))
+        if (to == AdapterView.INVALID_POSITION || to == held) return
+        hosts = hosts.toMutableList().apply { add(to, removeAt(held)) }
+        held = to
+        adapter.held = to
+        adapter.items = hosts.map { it.name to summary(it) }
+    }
+
+    private val scroll = object : Runnable {
+        override fun run() {
+            val edge = list.height / 6
+            val dy = when {
+                heldY < edge -> -SCROLL_STEP
+                heldY > list.height - edge -> SCROLL_STEP
+                else -> 0
+            } * resources.displayMetrics.density
+            if (held < 0 || dy == 0f || !list.canScrollList(dy.toInt())) return
+            list.scrollListBy(dy.toInt())
+            follow()
+            list.postOnAnimation(this)
+        }
+    }
+
+    private fun drop() {
+        val name = hosts[held].name
+        val to = held
+        held = -1
+        adapter.held = -1
+        list.removeCallbacks(scroll)
+        if (to == heldFrom) return
+        try {
+            val config = SshConfig.parse(paths.textOf(paths.config))
+            if (config.move(name, to)) paths.writePrivate(paths.config, config.toString())
+            else toast(getString(R.string.move_refused, name))
+        } catch (e: IOException) {
+            toast(getString(R.string.config_failed, e.message))
+        }
+        loadHosts()
     }
 
     private fun summary(h: Host): String = buildString {
@@ -410,7 +511,7 @@ class MainActivity : Activity(), SessionService.Listener {
         }
     }
 
-    private fun hostMenu(anchor: View, name: String) {
+    private fun hostMenu(anchor: View, name: String): PopupMenu {
         val menu = PopupMenu(this, anchor)
         menu.menu.add(Menu.NONE, MENU_FILES, 0, R.string.files)
         menu.menu.add(Menu.NONE, MENU_SFTP, 1, R.string.sftp)
@@ -429,6 +530,7 @@ class MainActivity : Activity(), SessionService.Listener {
             true
         }
         menu.show()
+        return menu
     }
 
     private fun deleteHost(name: String) {
@@ -575,6 +677,8 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val LOCAL = ""
         private const val REQUEST_EXPORT = 1
         private const val REQUEST_IMPORT = 2
+        /* How far the list scrolls on each frame while a host is held near its edge, in dp. */
+        private const val SCROLL_STEP = 8
         private const val PRIVACY_URL = "https://github.com/renaudallard/rassh/blob/main/PRIVACY.md"
     }
 }
