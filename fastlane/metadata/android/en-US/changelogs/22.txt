@@ -1,0 +1,7 @@
+- File browser: a transfer cut by a lost connection can be resumed, and 64 requests are kept in flight
+- Before loading your keys, the app offers to end programs left running in it
+- Terminal: reverse video, scrollback fixes, Ctrl and Alt on non-Latin keyboards
+- Export passphrases need at least 12 characters
+- Close session in the file browser menu
+- Native code built with FORTIFY_SOURCE
+- Many fixes in keys, import, hosts and transfers
