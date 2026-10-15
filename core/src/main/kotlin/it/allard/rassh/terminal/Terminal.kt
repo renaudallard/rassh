@@ -39,6 +39,9 @@ class Terminal(
         private set
     var cursorVisible = true
         private set
+    /* DECSCNM: the default colours swapped on the whole screen. */
+    var reverseVideo = false
+        private set
     var applicationCursorKeys = false
         private set
     var bracketedPaste = false
@@ -549,6 +552,7 @@ class Terminal(
     private fun setPrivateMode(mode: Int, on: Boolean) {
         when (mode) {
             1 -> applicationCursorKeys = on
+            5 -> reverseVideo = on
             6 -> {
                 originMode = on
                 setCursor(0, 0)
@@ -871,6 +875,7 @@ class Terminal(
     private fun reset() {
         softReset()
         newLineMode = false
+        reverseVideo = false
         bracketedPaste = false
         screen = main
         altBy1049 = false

@@ -119,12 +119,12 @@ keys are encrypted and unlocked with it.
   reaching the same server, local shells included, show when they were
   opened
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
-  wide characters, DEC line drawing, bracketed paste, scrollback with a
-  swipe, which sends the arrow keys to full screen programs like vim or
-  less, pinch to zoom, long press to select and copy. A paste, also
-  one from the keyboard's clipboard, turns control characters other
-  than tab and newline into spaces, more than xterm does by default, so
-  that it cannot send ^C or end a bracketed paste
+  wide characters, DEC line drawing, bracketed paste, reverse video,
+  scrollback with a swipe, which sends the arrow keys to full screen
+  programs like vim or less, pinch to zoom, long press to select and
+  copy. A paste, also one from the keyboard's clipboard, turns control
+  characters other than tab and newline into spaces, more than xterm
+  does by default, so that it cannot send ^C or end a bracketed paste
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the

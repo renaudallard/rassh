@@ -374,6 +374,19 @@ class TerminalTest {
     }
 
     @Test
+    fun reverseVideo() {
+        val t = term()
+        t.put("\u001b[?5h")
+        assertTrue(t.reverseVideo)
+        t.put("\u001b[!p")
+        assertTrue(t.reverseVideo)
+        t.put("\u001bc")
+        assertFalse(t.reverseVideo)
+        t.put("\u001b[?5h\u001b[?5l")
+        assertFalse(t.reverseVideo)
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")

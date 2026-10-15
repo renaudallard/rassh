@@ -73,6 +73,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     /* The default colors follow the phone theme, the palette does not. */
     private val foreground = context.themeColor(android.R.attr.textColorPrimary)
     private val background = context.themeColor(android.R.attr.colorBackground)
+    private var defaultFg = foreground
+    private var defaultBg = background
     private val selectionColor = context.themeColor(android.R.attr.colorAccent) and 0xffffff or SELECTION_ALPHA
 
     /* Lines scrolled back into the history. */
@@ -145,10 +147,17 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(background)
-        val s = session ?: return
+        val s = session
+        if (s == null) {
+            canvas.drawColor(background)
+            return
+        }
         val t = s.terminal
         val lost = synchronized(t) {
+            /* Reverse video swaps the colours of the screen and of cells without their own. */
+            defaultFg = if (t.reverseVideo) background else foreground
+            defaultBg = if (t.reverseVideo) foreground else background
+            canvas.drawColor(defaultBg)
             followHistory(t)
             scrollOffset = scrollOffset.coerceIn(0, t.historySize)
             for (r in 0 until t.rows)
@@ -179,14 +188,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun drawRun(canvas: Canvas, row: TerminalRow, from: Int, to: Int, style: Long, top: Float) {
         val flags = TextStyle.flags(style)
-        var fg = color(TextStyle.fg(style), foreground)
-        var bg = color(TextStyle.bg(style), background)
+        var fg = color(TextStyle.fg(style), defaultFg)
+        var bg = color(TextStyle.bg(style), defaultBg)
         if (flags and TextStyle.INVERSE != 0) {
             val tmp = fg
             fg = bg
             bg = tmp
         }
-        if (bg != background) {
+        if (bg != defaultBg) {
             setPaint(bg, 0)
             canvas.drawRect(from * cellWidth, top, to * cellWidth, top + cellHeight, paint)
         }
@@ -224,11 +233,11 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val cells = if (x + 1 < row.columns && row.text[x + 1] == TerminalRow.WIDE_TAIL) 2 else 1
         val left = x * cellWidth
         val top = (y * cellHeight).toFloat()
-        setPaint(foreground, 0)
+        setPaint(defaultFg, 0)
         canvas.drawRect(left, top, left + cells * cellWidth, top + cellHeight, paint)
         val c = row.text[x]
         if (c > 0x20) {
-            setPaint(background, 0)
+            setPaint(defaultBg, 0)
             val len = Character.toChars(c, oneChar, 0)
             canvas.drawText(oneChar, 0, len, left, top + baseline, paint)
         }
