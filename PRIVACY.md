@@ -16,8 +16,10 @@ anywhere.
 
 Your hosts (`~/.ssh/config`), known host keys, keys and settings are kept
 in the app's private storage. Once a fingerprint is enrolled, private keys
-are encrypted with a key held in the Android Keystore. This data is
-excluded from Android backups and device-to-device transfers.
+are encrypted with a key held in the Android Keystore, except those the
+app cannot move there, such as a key without its public key, which stay
+in clear. This data is excluded from Android backups and device-to-device
+transfers.
 
 Fingerprints are checked by Android. rassh never sees them, it only learns
 whether the check succeeded.

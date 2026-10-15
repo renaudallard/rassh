@@ -4,7 +4,7 @@ FILE TRANSFERS WITH YOUR PHONE'S STORAGE
 • sftp and scp work straight from your phone's folders: Download, DCIM, Documents or any other
 • Copy whole folders with put -r, get -r and scp -r, or many files at once with wildcards
 • A file browser over SFTP to browse, download, upload, rename, delete and create folders
-• This needs All files access, asked only when you first open sftp or scp. Without it, transfers work from the app's private folder
+• This needs All files access, asked when you open sftp or scp without it. Without it, transfers work from the app's private folder
 
 TERMINAL
 • xterm compatible terminal with colours and alternate screen, for vim, tmux, htop and the like
@@ -14,13 +14,13 @@ TERMINAL
 
 HOSTS
 • Saved as Host blocks in ~/.ssh/config: user, port, identity file, local, remote and dynamic forwards, jump hosts, and any other ssh_config option
-• Your own blocks, Host * and Match included, stay untouched, and ssh checks the file before it is saved
+• Your own blocks, Host * and Match included, are left as they are, apart from the identity files of a key you rename, and ssh checks the file before it is saved
 • Quick connect with plain ssh arguments, like -p 2222 me@example.org or -J jump host
 
 KEYS
 • Generate ed25519, ecdsa, rsa and post-quantum mldsa44-ed25519 keys, or import your own
-• Private keys are encrypted with a key held in the Android Keystore and unlocked with your fingerprint
-• Each connection gets its own ssh-agent holding the keys only while it logs in, so jump hosts, sftp and scp use them without writing them to disk
+• Private keys that have their public key are encrypted with a key held in the Android Keystore and unlocked with your fingerprint
+• Each connection gets its own ssh-agent, emptied once ssh is logged in, or after 60 seconds for sftp and scp, so jump hosts, sftp and scp use the keys without writing them to disk
 • A warning when a server's host key changes, with the new fingerprint to confirm
 
 LOCAL SHELL
