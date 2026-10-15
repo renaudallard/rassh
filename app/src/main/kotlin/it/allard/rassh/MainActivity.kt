@@ -58,13 +58,14 @@ class MainActivity : Activity(), SessionService.Listener {
 
     /*
      * The host a long press holds: its row, the one it was taken from,
-     * its menu, whether it moves, where the finger went down and where
-     * it is.
+     * its menu, whether it moves, the pointer of the finger, where it
+     * went down and where it is.
      */
     private var held = -1
     private var heldFrom = -1
     private var heldMenu: PopupMenu? = null
     private var moving = false
+    private var finger = -1
     private var downY = 0f
     private var heldY = 0f
     private val binding = ServiceBinding(this) {
@@ -248,16 +249,19 @@ class MainActivity : Activity(), SessionService.Listener {
      * Once a long press shows the menu of a host, moving the finger
      * closes it and takes the host along, its place in the config is
      * saved when the finger is lifted. The list scrolls while the finger
-     * is near its top or bottom edge.
+     * is near its top or bottom edge. Other fingers are ignored.
      */
     private fun drag(e: MotionEvent) {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 held = -1
+                finger = e.getPointerId(0)
                 downY = e.y
             }
             MotionEvent.ACTION_MOVE -> if (held >= 0) {
-                heldY = e.y
+                val p = e.findPointerIndex(finger)
+                if (p < 0) return
+                heldY = e.getY(p)
                 if (!moving && abs(heldY - downY) > ViewConfiguration.get(this).scaledTouchSlop) {
                     moving = true
                     heldMenu?.dismiss()
@@ -270,6 +274,7 @@ class MainActivity : Activity(), SessionService.Listener {
                     list.postOnAnimation(scroll)
                 }
             }
+            MotionEvent.ACTION_POINTER_UP -> if (held >= 0 && e.getPointerId(e.actionIndex) == finger) drop()
             MotionEvent.ACTION_UP -> if (held >= 0) drop()
             MotionEvent.ACTION_CANCEL -> if (held >= 0) loadHosts()
         }
