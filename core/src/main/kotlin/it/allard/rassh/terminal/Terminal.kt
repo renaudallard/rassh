@@ -504,7 +504,11 @@ class Terminal(
             /* Into the history from the top of the screen, as a line feed, as in xterm. */
             'S'.code -> screen.scrollUp(top, bottom, count(0), eraseStyle(), top == 0)
             'T'.code -> if (nparams <= 1) screen.scrollDown(top, bottom, count(0), eraseStyle())
-            'X'.code -> eraseCells(cursorX, minOf(columns, cursorX + count(0)))
+            /* As xterm's ClearRight(), it ends the line there, a copy no longer joins the next row. */
+            'X'.code -> {
+                eraseCells(cursorX, minOf(columns, cursorX + count(0)))
+                screen.row(cursorY).wrapped = false
+            }
             'Z'.code -> tabBackward(count(0))
             /* More than a screenful looks the same and costs the host nothing to ask. */
             'b'.code -> if (lastChar != 0) repeatLast(minOf(count(0), columns * rows))
@@ -802,6 +806,8 @@ class Terminal(
         System.arraycopy(row.text, cursorX + n, row.text, cursorX, columns - cursorX - n)
         System.arraycopy(row.style, cursorX + n, row.style, cursorX, columns - cursorX - n)
         row.clear(columns - n, columns, eraseStyle())
+        /* Blanks at its end, as in xterm the row no longer goes on. */
+        row.wrapped = false
         wrapPending = false
     }
 

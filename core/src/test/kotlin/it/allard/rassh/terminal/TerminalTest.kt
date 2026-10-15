@@ -363,6 +363,17 @@ class TerminalTest {
     }
 
     @Test
+    fun eraseAndDeleteEndAWrappedRow() {
+        for (sequence in listOf("\u001b[X", "\u001b[P")) {
+            val t = term()
+            t.put("abcdefghijKLM\u001b[1;3H")
+            assertTrue(t.row(0).wrapped)
+            t.put(sequence)
+            assertFalse(t.row(0).wrapped, sequence)
+        }
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")
