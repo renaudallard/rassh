@@ -248,9 +248,9 @@ of the connection while they are in it. Before the fingerprint,
 connecting lists the programs of the app running outside the
 foreground of its sessions, such as those put in the background in the
 local shell, `ssh -f` or a `ControlPersist` connection, and offers to
-end them. One left in the foreground of an open session is not listed:
-when the phone was left unlocked out of your hands, close the sessions
-you did not open, or force-stop the app, before connecting.
+end them. One can still hide among the processes of an open session:
+when the phone was left unlocked out of your hands, close every
+session, or force-stop the app, before connecting.
 
 ## Moving to another phone
 
