@@ -236,8 +236,9 @@ class Terminal(
         if (state == OSC || state == STRING) {
             when (c) {
                 ESC -> stringEscape = true
-                BEL -> {
-                    if (state == OSC) finishOsc()
+                /* As in xterm, BEL ends an OSC only, it is part of the others. */
+                BEL -> if (state == OSC) {
+                    finishOsc()
                     state = GROUND
                 }
                 CAN, SUB -> state = GROUND

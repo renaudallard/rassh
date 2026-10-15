@@ -226,8 +226,8 @@ class TerminalTest {
     @Test
     fun ignoredStrings() {
         val t = term()
-        t.put("\u001bPqignored\u001b\\a\u001b_apc\u0007b")
-        assertEquals("ab", t.line(0))
+        t.put("\u001bPqignored\u001b\\a\u001b_apc\u0007b\u001b\\c")
+        assertEquals("ac", t.line(0))
     }
 
     @Test
