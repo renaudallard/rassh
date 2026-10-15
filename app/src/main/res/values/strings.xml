@@ -160,7 +160,7 @@
     <string name="export">Export</string>
     <string name="export_reason">Read your keys to export them</string>
     <string name="export_failed">Cannot export: %1$s</string>
-    <string name="export_bad_name">rename the key %1$s first, its name is no longer allowed</string>
+    <string name="export_bad_name">rename the key %1$s first, its name is not allowed</string>
     <string name="exported">Hosts, keys and settings exported</string>
     <string name="passphrase">Passphrase</string>
     <string name="passphrase_again">Passphrase again</string>

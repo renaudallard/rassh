@@ -228,8 +228,9 @@ font size to a file sealed with a passphrase of at least
 with 600,000 iterations. Reading the keys takes a fingerprint. Android
 backup stays off, since the vault cannot leave the phone that made it.
 Files read through `Include` and keys kept outside `~/.ssh` are not
-exported. A key of the vault named as early versions allowed, with an
-`@` for instance, must be renamed first, as no import would take it.
+exported. A key named as early versions or the local shell allowed,
+with an `@` for instance, must be renamed first, as no import would
+take it.
 
 Import reads the file on the other phone and asks whether to append or
 replace:

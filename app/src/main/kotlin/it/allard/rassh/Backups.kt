@@ -33,14 +33,15 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
         if (isEmptyDocument(uri)) deleteDocument(uri)
     }
     /*
-     * A key named as 0.1.2 and 0.1.3 allowed, refused by every import
-     * since, said before the passphrase and the fingerprint are asked.
+     * A key named as 0.1.2 and 0.1.3 allowed, or in the local shell,
+     * refused by every import, said before the passphrase and the
+     * fingerprint are asked. Left out, it would be lost unnoticed.
      */
     val misnamed = try {
         Keys.list(paths.sshDir, vault).firstOrNull { !Keys.isValidName(it) }
     } catch (_: IOException) {
         null
-    }
+    } ?: Keys.misnamed(paths.sshDir).firstOrNull()
     if (misnamed != null) {
         discard()
         toast(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
