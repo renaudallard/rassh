@@ -331,7 +331,7 @@ class Terminal(
             val n = minOf(left, (columns - cursorX) / width)
             put(c, width, n)
             left -= n
-            /* Without autowrap, the others only write the last cell again. */
+            /* Without autowrap, the others write the last cell again, or are dropped when wide. */
             if (!autowrap && cursorX == columns - 1) return
         }
     }
