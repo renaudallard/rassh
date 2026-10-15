@@ -652,7 +652,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
          * left to what follows.
          */
         if (modified && c > 0x7f && keyCode in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z)
-            c = (if (event.isShiftPressed) 'A' else 'a').code + keyCode - KeyEvent.KEYCODE_A
+            c = (if (event.isShiftPressed != event.isCapsLockOn) 'A' else 'a').code + keyCode - KeyEvent.KEYCODE_A
         /*
          * A dead key, ^ on many layouts, combines with the next one, a
          * space giving it alone. With Ctrl or Alt it is the accent itself,
