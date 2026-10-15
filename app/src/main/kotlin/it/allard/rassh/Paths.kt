@@ -82,6 +82,21 @@ class Paths(context: Context) {
         writePrivate(file, text.toByteArray())
     }
 
+    /* Write what is cached of file to the disk. */
+    @Throws(IOException::class)
+    fun sync(file: File) {
+        try {
+            val fd = Os.open(file.path, OsConstants.O_RDONLY, 0)
+            try {
+                Os.fsync(fd)
+            } finally {
+                Os.close(fd)
+            }
+        } catch (e: ErrnoException) {
+            throw e.rethrowAsIOException()
+        }
+    }
+
     @Throws(IOException::class)
     fun writePrivate(file: File, data: ByteArray) {
         /* Through a link, made in the local shell for instance, the file it names is replaced. */
