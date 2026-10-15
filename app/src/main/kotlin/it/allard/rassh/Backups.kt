@@ -19,7 +19,8 @@ import kotlin.concurrent.thread
 
 /* Far above what Keys.MAX_COUNT keys and a config take. */
 private const val MAX_EXPORT_SIZE = 16 * 1024 * 1024
-private const val MIN_PASSPHRASE = 8
+/* The keys of the vault are in the export in clear, the passphrase alone keeps them from a guess. */
+private const val MIN_PASSPHRASE = 12
 private const val CONFIG = "config"
 private const val KNOWN_HOSTS = "known_hosts"
 

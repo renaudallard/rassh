@@ -242,9 +242,12 @@ as root should be treated as exposed and replaced.
 
 Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
 the keys of `~/.ssh` with their public keys and certificates, and the
-font size to a file sealed with a passphrase of at least
-8 characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
-with 600,000 iterations. Reading the keys takes a fingerprint. Android
+font size to a file sealed with a passphrase of at least 12
+characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
+with 600,000 iterations. The keys of the vault are in it as they are
+in the vault, without the fingerprint: anyone getting the file can try
+passphrases offline, choose a long one. Reading the keys takes a
+fingerprint. Android
 backup stays off, since the vault cannot leave the phone that made it.
 Files read through `Include` and keys kept outside `~/.ssh` are not
 exported. A key named as early versions or the local shell allowed,
