@@ -201,11 +201,26 @@ fun Context.keepAccess(uris: List<Uri>, write: Boolean): Boolean {
  */
 fun Context.letGo(uris: List<Uri>, write: Boolean) {
     synchronized(lock) {
-        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val needed = prefs.all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet()
+        val needed = needed()
         releaseAccess(uris.filter { it !in needed }, write)
     }
 }
+
+/*
+ * Let go of the files no record needs, kept for a transfer that left
+ * none, as when the app was killed during it. Only while none runs.
+ */
+fun Context.letGoUnneeded() {
+    synchronized(lock) {
+        val needed = needed()
+        for (p in contentResolver.persistedUriPermissions)
+            if (p.uri !in needed) releaseAccess(listOf(p.uri), p.isWritePermission)
+    }
+}
+
+/* The files the transfers cut short need, called under lock. */
+private fun Context.needed(): Set<Uri> =
+    getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet()
 
 fun Context.releaseAccess(uris: List<Uri>, write: Boolean) {
     for (uri in uris) {
