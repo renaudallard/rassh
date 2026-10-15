@@ -190,7 +190,7 @@ class HostActivity : Activity() {
         SshConfig.parse(if (paths.config.isFile) paths.config.readText() else "")
 
     private fun lines(e: EditText): List<String> =
-        e.text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        e.text.lines().map { SshConfig.trimOption(it) }.filter { it.isNotEmpty() }
 
     private fun save() {
         if (checking) return

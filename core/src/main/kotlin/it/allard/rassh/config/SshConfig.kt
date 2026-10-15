@@ -184,7 +184,7 @@ class SshConfig private constructor(
                 key.equals("LocalForward", true) -> local.add(value)
                 key.equals("RemoteForward", true) -> remote.add(value)
                 key.equals("DynamicForward", true) -> dynamic.add(value)
-                line.isNotBlank() -> other.add(line.trim())
+                line.isNotBlank() -> other.add(trimOption(line))
             }
         }
         return Host(block.name.orEmpty(), hostName.orEmpty(), user.orEmpty(), port.orEmpty(),
@@ -204,12 +204,11 @@ class SshConfig private constructor(
         host.remoteForwards.forEach { add("RemoteForward", it) }
         host.dynamicForwards.forEach { add("DynamicForward", it) }
         /*
-         * ssh skips one empty word before the keyword, the indentation or
-         * a leading "": such a line is only indented when ssh reads it
-         * the same way.
+         * Indented as the others when ssh reads the line the same way, see
+         * trimOption(), which leaves the blanks of a line that needs them.
          */
-        for (line in host.other.map { it.trim() }.filter { it.isNotEmpty() })
-            lines.add(if (keyword(INDENT + line) == keyword(line)) INDENT + line else line)
+        for (line in host.other.map { trimOption(it) }.filter { it.isNotEmpty() })
+            lines.add(if (line[0].isWhitespace() || keyword(INDENT + line) != keyword(line)) line else INDENT + line)
         lines.add("")
         return lines
     }
@@ -307,6 +306,15 @@ class SshConfig private constructor(
             }
             return lines.joinToString("\n") + if (text.endsWith("\n")) "\n" else ""
         }
+
+        /**
+         * line without the blanks around it, unless ssh would read it
+         * otherwise. ssh skips one empty word before the keyword, the
+         * indentation or a leading "": an indented line starting with ""
+         * is one ssh skips, which it would read once trimmed.
+         */
+        fun trimOption(line: String): String =
+            line.trim().let { if (keyword(it) == keyword(line)) it else line.trimEnd() }
 
         /**
          * The keyword of a line and its arguments, read like ssh does in

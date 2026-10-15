@@ -296,6 +296,12 @@ class SshConfigTest {
         val config = SshConfig.parse(text)
         config.put("web", config.find("web")!!)
         assertEquals(text + "\n", config.toString())
+        /* Indented, ssh skips it, and still does once saved, again and again. */
+        val skipped = SshConfig.parse("Host web\n    \"\" ProxyJump bastion\n")
+        repeat(2) { skipped.put("web", skipped.find("web")!!) }
+        assertEquals("Host web\n    \"\" ProxyJump bastion\n\n", skipped.toString())
+        assertEquals("\t\"\" x", SshConfig.trimOption("\t\"\" x  "))
+        assertEquals("User x", SshConfig.trimOption("  User x "))
     }
 
     @Test
