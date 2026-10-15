@@ -269,34 +269,67 @@ class Terminal(
     }
 
     private fun print(c0: Int) {
-        val c = if ((if (useG1) g1Graphics else g0Graphics) && c0 in 0x5f..0x7e)
-            DEC_GRAPHICS[c0 - 0x5f].code else c0
+        val c = charset(c0)
         val width = WcWidth.width(c)
         if (width == 0 || width > columns) return
         lastChar = c0
+        if (startCell(width)) put(c, width, 1)
+    }
+
+    private fun charset(c: Int): Int =
+        if ((if (useG1) g1Graphics else g0Graphics) && c in 0x5f..0x7e) DEC_GRAPHICS[c - 0x5f].code else c
+
+    /* Wrap first when needed, false when a character of width is dropped. */
+    private fun startCell(width: Int): Boolean {
         if (wrapPending && autowrap) newLine()
         wrapPending = false
         if (width == 2 && cursorX == columns - 1) {
-            if (!autowrap) return
+            if (!autowrap) return false
             val row = screen.row(cursorY)
             splitAt(row, cursorX)
             row.clear(cursorX, columns, eraseStyle())
             newLine()
         }
+        return true
+    }
+
+    /* Write c count times from the cursor, which must leave them room on its row. */
+    private fun put(c: Int, width: Int, count: Int) {
+        val n = width * count
         val row = screen.row(cursorY)
-        if (insertMode) insertCells(row, width)
+        if (insertMode) insertCells(row, n)
         splitAt(row, cursorX)
-        splitAt(row, cursorX + width)
-        row.text[cursorX] = c
-        row.style[cursorX] = style
-        if (width == 2) {
-            row.text[cursorX + 1] = WIDE_TAIL
-            row.style[cursorX + 1] = style
+        splitAt(row, cursorX + n)
+        for (x in cursorX until cursorX + n step width) {
+            row.text[x] = c
+            row.style[x] = style
+            if (width == 2) {
+                row.text[x + 1] = WIDE_TAIL
+                row.style[x + 1] = style
+            }
         }
-        cursorX += width
+        cursorX += n
         if (cursorX >= columns) {
             cursorX = columns - 1
             wrapPending = autowrap
+        }
+    }
+
+    /*
+     * The last character count times, as many print() would, a row at a
+     * time: in insert mode, each would shift the rest of the row again.
+     */
+    private fun repeatLast(count: Int) {
+        val c = charset(lastChar)
+        val width = WcWidth.width(c)
+        if (width == 0 || width > columns) return
+        var left = count
+        while (left > 0 && startCell(width)) {
+            val n = minOf(left, (columns - cursorX) / width)
+            put(c, width, n)
+            left -= n
+            /* Without autowrap, the others only write the last cell again. */
+            if (!autowrap && cursorX == columns - 1) return
         }
     }
 
@@ -473,10 +506,7 @@ class Terminal(
             'X'.code -> eraseCells(cursorX, minOf(columns, cursorX + count(0)))
             'Z'.code -> tabBackward(count(0))
             /* More than a screenful looks the same and costs the host nothing to ask. */
-            'b'.code -> if (lastChar != 0) {
-                val ch = lastChar
-                repeat(minOf(count(0), columns * rows)) { print(ch) }
-            }
+            'b'.code -> if (lastChar != 0) repeatLast(minOf(count(0), columns * rows))
             'c'.code -> if (arg(0, 0) == 0) reply("\u001b[?62;22c")
             'd'.code -> setCursor(cursorX, count(0) - 1)
             'g'.code -> when (arg(0, 0)) {

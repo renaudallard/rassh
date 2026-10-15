@@ -1,5 +1,6 @@
 package it.allard.rassh.terminal
 
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -287,6 +288,41 @@ class TerminalTest {
         /* At most 4 x 2 more cells were printed, the rest scrolled away. */
         assertEquals(1, t.historySize)
         assertEquals("aaaa", t.line(0))
+    }
+
+    @Test
+    fun repeatWritesAsPrinting() {
+        val r = Random(1)
+        val chars = listOf("a", "中", "q")
+        repeat(2000) {
+            val columns = 1 + r.nextInt(9)
+            val rows = 1 + r.nextInt(4)
+            /* Too wide for one column, it is not printed and REP repeats the one before. */
+            val c = chars[r.nextInt(if (columns > 1) chars.size else 1)]
+            val n = 1 + r.nextInt(columns * rows)
+            val start = buildString {
+                append("\u001b[${1 + r.nextInt(rows)};${1 + r.nextInt(columns)}H")
+                if (r.nextBoolean()) append("\u001b[4h")
+                if (r.nextInt(4) == 0) append("\u001b[?7l")
+                if (r.nextInt(4) == 0) append("\u001b(0")
+                append("\u001b[3${r.nextInt(8)}m")
+                append("0123中567".take(r.nextInt(8)))
+                append("\u001b[${1 + r.nextInt(rows)};${1 + r.nextInt(columns)}H")
+            }
+            val repeated = term(columns, rows)
+            val printed = term(columns, rows)
+            repeated.put("x\r\n" + start + c + "\u001b[${n}b!")
+            printed.put("x\r\n" + start + c.repeat(n + 1) + "!")
+            val what = "$columns x $rows, $start$c ESC[${n}b"
+            assertEquals(printed.historySize, repeated.historySize, what)
+            for (y in -printed.historySize until rows) {
+                assertEquals(printed.row(y).text.toList(), repeated.row(y).text.toList(), what)
+                assertEquals(printed.row(y).style.toList(), repeated.row(y).style.toList(), what)
+                assertEquals(printed.row(y).wrapped, repeated.row(y).wrapped, what)
+            }
+            assertEquals(printed.cursorX, repeated.cursorX, what)
+            assertEquals(printed.cursorY, repeated.cursorY, what)
+        }
     }
 
     @Test
