@@ -255,10 +255,11 @@ replace:
 Storing keys in the vault takes a fingerprint, cancelling it imports
 nothing, as does leaving the app while the file is read, since Android
 then closes the prompt, and an import that would put more than 64 keys
-in it stops before writing anything. Keys exported without their public key, or over
-64 KiB, are written in clear, as they were, the former moving into the
-vault once their public key is made. On a phone without a fingerprint
-enrolled, all keys come in clear and move into the vault once one is.
+in it stops before writing anything. Keys exported without their public
+key, or over 64 KiB, are written in clear, as they were, the former
+moving into the vault once their public key is made. On a phone without
+a fingerprint enrolled, all keys come in clear and move into the vault
+once one is.
 Only import files you made: the hosts of an export can run commands
 through `ProxyCommand` or `LocalCommand`, and its `known_hosts` decides
 which servers are trusted.
