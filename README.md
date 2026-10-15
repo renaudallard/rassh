@@ -111,7 +111,8 @@ keys are encrypted and unlocked with it.
   refused by a server whose key changed, a warning offers to remove the
   old key, then connecting again shows the fingerprint of the new one to
   confirm. The host is resolved from the local configuration with
-  `ssh -G`, so only its own keys are removed
+  `ssh -G`, so only the lines matching it are removed, whole as with
+  `ssh-keygen -R`: one also naming other hosts, or a pattern, goes too
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
