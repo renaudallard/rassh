@@ -191,7 +191,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val (code, data) = pendingResult ?: return
         pendingResult = null
         val uri = data.data ?: return
-        if (code == REQUEST_DOWNLOAD && isEmptyDocument(uri)) deleteDocument(uri)
+        /* On the worker, as the provider may be slow, which shutdown() lets finish. */
+        if (code == REQUEST_DOWNLOAD) worker.execute { if (isEmptyDocument(uri)) deleteDocument(uri) }
     }
 
     /* Hidden, it takes the keyboard it may have opened for a password along. */
