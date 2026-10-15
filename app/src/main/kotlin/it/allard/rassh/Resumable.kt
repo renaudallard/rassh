@@ -48,8 +48,8 @@ private const val PREFS = "resume"
 /* Two browsers of a host may lose their connection at once. */
 private val lock = Any()
 
-/* The hosts whose transfer cut short a browser goes on with, under lock. */
-private val resuming = HashSet<String>()
+/* The hosts whose transfer cut short a browser goes on with, and that transfer, under lock. */
+private val resuming = HashMap<String, String>()
 
 /* How many running transfers use each file they kept the right to, under lock. */
 private val inUse = HashMap<Uri, Int>()
@@ -108,15 +108,18 @@ private fun Resumable.json(): String {
 
 /*
  * Keep r, the transfer to host cut short, in place of an earlier one,
- * whose partial download goes and whose files are let go, see letGo().
+ * whose partial download goes, unless another browser of the host still
+ * appends to it, and whose files are let go, see letGo().
  */
 fun Context.keepResumable(host: String, r: Resumable) {
+    var appending = false
     val old = synchronized(lock) {
         val old = resumable(host)
+        appending = old != null && resuming[host] == old.json()
         getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(host, r.json()).apply()
         old
     } ?: return
-    if (old is Resumable.Download && old.uri !in r.uris) deleteDocument(old.uri)
+    if (old is Resumable.Download && old.uri !in r.uris && !appending) deleteDocument(old.uri)
     letGo(old.uris, old.write)
 }
 
@@ -158,7 +161,7 @@ fun Context.forgetDownloadsInto(uri: Uri, except: Resumable?) {
  * a browser goes on with it already, or it was dropped since it was read.
  */
 fun Context.claimResumable(host: String, r: Resumable): Boolean = synchronized(lock) {
-    host !in resuming && resumable(host)?.json() == r.json() && resuming.add(host)
+    host !in resuming && resumable(host)?.json() == r.json() && resuming.put(host, r.json()) == null
 }
 
 /* Done going on with the transfer to host, see claimResumable(). */
