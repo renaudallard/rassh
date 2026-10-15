@@ -801,6 +801,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         menu.add(Menu.NONE, MENU_NEW_FOLDER, 1, R.string.new_folder)
         menu.add(Menu.NONE, MENU_REFRESH, 2, R.string.refresh)
         menu.add(Menu.NONE, MENU_TERMINAL, 3, R.string.show_terminal)
+        /* Back may only queue a listing a stalled or hostile server never answers. */
+        menu.add(Menu.NONE, MENU_CLOSE, 4, R.string.close_session)
         return true
     }
 
@@ -810,6 +812,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             MENU_NEW_FOLDER -> newFolder()
             MENU_REFRESH -> cwd?.let { load(it) }
             MENU_TERMINAL -> showTerminal(terminal.visibility != View.VISIBLE)
+            MENU_CLOSE -> finish()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -849,6 +852,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_NEW_FOLDER = 2
         private const val MENU_REFRESH = 3
         private const val MENU_TERMINAL = 4
+        private const val MENU_CLOSE = 5
         private const val PROGRESS_NANOS = 200_000_000L
         private const val BUFFER_SIZE = 65536
 
