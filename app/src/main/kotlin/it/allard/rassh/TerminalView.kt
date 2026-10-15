@@ -635,12 +635,20 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             }
         }
         if (c == 0) return super.onKeyDown(keyCode, event)
+        val modified = (mods or (extraKeys?.latched ?: 0)) and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
+        /*
+         * A layout such as Russian or Greek gives letters Ctrl and Alt do
+         * not apply to: the Latin letter of the key is taken then, Ctrl-C
+         * stays an interrupt. A dead key, whose flag makes c negative, is
+         * left to what follows.
+         */
+        if (modified && c > 0x7f && keyCode in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z)
+            c = (if (event.isShiftPressed) 'A' else 'a').code + keyCode - KeyEvent.KEYCODE_A
         /*
          * A dead key, ^ on many layouts, combines with the next one, a
          * space giving it alone. With Ctrl or Alt it is the accent itself,
          * and a key with them is not combined: Ctrl-C stays an interrupt.
          */
-        val modified = (mods or (extraKeys?.latched ?: 0)) and (KeyEncoder.CTRL or KeyEncoder.ALT) != 0
         if (c and KeyCharacterMap.COMBINING_ACCENT != 0) {
             if (modified) {
                 c = plainAccent(c and KeyCharacterMap.COMBINING_ACCENT_MASK)
