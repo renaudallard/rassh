@@ -10,9 +10,12 @@ import kotlin.concurrent.thread
 
 /*
  * The name a known_hosts line has for the target, as [host]:port off
- * port 22, as ssh -G resolves it, and the files ssh looks in.
+ * port 22, as ssh -G resolves it, and the files ssh looks in. quiet when
+ * the LogLevel is below INFO: ssh then does not end a session with a
+ * terminal with "Connection to host closed.", which tells its own last
+ * lines from the same ones printed by the server.
  */
-private class KnownHost(val name: String, val files: List<File>)
+private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean)
 
 /*
  * Where ssh looks up the key of the host target reaches, taken from the
@@ -41,7 +44,7 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
         .map { File(it).canonicalFile }
         .filter { it.parentFile == dir && it.isFile }
-    return KnownHost(name, files)
+    return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"))
 }
 
 /*
@@ -87,6 +90,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
     thread(name = "host-key") {
         val found = try {
             val known = knownHost(paths, target)
+            /* Not offered when the server may have printed what ssh would. */
+            if (known.quiet) return@thread
             known.name to known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() }
         } catch (e: IOException) {
             runOnUiThread { toast(getString(R.string.host_key_failed, e.message)) }
