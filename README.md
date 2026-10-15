@@ -132,7 +132,8 @@ keys are encrypted and unlocked with it.
 - **Hardware keyboards** - Esc, Tab and Shift-Tab, arrows, Home, End,
   Page Up and Down, Insert, Delete, F1 to F12, Ctrl and Alt, right Alt
   as AltGr and dead keys. With a layout such as Russian or Greek, Ctrl
-  and Alt apply to the Latin letter of the key
+  and Alt apply to the Latin letter of a key giving a non-Latin letter,
+  not of one giving punctuation, as Q does in Greek
 
 ---
 
