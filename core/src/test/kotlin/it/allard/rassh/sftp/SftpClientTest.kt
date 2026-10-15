@@ -4,6 +4,7 @@ import org.junit.Assume.assumeTrue
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -11,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /* Against OpenSSH's sftp-server, skipped where it is not installed, but never on CI. */
@@ -116,6 +118,10 @@ class SftpClientTest {
         assertFailsWith<SftpException> { sftp.download("$dir/missing", { opened = true; ByteArrayOutputStream() }) }
         assertTrue(!opened)
         assertFailsWith<SftpException> { sftp.rmdir("$dir/missing") }
+        /* Refused here: the server would end the connection. */
+        val nul = assertFailsWith<IOException> { sftp.lstat("$dir/a\u0000b") }
+        assertFalse(nul is SftpException)
+        assertTrue(sftp.lstat(dir.path).isDirectory)
         /* The connection is still in step. */
         assertEquals(dir.canonicalPath, sftp.realpath("."))
     }

@@ -389,7 +389,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
         fun u64(v: Long) = apply { out.writeLong(v) }
 
-        fun string(s: String) = bytes(encodeName(s))
+        /* sftp-server reads names as C strings and exits on a NUL in one. */
+        fun string(s: String) = apply {
+            if ('\u0000' in s) throw IOException("NUL in name")
+            bytes(encodeName(s))
+        }
 
         fun bytes(b: ByteArray, n: Int = b.size) = apply {
             out.writeInt(n)
