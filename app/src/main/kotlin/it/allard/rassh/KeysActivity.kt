@@ -252,8 +252,17 @@ class KeysActivity : Activity() {
                         if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
                         if (!Keys.isPem(key)) throw IOException("not a private key")
                         paths.ensureSshDir()
-                        /* Checked again: a key generated while the file was read must not be replaced. */
-                        if (Keys.isTaken(paths.sshDir, n, vault.names())) throw IOException(getString(R.string.error_key_exists))
+                        /*
+                         * Checked again: a key generated while the file was
+                         * read must not be replaced. A vault that cannot be
+                         * read stops nothing, as when the name was chosen.
+                         */
+                        val stored = try {
+                            vault.names()
+                        } catch (_: IOException) {
+                            emptyList()
+                        }
+                        if (Keys.isTaken(paths.sshDir, n, stored)) throw IOException(getString(R.string.error_key_exists))
                         paths.writePrivate(File(paths.sshDir, n), key)
                     } finally {
                         key.fill(0)
