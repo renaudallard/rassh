@@ -146,11 +146,11 @@ class SftpFakeTest {
                 1 -> FakeServer.packet(2) { writeInt(3) }
                 3 -> FakeServer.packet(102) { writeInt(id); with(FakeServer) { string("h") } }
                 5 -> {
-                    reads++
                     /* type, id, handle "h", offset, length */
                     val buf = java.nio.ByteBuffer.wrap(packet, 10, 12)
                     val offset = buf.long
                     val length = buf.int
+                    if (offset < size) reads++
                     /* A server answering at most 10000 bytes a read. */
                     val n = minOf(length, 10_000, size - offset.toInt())
                     if (n <= 0) FakeServer.packet(101) {
@@ -180,8 +180,11 @@ class SftpFakeTest {
         val out = java.io.ByteArrayOutputStream()
         client.download("/f", { out })
         assertContentEquals(ByteArray(size) { (it % 251).toByte() }, out.toByteArray())
-        /* Each short read asks the rest only, the requests in flight are not thrown away. */
-        assertTrue(reads < 60, "$reads reads")
+        /*
+         * Each short read asks the rest only, the requests in flight are
+         * not thrown away: 4 reads for each 32 KiB, and 1 for the end.
+         */
+        assertEquals(13, reads)
     }
 
     @Test(timeout = TIMEOUT)

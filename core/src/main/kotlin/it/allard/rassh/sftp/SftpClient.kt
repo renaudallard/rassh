@@ -476,13 +476,18 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val BUFFER_SIZE = 65536
         /* Read and write size, that of OpenSSH's sftp when the server announces no limits@openssh.com. */
         private const val CHUNK = 32768
-        private const val MAX_REQUESTS = 16
+        /*
+         * Requests in flight, as OpenSSH's sftp: 2 MiB, the channel window
+         * of ssh, so that a link with a long round trip stays busy.
+         */
+        private const val MAX_REQUESTS = 64
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
         private const val MAX_ENTRIES = 200_000
         private const val MAX_NAME = 4096
         private const val MAX_CHARS = 16L * 1024 * 1024
-        private const val MAX_EARLY = 64
+        /* Replies come before the one awaited, at most those of the other requests in flight. */
+        private const val MAX_EARLY = MAX_REQUESTS
 
         private const val FXP_INIT = 1
         private const val FXP_VERSION = 2
