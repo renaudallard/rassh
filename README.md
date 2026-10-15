@@ -325,13 +325,14 @@ RASSH_FUZZ_RUNS=5000 ./gradlew :core:test --tests '*TerminalFuzzTest' --rerun
 ```
 
 The workflow in `.github/workflows/build.yml` does the same on every push
-and keeps the APKs as artifacts, and the release app bundle for Google
-Play as a separate one. A local release build is signed when
-`RASSH_KEYSTORE_FILE` names the keystore and the password and alias
-variables below are set. The workflow builds without the key and signs
-afterwards, with `apksigner` and `jarsigner` in a step of its own, so
-that Gradle and its plugins never see it, for pushes to `main` only:
-those of other branches and of pull requests are unsigned.
+and keeps the APKs and the release app bundle as artifacts. A local
+release build is signed when `RASSH_KEYSTORE_FILE` names the keystore
+and the password and alias variables below are set. The workflow builds
+without the key. For pushes to `main` only, a job of its own, on another
+machine than the build and what it ran, signs the APK with `apksigner`
+and the bundle for Google Play with `jarsigner`, keeping them as the
+`rassh-release` and `rassh-bundle` artifacts. Those of other branches
+and of pull requests stay unsigned.
 
 ## Releases
 

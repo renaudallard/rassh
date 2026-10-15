@@ -41,35 +41,6 @@ jobs:
       - name: Build release
         run: ./gradlew --no-daemon :app:assembleRelease :app:bundleRelease
 
-      # The signing secrets are only visible to this step, out of Gradle
-      # and the plugins it runs. Only pushes to main are signed: other
-      # branches would make APKs that install over the release of the
-      # same version. v2 only with the alignment kept, as Gradle signed,
-      # F-Droid copies this signature onto its own unsigned build.
-      - name: Sign release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          RASSH_KEYSTORE: ${{ secrets.RASSH_KEYSTORE }}
-          RASSH_KEYSTORE_PASSWORD: ${{ secrets.RASSH_KEYSTORE_PASSWORD }}
-          RASSH_KEY_ALIAS: ${{ secrets.RASSH_KEY_ALIAS }}
-          RASSH_KEY_PASSWORD: ${{ secrets.RASSH_KEY_PASSWORD }}
-        run: |
-          [ -n "$RASSH_KEYSTORE" ] || exit 0
-          ks="$RUNNER_TEMP/release.jks"
-          trap 'rm -f "$ks"' EXIT
-          echo "$RASSH_KEYSTORE" | base64 -d > "$ks"
-          apk=app/build/outputs/apk/release
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$ks" \
-              --ks-pass env:RASSH_KEYSTORE_PASSWORD --ks-key-alias "$RASSH_KEY_ALIAS" \
-              --key-pass env:RASSH_KEY_PASSWORD --v1-signing-enabled false \
-              --v2-signing-enabled true --v3-signing-enabled false \
-              --v4-signing-enabled false --alignment-preserved true \
-              --out "$apk/app-release.apk" "$apk/app-release-unsigned.apk"
-          rm "$apk/app-release-unsigned.apk"
-          jarsigner -keystore "$ks" -storepass:env RASSH_KEYSTORE_PASSWORD \
-              -keypass:env RASSH_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
-              app/build/outputs/bundle/release/app-release.aab "$RASSH_KEY_ALIAS"
-
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rassh
@@ -77,16 +48,80 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
 
-      # Apart, as a shared path would move the APKs the release job copies.
+      # Apart, as a shared path would move the APKs the sign job takes.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rassh-bundle-unsigned
+          path: app/build/outputs/bundle/release/*.aab
+
+  # Sign the release on a machine of its own: the build ran the code of
+  # Gradle, its plugins and dependencies, some of which may still run
+  # there, where the key must never be. Only pushes to main of this
+  # repository are signed, other branches would make APKs that install
+  # over the release of the same version. The APK keeps its alignment and
+  # v2 only, as Gradle signed it: F-Droid copies this signature onto its
+  # own unsigned build.
+  sign:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'renaudallard/rassh'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install apksigner
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.0.0"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rassh
+          path: apk
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rassh-bundle-unsigned
+          path: bundle
+
+      - name: Sign
+        env:
+          RASSH_KEYSTORE: ${{ secrets.RASSH_KEYSTORE }}
+          RASSH_KEYSTORE_PASSWORD: ${{ secrets.RASSH_KEYSTORE_PASSWORD }}
+          RASSH_KEY_ALIAS: ${{ secrets.RASSH_KEY_ALIAS }}
+          RASSH_KEY_PASSWORD: ${{ secrets.RASSH_KEY_PASSWORD }}
+        run: |
+          ks="$RUNNER_TEMP/release.jks"
+          trap 'rm -f "$ks"' EXIT
+          echo "$RASSH_KEYSTORE" | base64 -d > "$ks"
+          mkdir signed
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$ks" \
+              --ks-pass env:RASSH_KEYSTORE_PASSWORD --ks-key-alias "$RASSH_KEY_ALIAS" \
+              --key-pass env:RASSH_KEY_PASSWORD --v1-signing-enabled false \
+              --v2-signing-enabled true --v3-signing-enabled false \
+              --v4-signing-enabled false --alignment-preserved true \
+              --out signed/app-release.apk apk/release/app-release-unsigned.apk
+          cp bundle/app-release.aab signed/app-release.aab
+          jarsigner -keystore "$ks" -storepass:env RASSH_KEYSTORE_PASSWORD \
+              -keypass:env RASSH_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
+              signed/app-release.aab "$RASSH_KEY_ALIAS"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rassh-release
+          path: signed/app-release.apk
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rassh-bundle
-          path: app/build/outputs/bundle/release/*.aab
+          path: signed/app-release.aab
 
   # Publish the signed APK when versionName has no release yet.
   # Forks have no signing key, and two pushes of a new version must not race.
   release:
-    needs: build
+    needs: sign
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'renaudallard/rassh'
     concurrency:
       group: release
@@ -114,14 +149,14 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: steps.version.outputs.new == 'true'
         with:
-          name: rassh
-          path: apk
+          name: rassh-release
+          path: signed
 
       - name: Publish release
         if: steps.version.outputs.new == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          cp apk/release/app-release.apk "rassh-$TAG.apk"
+          cp signed/app-release.apk "rassh-$TAG.apk"
           gh release create "$TAG" "rassh-$TAG.apk" --target "$GITHUB_SHA" \
               --title "rassh $TAG" --generate-notes
