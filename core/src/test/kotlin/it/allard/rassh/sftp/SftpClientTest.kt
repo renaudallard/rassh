@@ -127,6 +127,39 @@ class SftpClientTest {
     }
 
     @Test
+    fun resumeDownload() {
+        val data = Random(4).nextBytes(1_000_003)
+        File(dir, "src").writeBytes(data)
+        val out = ByteArrayOutputStream()
+        var last = 0L
+        sftp.download("$dir/src", { out }, 400_000) { last = it; true }
+        assertContentEquals(data.copyOfRange(400_000, data.size), out.toByteArray())
+        assertEquals(data.size.toLong(), last)
+    }
+
+    @Test
+    fun resumeUpload() {
+        val data = Random(5).nextBytes(5_000_001)
+        val remote = File(dir, "dst")
+        /* What a cut upload may leave: the start, then a hole among the last writes in flight. */
+        val cut = 4_000_000
+        remote.writeBytes(data.copyOf(cut).also { it.fill(0, cut - 100_000, cut - 50_000) })
+        var first = -1L
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst", { if (first < 0) first = it; true })
+        assertContentEquals(data, remote.readBytes())
+        assertEquals(cut - SftpClient.IN_FLIGHT, first)
+        /* Longer than what is uploaded, it is not the start of it: written from the start. */
+        remote.writeBytes(Random(6).nextBytes(data.size + 10))
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst")
+        assertContentEquals(data, remote.readBytes())
+        /* Gone, it is made again. */
+        remote.delete()
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst")
+        assertContentEquals(data, remote.readBytes())
+        assertFalse(sftp.isBroken)
+    }
+
+    @Test
     fun cancel() {
         File(dir, "big").writeBytes(Random(2).nextBytes(2_000_000))
         assertFailsWith<SftpCancelledException> {

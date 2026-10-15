@@ -439,6 +439,8 @@ class MainActivity : Activity(), SessionService.Listener {
                     val config = SshConfig.parse(paths.textOf(paths.config))
                     config.remove(name)
                     paths.writePrivate(paths.config, config.toString())
+                    /* A transfer cut short goes with the host, the provider may be slow. */
+                    thread(name = "drop-resume") { applicationContext.dropResumable(name) }
                 } catch (e: IOException) {
                     toast(getString(R.string.config_failed, e.message))
                 }

@@ -101,7 +101,17 @@ keys are encrypted and unlocked with it.
 - **File browser** - from the menu of a saved host: browse, download,
   upload, rename, delete files and empty folders and create folders over
   SFTP, through `ssh`, so the host's options, jump hosts and keys apply,
-  but not its port forwards nor its `LocalCommand`, as with `sftp`
+  but not its port forwards nor its `LocalCommand`, as with `sftp`. A
+  transfer cut short by a lost connection is offered to resume the next
+  time the browser connects to that host. A download goes on if the
+  file did not change on the server and the one on the phone is a
+  regular file it can append to. An upload goes on if the file on the
+  phone is a regular file that did not change, writing again the last
+  2 MiB the server may have missed, as 64 requests of 32 KiB are in
+  flight. Otherwise the file starts again. A transfer stopped or
+  refused by the server is not offered: a download removes its partial
+  file, an upload removes a new file. Deleting or editing the host drops
+  what was cut short
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with

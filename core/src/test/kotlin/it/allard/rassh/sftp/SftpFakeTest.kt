@@ -32,6 +32,17 @@ class SftpFakeTest {
         val e = assertFailsWith<SftpException> { client.list("/d") }
         assertEquals(SftpException.PERMISSION_DENIED, e.status)
         assertEquals("denied", e.message)
+        /* An error the server reports leaves the connection as it was. */
+        assertTrue(!client.isBroken)
+    }
+
+    @Test(timeout = TIMEOUT)
+    fun connectionLostIsBroken() {
+        /* The version, then nothing more: ssh gone. */
+        val version = byteArrayOf(0, 0, 0, 5, 2, 0, 0, 0, 3)
+        val client = SftpClient(java.io.ByteArrayInputStream(version), java.io.ByteArrayOutputStream())
+        assertEquals("connection closed", assertFailsWith<java.io.IOException> { client.stat("/f") }.message)
+        assertTrue(client.isBroken)
     }
 
     @Test(timeout = TIMEOUT)

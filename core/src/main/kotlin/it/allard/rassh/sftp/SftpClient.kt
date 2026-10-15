@@ -66,6 +66,15 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     /* Replies read while waiting for another one, by request id. */
     private val early = HashMap<Int, Reply>()
 
+    /**
+     * The connection failed, or went out of step: nothing more goes
+     * through it, unlike after an error the server reported. A transfer
+     * cut short so may be resumed over a new one.
+     */
+    @Volatile
+    var isBroken = false
+        private set
+
     private class Reply(val type: Int, val body: Reader)
 
     init {
@@ -150,15 +159,17 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
      * Copy the file path to the stream open gives, called once the remote
      * file is open, so that failing to open it leaves the local one alone,
      * and closed afterwards. progress gets the bytes copied so far and
-     * returns false to stop, which throws SftpCancelledException.
+     * returns false to stop, which throws SftpCancelledException. From
+     * offset on, to go on with a copy that stopped there, progress then
+     * counting the bytes before it as well.
      */
     @Synchronized
     @Throws(IOException::class)
-    fun download(path: String, open: () -> OutputStream, progress: (Long) -> Boolean = { true }) {
+    fun download(path: String, open: () -> OutputStream, offset: Long = 0, progress: (Long) -> Boolean = { true }) {
         val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(FXF_READ).u32(0)))
         val pending = ArrayDeque<Read>()
         try {
-            open().use { out -> copy(handle, out, pending, progress) }
+            open().use { out -> copy(handle, out, pending, progress, offset) }
         } finally {
             drain(pending.map { it.id })
             closeHandle(handle)
@@ -172,9 +183,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         Read(send(Writer(FXP_READ).bytes(handle).u64(offset).u32(length)), offset, length)
 
     private fun copy(handle: ByteArray, out: OutputStream, pending: ArrayDeque<Read>,
-        progress: (Long) -> Boolean) {
-        var offset = 0L
-        var done = 0L
+        progress: (Long) -> Boolean, start: Long) {
+        var offset = start
+        var done = start
         var eof = false
         while (true) {
             while (!eof && pending.size < MAX_REQUESTS) {
@@ -223,6 +234,24 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Synchronized
     @Throws(IOException::class)
     fun upload(input: InputStream, path: String, progress: (Long) -> Boolean = { true }) {
+        put(input, path, progress, -1)
+    }
+
+    /**
+     * Go on with an upload of input, length bytes long, to path, cut short
+     * with its connection. What the server has is kept, but for its last
+     * IN_FLIGHT bytes: the writes in flight then may have landed in any
+     * order, a hole may be left among them. Uploaded from the start when
+     * the file is gone, or longer than input.
+     */
+    @Synchronized
+    @Throws(IOException::class)
+    fun resumeUpload(input: InputStream, length: Long, path: String, progress: (Long) -> Boolean = { true }) {
+        put(input, path, progress, length)
+    }
+
+    /* As upload(), resumed when length, that of input, is known. */
+    private fun put(input: InputStream, path: String, progress: (Long) -> Boolean, length: Long) {
         val existed = try {
             lstat(path)
             true
@@ -230,6 +259,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             if (e.status != SftpException.NO_SUCH_FILE) throw e
             false
         }
+        var size: Long? = null
         if (existed) {
             val target = try {
                 stat(path)
@@ -238,15 +268,17 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 null
             }
             if (target?.permissions != null && !target.isFile) throw IOException("not a regular file")
+            size = target?.size
         }
+        val offset = if (length < 0 || size == null || size > length) 0L else maxOf(0L, size - IN_FLIGHT)
         /*
          * Stopped before it began, as between the files of an upload, it
          * must not truncate one: seen right before the open.
          */
-        if (!progress(0)) throw SftpCancelledException()
+        if (!progress(offset)) throw SftpCancelledException()
         var done = false
         try {
-            write(input, path, progress)
+            write(input, path, progress, offset)
             done = true
         } finally {
             if (!done && !existed) {
@@ -258,15 +290,20 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         }
     }
 
-    /* Copy input to the file path, created or truncated. */
-    private fun write(input: InputStream, path: String, progress: (Long) -> Boolean) {
-        val flags = FXF_WRITE or FXF_CREAT or FXF_TRUNC
+    /* Copy input to the file path, created or truncated, or from start on, the bytes before it kept. */
+    private fun write(input: InputStream, path: String, progress: (Long) -> Boolean, start: Long) {
+        val flags = FXF_WRITE or FXF_CREAT or if (start == 0L) FXF_TRUNC else 0
         val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(flags).u32(0)))
         val pending = ArrayDeque<Int>()
         var failed = true
         try {
             val buf = ByteArray(CHUNK)
             var offset = 0L
+            while (offset < start) {
+                val n = input.read(buf, 0, minOf(CHUNK.toLong(), start - offset).toInt())
+                if (n < 0) throw IOException("file shorter than before")
+                offset += n
+            }
             while (true) {
                 val n = input.readNBytes(buf, 0, CHUNK)
                 if (n <= 0) break
@@ -307,19 +344,29 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun send(w: Writer): Int {
         val id = nextId++
         w.id(id)
-        output.write(w.packet())
-        output.flush()
+        try {
+            output.write(w.packet())
+            output.flush()
+        } catch (e: IOException) {
+            isBroken = true
+            throw e
+        }
         return id
     }
 
     private fun reply(id: Int): Reply {
         early.remove(id)?.let { return it }
-        while (true) {
-            val r = readPacket()
-            val got = r.body.u32()
-            if (got == id) return r
-            if (early.size >= MAX_EARLY) throw IOException("unexpected reply")
-            early[got] = r
+        try {
+            while (true) {
+                val r = readPacket()
+                val got = r.body.u32()
+                if (got == id) return r
+                if (early.size >= MAX_EARLY) throw IOException("unexpected reply")
+                early[got] = r
+            }
+        } catch (e: IOException) {
+            isBroken = true
+            throw e
         }
     }
 
@@ -481,6 +528,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
          * of ssh, so that a link with a long round trip stays busy.
          */
         private const val MAX_REQUESTS = 64
+
+        /** The most bytes in flight, those a transfer cut short may have lost. */
+        const val IN_FLIGHT = MAX_REQUESTS.toLong() * CHUNK
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
         private const val MAX_ENTRIES = 200_000

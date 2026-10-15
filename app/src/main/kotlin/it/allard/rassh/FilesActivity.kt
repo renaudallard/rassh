@@ -3,9 +3,13 @@ package it.allard.rassh
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.res.AssetFileDescriptor
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.system.ErrnoException
+import android.system.Os
+import android.system.OsConstants
 import android.text.format.Formatter
 import android.view.Menu
 import android.view.MenuItem
@@ -23,7 +27,9 @@ import it.allard.rassh.sftp.SftpEntry
 import it.allard.rassh.sftp.shownName
 import it.allard.rassh.sftp.SftpException
 import java.io.IOException
+import java.io.OutputStream
 import java.text.DateFormat
+import java.util.Collections
 import java.util.Date
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -58,6 +64,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     /* A picker result waiting for the connection, see onActivityResult(). */
     private var pendingResult: Pair<Int, Intent>? = null
+
+    /* Whether a transfer cut short was offered, once a screen. */
+    private var resumeOffered = false
 
     /* The dialog of the transfer running, closed with the screen. */
     private var progressDialog: AlertDialog? = null
@@ -143,6 +152,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             showTerminal(false)
             load(cwd ?: home ?: ".")
             takePending()
+            offerResume()
             return
         }
         status.setText(R.string.files_connecting)
@@ -174,11 +184,48 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             showTerminal(false)
             load(cwd ?: start)
             takePending()
+            offerResume()
         }
     }
 
     /* Kept by the session once ssh is gone, its pipes closed. */
     private fun client() = session?.takeIf { it.isRunning }?.sftp
+
+    /* The saved host browsed, given to ssh as "-s host sftp" by MainActivity. */
+    private fun host(): String? {
+        val target = session?.target ?: return null
+        val i = target.lastIndexOf("-s")
+        return if (i >= 0) target.getOrNull(i + 1) else null
+    }
+
+    /* A transfer to this host cut short with an earlier connection, offered once connected again. */
+    private fun offerResume() {
+        if (resumeOffered) return
+        resumeOffered = true
+        val host = host() ?: return
+        /* Not while another browser of the host goes on with it. */
+        if (host in resuming) return
+        val r = resumable(host) ?: return
+        val message = when (r) {
+            is Resumable.Download -> getString(R.string.resume_download, shownName(r.remote.substringAfterLast('/')))
+            is Resumable.Upload -> getString(R.string.resume_upload, r.names.drop(r.index).joinToString(", ") { shownName(it) })
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.resume_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.resume) { _, _ ->
+                when (r) {
+                    is Resumable.Download -> saveTo(r.remote, r.uri, r)
+                    is Resumable.Upload -> uploadAll(r.uris, r.names, r.dir, r)
+                }
+            }
+            .setNegativeButton(R.string.discard) { _, _ ->
+                /* The part downloaded goes, the provider may be slow. What an upload left on the server stays. */
+                worker.execute { dropResumable(host) }
+            }
+            .setNeutralButton(R.string.later, null)
+            .show()
+    }
 
     private fun takePending() {
         val (code, data) = pendingResult ?: return
@@ -346,23 +393,95 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
     }
 
-    private fun saveTo(remote: String, uri: Uri) {
+    /* Download remote into uri, or go on with resumed, a download cut short there. */
+    private fun saveTo(remote: String, uri: Uri, resumed: Resumable.Download? = null) {
         val c = client() ?: return
+        val host = host()
+        /* Once, two browsers of the host may have offered it. */
+        if (host != null && resumed != null && !resuming.add(host)) return
         val name = shownName(remote.substringAfterLast('/'))
-        transfer(getString(R.string.downloading, name), { progress ->
+        /* Kept past this screen, it may be resumed after connecting again. */
+        val kept = host != null && keepAccess(listOf(uri), true)
+        transfer(getString(R.string.downloading, name), { progress, stopped ->
             /* Truncated only once the remote file opened, and only known so once that open returned. */
             var opened = false
+            var started: Resumable.Download? = null
+            var append: Pair<OutputStream, Long>? = null
             try {
+                val attrs = c.stat(remote)
+                started = Resumable.Download(remote, uri, attrs.size ?: -1, attrs.mtime)
+                /* Changed on the server since, it is another file: downloaded again. */
+                if (resumed != null && attrs.size == resumed.size && attrs.mtime == resumed.mtime)
+                    append = openAppend(uri, resumed.size)
                 c.download(remote, {
-                    contentResolver.openOutputStream(uri, "wt")?.also { opened = true } ?: throw IOException("cannot open $uri")
-                }, progress)
+                    (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri"))
+                        .also { opened = true }
+                }, append?.second ?: 0, progress)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
-                /* Not to leave a partial or empty file behind. */
-                if (opened || isEmptyDocument(uri)) deleteDocument(uri)
+                if (!opened) append?.first?.close()
+                val cut = host != null && kept && c.isBroken && !stopped()
+                if (cut && opened) {
+                    /* Cut with the connection, what came is kept to go on from. */
+                    keepResumable(host, started ?: throw e)
+                } else if (!cut || resumed == null) {
+                    /* Not to leave a partial or empty file behind. Cut again before going on, it stays as it was. */
+                    if (opened || resumed != null || isEmptyDocument(uri)) deleteDocument(uri)
+                    ended(host, kept, listOf(uri), true, resumed)
+                }
                 throw e
+            } finally {
+                if (host != null && resumed != null) resuming.remove(host)
             }
+            ended(host, kept, listOf(uri), true, resumed)
         }) { toast(getString(R.string.downloaded, name)) }
+    }
+
+    /*
+     * The file on the phone opened to append to, with its size, when it
+     * is a whole regular file of at most max bytes, the start of the
+     * remote one. What a pipe holds, or a provider that cannot append
+     * would write to, is not known: null then, the download starts again.
+     */
+    private fun openAppend(uri: Uri, max: Long): Pair<OutputStream, Long>? {
+        val afd = try {
+            contentResolver.openAssetFileDescriptor(uri, "wa") ?: return null
+        } catch (e: Exception) {
+            if (!isFileError(e)) throw e
+            return null
+        }
+        val size = wholeFile(afd)?.first
+        if (size == null || size < 1 || size > max) {
+            afd.close()
+            return null
+        }
+        return Pair(afd.createOutputStream(), size)
+    }
+
+    /*
+     * The size and the time of the last change in ns of the file afd is,
+     * when a whole regular file, null for a pipe or a part of a file.
+     */
+    private fun wholeFile(afd: AssetFileDescriptor): Pair<Long, Long>? {
+        if (afd.startOffset != 0L || afd.declaredLength != AssetFileDescriptor.UNKNOWN_LENGTH) return null
+        return try {
+            val st = Os.fstat(afd.fileDescriptor)
+            if (!OsConstants.S_ISREG(st.st_mode)) null
+            else Pair(st.st_size, st.st_mtim.tv_sec * 1_000_000_000 + st.st_mtim.tv_nsec)
+        } catch (_: ErrnoException) {
+            null
+        }
+    }
+
+    /*
+     * A transfer done, stopped, or failed for good: the one it resumed is
+     * forgotten, and the files it kept the right to are let go, but for
+     * those a transfer cut short still needs.
+     */
+    private fun ended(host: String?, kept: Boolean, uris: List<Uri>, write: Boolean, resumed: Resumable?) {
+        if (host != null && resumed != null) forgetResumable(host, resumed)
+        val needed = host?.let { resumable(it)?.uris }.orEmpty()
+        if (kept) releaseAccess(uris.filter { it !in needed }, write)
     }
 
     /* Names of the device files, made safe to use on the server. */
@@ -405,18 +524,58 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             false
         }
 
-    private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String) {
+    /* Upload uris as names into dir, or go on with resumed, an upload cut short there. */
+    private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String, resumed: Resumable.Upload? = null) {
         val c = client() ?: return
-        transfer(getString(R.string.uploading, names.joinToString(", ")), { progress ->
+        val host = host()
+        /* Once, two browsers of the host may have offered it. */
+        if (host != null && resumed != null && !resuming.add(host)) return
+        val from = resumed?.index ?: 0
+        /* Kept past this screen, it may be resumed after connecting again. */
+        val kept = host != null && keepAccess(uris, false)
+        transfer(getString(R.string.uploading, names.drop(from).joinToString(", ")), { progress, stopped ->
+            var index = from
+            /* The file at index once the server opened it, to go on with if it is the same then. */
+            var length = -1L
+            var modified = 0L
             try {
-                for ((uri, name) in uris.zip(names)) {
-                    val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
-                    input.use { c.upload(it, path(dir, name), progress) }
+                while (index < uris.size) {
+                    val path = path(dir, names[index])
+                    length = -1
+                    val afd = contentResolver.openAssetFileDescriptor(uris[index], "r")
+                        ?: throw IOException("cannot open ${uris[index]}")
+                    val file = wholeFile(afd)
+                    afd.createInputStream().use { input ->
+                        /* Called first before the server opens the file, then after each write. */
+                        var calls = 0
+                        val counted = { bytes: Long ->
+                            if (++calls == 2 && file != null) {
+                                length = file.first
+                                modified = file.second
+                            }
+                            progress(bytes)
+                        }
+                        if (resumed != null && index == resumed.index && file != null &&
+                            file.first == resumed.length && file.second == resumed.modified)
+                            c.resumeUpload(input, file.first, path, counted)
+                        else
+                            c.upload(input, path, counted)
+                    }
+                    index++
                 }
+            } catch (e: Exception) {
+                if (!isFileError(e)) throw e
+                if (host != null && kept && c.isBroken && !stopped())
+                    keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified))
+                else
+                    ended(host, kept, uris, false, resumed)
+                throw e
             } finally {
+                if (host != null && resumed != null) resuming.remove(host)
                 /* Some files may be there even when a later one failed. */
                 runOnUiThread { if (!isDestroyed) load(dir) }
             }
+            ended(host, kept, uris, false, resumed)
         }) {}
     }
 
@@ -511,8 +670,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         toast(getString(R.string.files_failed, e.message))
     }
 
-    /* A transfer with a progress dialog that can stop it. */
-    private fun transfer(title: String, task: (progress: (Long) -> Boolean) -> Unit, done: () -> Unit) {
+    /* A transfer with a progress dialog that can stop it, which task tells with stopped(). */
+    private fun transfer(title: String, task: (progress: (Long) -> Boolean, stopped: () -> Boolean) -> Unit,
+        done: () -> Unit) {
         val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
         bar.isIndeterminate = true
         val count = TextView(this)
@@ -545,14 +705,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         progressDialog = dialog
         var shown = 0L
         run({
-            task { bytes ->
+            task({ bytes ->
                 val now = System.nanoTime()
                 if (now - shown > PROGRESS_NANOS) {
                     shown = now
                     runOnUiThread { count.text = Formatter.formatShortFileSize(this, bytes) }
                 }
                 !cancelled.get()
-            }
+            }, { cancelled.get() })
         }) {
             dialog.dismiss()
             done()
@@ -621,6 +781,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_REFRESH = 3
         private const val MENU_TERMINAL = 4
         private const val PROGRESS_NANOS = 200_000_000L
+
+        /* The hosts a transfer cut short is going on with, from any browser. */
+        private val resuming: MutableSet<String> = Collections.synchronizedSet(HashSet())
 
         /* Permissions as ls -l shows them. */
         fun mode(p: Int): String {

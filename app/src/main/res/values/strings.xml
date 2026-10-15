@@ -59,6 +59,12 @@
     <string name="downloaded">%1$s downloaded</string>
     <string name="upload">Upload</string>
     <string name="uploading">Uploading %1$s</string>
+    <string name="resume_title">Transfer cut short</string>
+    <string name="resume_download">The connection was lost while downloading %1$s. Resume the download where it stopped?</string>
+    <string name="resume_upload">The connection was lost while uploading %1$s. Resume the upload where it stopped?</string>
+    <string name="resume">Resume</string>
+    <string name="discard">Discard</string>
+    <string name="later">Later</string>
     <string name="replace_files">Some files exist already on the server. Replace them? A transfer stopped halfway leaves them cut short.</string>
     <string name="replace">Replace</string>
     <string name="upload_same_name">Some of the files have the same name, upload them one at a time</string>
