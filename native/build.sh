@@ -74,6 +74,8 @@ build_abi()
 	prefix=$dir/prefix
 	cc=$toolchain/bin/$target$API-clang
 	ldflags="-Wl,-z,max-page-size=16384"
+	# For the code built here, OpenSSH's configure adds the stack protector itself.
+	hardening="-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2"
 	export CC="$cc" AR="$toolchain/bin/llvm-ar" \
 	    RANLIB="$toolchain/bin/llvm-ranlib" \
 	    STRIP="$toolchain/bin/llvm-strip"
@@ -91,8 +93,8 @@ build_abi()
 		make -C include install
 	)
 
-	"$cc" -O2 -Wall -Wextra -c -o "$dir/homedir.o" "$native/homedir.c"
-	"$cc" -O2 -Wall -Wextra -c -o "$dir/dns.o" "$native/dns.c"
+	"$cc" $hardening -Wall -Wextra -c -o "$dir/homedir.o" "$native/homedir.c"
+	"$cc" $hardening -Wall -Wextra -c -o "$dir/dns.o" "$native/dns.c"
 
 	# Without HAVE_ATTRIBUTE__SENTINEL__, OpenSSH defines __sentinel__
 	# away and breaks the attribute in the bionic headers. Bionic only
@@ -106,14 +108,14 @@ build_abi()
 		./configure --host="$target" --with-ssl-dir="$prefix" \
 		    --disable-security-key --disable-pkcs11 \
 		    --sysconfdir=/etc/ssh --with-xauth=/usr/bin/xauth \
-		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__" ac_cv_func_bzero=yes \
+		    CPPFLAGS="-DHAVE_ATTRIBUTE__SENTINEL__ -D_FORTIFY_SOURCE=2" ac_cv_func_bzero=yes \
 		    LDFLAGS="$ldflags -Wl,--wrap=getpwuid -Wl,--wrap=res_query" \
 		    LIBS="$dir/homedir.o $dir/dns.o"
 		make -j "$jobs" SSH_PROGRAM=ssh $PROGRAMS
 	)
 
 	mkdir -p "$jnilibs/$abi"
-	"$cc" -shared -fPIC -O2 -Wall -Wextra "$ldflags" \
+	"$cc" -shared -fPIC $hardening -Wall -Wextra "$ldflags" \
 	    -o "$jnilibs/$abi/librassh.so" "$native/pty.c"
 	for p in $PROGRAMS; do
 		"$STRIP" -o "$jnilibs/$abi/lib$p.so" "$dir/openssh/$p"
