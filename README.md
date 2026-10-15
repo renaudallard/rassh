@@ -172,8 +172,10 @@ There is no PIN fallback.
 
 - Until a fingerprint is enrolled, keys stay in clear in `~/.ssh`. Once
   one is, at first start or later, the app asks whether enrolling a new
-  fingerprint should destroy the keys. Destroying them stops someone who learns the PIN from
-  adding a finger to use them, at the cost of every stored key.
+  fingerprint should destroy the keys. Destroying them stops someone who
+  learns the PIN from adding a finger to use them, at the cost of every
+  stored key. Android then destroys them too when every fingerprint is
+  removed.
 - Removing or resetting the screen lock always destroys them. Resetting
   the key storage then also removes their public keys and certificates.
 - Private keys found in clear in `~/.ssh`, existing, generated or
