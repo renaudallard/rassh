@@ -196,7 +196,9 @@ There is no PIN fallback.
   pipes into an agent started for that connection alone, so the
   decrypted keys never touch the disk. `ssh` removes them from it as
   soon as it is logged in, through `LocalCommand`, which then takes the
-  place of one set for the host. Otherwise, with `scp`, `sftp`, an
+  place of one set for the host, with `PermitLocalCommand` turned on:
+  with `EnableEscapeCommandline` set, `!` then runs a local command from
+  the `~C` command line as well. Otherwise, with `scp`, `sftp`, an
   `ssh` reusing a `ControlMaster` connection, which does not log in
   itself, or a failed login, they leave it 60 seconds after the
   fingerprint, or when the screen turns off, and the agent ends with the
