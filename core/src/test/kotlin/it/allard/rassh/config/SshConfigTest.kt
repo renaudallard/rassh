@@ -302,6 +302,8 @@ class SshConfigTest {
         assertEquals("Host web\n    \"\" ProxyJump bastion\n\n", skipped.toString())
         assertEquals("\t\"\" x", SshConfig.trimOption("\t\"\" x  "))
         assertEquals("User x", SshConfig.trimOption("  User x "))
+        /* ssh keeps a trailing no-break space in a value. */
+        assertEquals("SetEnv A=b\u00a0", SshConfig.trimOption("    SetEnv A=b\u00a0 "))
     }
 
     @Test

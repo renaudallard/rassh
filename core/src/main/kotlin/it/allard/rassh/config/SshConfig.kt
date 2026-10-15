@@ -10,7 +10,7 @@ data class Host(
     val localForwards: List<String> = emptyList(),
     val remoteForwards: List<String> = emptyList(),
     val dynamicForwards: List<String> = emptyList(),
-    /** Any other line of the block, verbatim without indentation. */
+    /** Any other line of the block, verbatim, without indentation unless ssh needs it, see SshConfig.trimOption(). */
     val other: List<String> = emptyList(),
 ) {
     companion object {
@@ -308,13 +308,17 @@ class SshConfig private constructor(
         }
 
         /**
-         * line without the blanks around it, unless ssh would read it
-         * otherwise. ssh skips one empty word before the keyword, the
-         * indentation or a leading "": an indented line starting with ""
-         * is one ssh skips, which it would read once trimmed.
+         * line without the blanks around it, those ssh skips, unless it
+         * would read it otherwise. ssh skips one empty word before the
+         * keyword, the indentation or a leading "": an indented line
+         * starting with "" is one ssh skips, which it would read once
+         * trimmed.
          */
-        fun trimOption(line: String): String =
-            line.trim().let { if (keyword(it) == keyword(line)) it else line.trimEnd() }
+        fun trimOption(line: String): String {
+            fun blank(c: Char) = c in WHITESPACE || c == '\u000c'
+            val trimmed = line.trim(::blank)
+            return if (keyword(trimmed) == keyword(line)) trimmed else line.trimEnd(::blank)
+        }
 
         /**
          * The keyword of a line and its arguments, read like ssh does in
