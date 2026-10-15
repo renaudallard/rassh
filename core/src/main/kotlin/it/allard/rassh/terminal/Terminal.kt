@@ -494,8 +494,9 @@ class Terminal(
                 cursorX = 0
                 wrapPending = false
             }
+            /* From the top of the screen into the history, as in xterm. */
             'M'.code -> if (cursorY in top until bottom) {
-                screen.scrollUp(cursorY, bottom, count(0), eraseStyle(), false)
+                screen.scrollUp(cursorY, bottom, count(0), eraseStyle(), cursorY == 0)
                 cursorX = 0
                 wrapPending = false
             }

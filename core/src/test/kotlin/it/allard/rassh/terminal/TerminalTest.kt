@@ -350,6 +350,19 @@ class TerminalTest {
     }
 
     @Test
+    fun deleteLineAtTheTopKeepsHistory() {
+        val t = term(rows = 3)
+        t.put("one\r\ntwo\r\nthree\u001b[H\u001b[M")
+        assertEquals(1, t.historySize)
+        assertEquals("one", t.line(-1))
+        assertEquals("two", t.line(0))
+        t.put("\u001b[2H\u001b[M")
+        assertEquals(1, t.historySize)
+        t.put("\u001b[?1049h\u001b[H\u001b[M")
+        assertEquals(0, t.historySize)
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")
