@@ -169,8 +169,19 @@ fun unclaimResumable(host: String) {
     synchronized(lock) { resuming.remove(host) }
 }
 
-/** Whether r is still the transfer to host cut short. */
-fun Context.isKept(host: String, r: Resumable): Boolean = synchronized(lock) { resumable(host)?.json() == r.json() }
+/* Whether r is still the transfer to host cut short. */
+private fun Context.isKept(host: String, r: Resumable): Boolean = synchronized(lock) { resumable(host)?.json() == r.json() }
+
+/*
+ * Whether the file of r, a download a browser of host goes on with,
+ * belongs to nothing else: another browser of host kept its own record
+ * in its place, and no record nor other transfer uses the file. Gone
+ * with forgetDownloadsInto() instead, a download into it has it.
+ */
+fun Context.isOrphaned(host: String, r: Resumable.Download): Boolean = synchronized(lock) {
+    val now = resumable(host)
+    now != null && now.json() != r.json() && r.uri !in recorded() && (inUse[r.uri] ?: 0) <= 1
+}
 
 /** Whether a browser goes on with the transfer to host. */
 fun isResuming(host: String): Boolean = synchronized(lock) { host in resuming }
@@ -252,9 +263,11 @@ fun Context.letGoUnneeded() {
 }
 
 /* The files the transfers running or cut short need, called under lock. */
-private fun Context.needed(): Set<Uri> =
-    getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet() +
-        inUse.keys
+private fun Context.needed(): Set<Uri> = recorded() + inUse.keys
+
+/* The files the transfers cut short need, called under lock. */
+private fun Context.recorded(): Set<Uri> =
+    getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet()
 
 fun Context.releaseAccess(uris: List<Uri>, write: Boolean) {
     for (uri in uris) {
