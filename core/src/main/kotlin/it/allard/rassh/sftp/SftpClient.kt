@@ -297,11 +297,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         for (id in ids) reply(id)
     }
 
+    /* Its status is not looked at: closing after reading, or after an error, a refusal changes nothing. */
     private fun closeHandle(handle: ByteArray) {
-        try {
-            request(Writer(FXP_CLOSE).bytes(handle))
-        } catch (_: SftpException) {
-        }
+        request(Writer(FXP_CLOSE).bytes(handle))
     }
 
     private fun request(w: Writer): Reply = reply(send(w))
