@@ -7,6 +7,7 @@ import android.system.Os
 import android.system.OsConstants
 import java.io.File
 import java.io.IOException
+import kotlin.concurrent.thread
 
 /* The longest endStrays() waits for the processes it killed, in milliseconds. */
 private const val END_WAIT = 1000L
@@ -86,8 +87,8 @@ fun strays(): List<Stray> {
         .map { (pid, s) -> Stray(pid, s.start, command(pid, s)) }
 }
 
-/* Kill the strays still running, waiting a moment for them to die. */
-fun endStrays(strays: List<Stray>) {
+/* Kill the strays still running, waiting a moment for them to die. Blocks. */
+private fun endStrays(strays: List<Stray>) {
     fun alive(s: Stray) = stat(s.pid)?.let { it.start == s.start && it.state != 'Z' } == true
     val killed = strays.filter { alive(it) }
     for (s in killed) {
@@ -102,7 +103,7 @@ fun endStrays(strays: List<Stray>) {
 
 /*
  * Call then once the strays are ended, or kept by the user. Closing the
- * question with Back calls nothing.
+ * question with Back, or the screen while they die, calls nothing.
  */
 fun Activity.withoutStrays(then: () -> Unit) {
     val strays = strays()
@@ -110,10 +111,15 @@ fun Activity.withoutStrays(then: () -> Unit) {
     AlertDialog.Builder(this)
         .setTitle(R.string.strays_title)
         .setMessage(getString(R.string.strays_message, strays.joinToString("\n") { "${it.pid} ${it.command}" }))
-        /* Asked again for any that started meanwhile or would not die. */
+        /*
+         * Asked again for any that started meanwhile or would not die. Not
+         * on the UI thread: one stuck in I/O outlives SIGKILL until it returns.
+         */
         .setPositiveButton(R.string.strays_end) { _, _ ->
-            endStrays(strays)
-            withoutStrays(then)
+            thread(name = "strays-end") {
+                endStrays(strays)
+                runOnUiThread { if (!isDestroyed && !isFinishing) withoutStrays(then) }
+            }
         }
         .setNegativeButton(R.string.strays_keep) { _, _ -> then() }
         .show()
