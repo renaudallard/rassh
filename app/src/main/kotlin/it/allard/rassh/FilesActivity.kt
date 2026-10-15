@@ -592,11 +592,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     length = -1
                     val afd = contentResolver.openAssetFileDescriptor(uris[index], "r")
                         ?: throw IOException("cannot open ${uris[index]}")
-                    val file = wholeFile(afd)
-                    /* The same file as when cut short, its size and time first, then what it starts with. */
-                    val same = resumed != null && index == resumed.index && file != null &&
-                        file.first == resumed.length && file.second == resumed.modified && samePrefix(uris[index], resumed)
+                    /* The stream closes afd, whatever fails. */
                     Hashing(afd.createInputStream()).also { hashing = it }.use { input ->
+                        val file = wholeFile(afd)
+                        /* The same file as when cut short, its size and time first, then what it starts with. */
+                        val same = resumed != null && index == resumed.index && file != null &&
+                            file.first == resumed.length && file.second == resumed.modified &&
+                            samePrefix(uris[index], resumed)
                         /* Called first before the server opens the file, then after each write. */
                         var calls = 0
                         val counted = { bytes: Long ->
