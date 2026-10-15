@@ -87,7 +87,7 @@ private fun Resumable.json(): String {
 
 /*
  * Keep r, the transfer to host cut short, in place of an earlier one,
- * whose partial download goes and whose files are let go.
+ * whose partial download goes and whose files are let go, see letGo().
  */
 fun Context.keepResumable(host: String, r: Resumable) {
     val old = synchronized(lock) {
@@ -96,7 +96,7 @@ fun Context.keepResumable(host: String, r: Resumable) {
         old
     } ?: return
     if (old is Resumable.Download && old.uri !in r.uris) deleteDocument(old.uri)
-    releaseAccess(old.uris.filter { it !in r.uris }, old.write)
+    letGo(old.uris, old.write)
 }
 
 /* Forget the transfer to host, letting go of its files, only if it is still r when given. */
@@ -107,7 +107,7 @@ fun Context.forgetResumable(host: String, r: Resumable? = null) {
         getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(host).apply()
         old
     }
-    releaseAccess(old.uris, old.write)
+    letGo(old.uris, old.write)
 }
 
 /*
@@ -151,6 +151,18 @@ fun Context.keepAccess(uris: List<Uri>, write: Boolean): Boolean {
         kept.add(uri)
     }
     return true
+}
+
+/*
+ * Let go of uris but for those a transfer cut short to any host still
+ * needs: the app holds one right to a file, however many keep it.
+ */
+fun Context.letGo(uris: List<Uri>, write: Boolean) {
+    synchronized(lock) {
+        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val needed = prefs.all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet()
+        releaseAccess(uris.filter { it !in needed }, write)
+    }
 }
 
 fun Context.releaseAccess(uris: List<Uri>, write: Boolean) {

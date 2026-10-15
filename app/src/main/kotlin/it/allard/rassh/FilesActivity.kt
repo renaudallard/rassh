@@ -543,8 +543,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      */
     private fun ended(host: String?, kept: Boolean, uris: List<Uri>, write: Boolean, resumed: Resumable?) {
         if (host != null && resumed != null) forgetResumable(host, resumed)
-        val needed = host?.let { resumable(it)?.uris }.orEmpty()
-        if (kept) releaseAccess(uris.filter { it !in needed }, write)
+        if (kept) letGo(uris, write)
     }
 
     /* Names of the device files, made safe to use on the server. */
