@@ -311,8 +311,8 @@ The workflow in `.github/workflows/build.yml` does the same on every push
 and keeps the APKs as artifacts, and the release app bundle for Google
 Play as a separate one. Release builds are signed only when
 `RASSH_KEYSTORE_FILE` names the keystore and the password and alias
-variables below are set, so those of pull requests from forks are
-unsigned.
+variables below are set. The workflow sets it for pushes to `main`
+only, so those of other branches and of pull requests are unsigned.
 
 ## Releases
 

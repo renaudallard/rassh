@@ -38,7 +38,9 @@ jobs:
       - name: Test and build
         run: ./gradlew --no-daemon :core:test :app:lintDebug :app:assembleDebug
 
-      # The signing secrets are only visible to this step.
+      # The signing secrets are only visible to this step. Only pushes to
+      # main are signed: other branches would make APKs that install over
+      # the release of the same version.
       - name: Build release
         env:
           RASSH_KEYSTORE: ${{ secrets.RASSH_KEYSTORE }}
@@ -46,7 +48,8 @@ jobs:
           RASSH_KEY_ALIAS: ${{ secrets.RASSH_KEY_ALIAS }}
           RASSH_KEY_PASSWORD: ${{ secrets.RASSH_KEY_PASSWORD }}
         run: |
-          if [ -n "$RASSH_KEYSTORE" ]; then
+          if [ -n "$RASSH_KEYSTORE" ] && [ "$GITHUB_EVENT_NAME" = push ] &&
+              [ "$GITHUB_REF" = refs/heads/main ]; then
               echo "$RASSH_KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
               export RASSH_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
           fi
