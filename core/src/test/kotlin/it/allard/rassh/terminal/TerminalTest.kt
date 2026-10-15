@@ -358,8 +358,9 @@ class TerminalTest {
         assertEquals("two", t.line(0))
         t.put("\u001b[2H\u001b[M")
         assertEquals(1, t.historySize)
-        t.put("\u001b[?1049h\u001b[H\u001b[M")
-        assertEquals(0, t.historySize)
+        /* The alternate screen has no history, the main one is left as it was. */
+        t.put("\u001b[?1049h\u001b[H\u001b[M\u001b[?1049l")
+        assertEquals(1, t.historySize)
     }
 
     @Test
@@ -416,6 +417,9 @@ class TerminalTest {
         assertEquals("x123456789", t.line(0))
         assertEquals("qr", t.line(1))
         assertEquals(TextStyle.NORMAL, t.row(0).style[0])
+        /* At the old bottom margin, a line feed moves down instead of scrolling. */
+        t.put("\u001b[3H\n")
+        assertEquals(3, t.cursorY)
         /* The saved cursor went too, DECRC goes home. */
         t.put("\u001b[3;4H\u001b8")
         assertEquals(0, t.cursorX)
