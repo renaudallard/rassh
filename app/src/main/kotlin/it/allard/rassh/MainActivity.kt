@@ -287,6 +287,11 @@ class MainActivity : Activity(), SessionService.Listener {
             /* Not once the screen is gone, its dialog dismissed then, see dismissWithScreen(). */
             if (!isDestroyed && !isFinishing) start(service, l, l.path, l.argv, emptyList())
         }, {}) { key ->
+            /*
+             * The prompt outlives a screen recreated meanwhile, as by a
+             * theme change, whose service may have gone with it.
+             */
+            if (isDestroyed || isFinishing) return@withVaultKey
             val pipes = try {
                 keyPipes(vault, key, names)
             } catch (e: IOException) {
