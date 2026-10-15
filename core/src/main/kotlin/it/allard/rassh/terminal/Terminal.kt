@@ -206,12 +206,11 @@ class Terminal(
     }
 
     private fun process(c: Int) {
-        if (c < 0x20 || c == 0x7f) {
-            control(c)
+        if (state == GROUND && c >= 0x20 && c != 0x7f) {
+            print(c)
             return
         }
-        when (state) {
-            GROUND -> print(c)
+        if (c < 0x20 || c == 0x7f) control(c) else when (state) {
             ESCAPE -> escape(c)
             ESCAPE_INTERMEDIATE -> escapeIntermediate(c)
             CSI -> csi(c)
@@ -232,6 +231,8 @@ class Terminal(
                 }
             }
         }
+        /* As in xterm, REP only repeats a character printed right before it: anything else forgets it, REP too. */
+        if (state == GROUND) lastChar = 0
     }
 
     private fun control(c: Int) {
@@ -274,8 +275,8 @@ class Terminal(
     private fun print(c0: Int) {
         val c = charset(c0)
         val width = WcWidth.width(c)
-        if (width == 0 || width > columns) return
         lastChar = c0
+        if (width == 0 || width > columns) return
         if (startCell(width)) put(c, width, 1)
     }
 

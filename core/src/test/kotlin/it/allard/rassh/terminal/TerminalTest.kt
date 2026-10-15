@@ -269,6 +269,20 @@ class TerminalTest {
     }
 
     @Test
+    fun repeatOnlyFollowsAPrintedCharacter() {
+        val t = term()
+        t.put("a\r\n\u001b[3b")
+        assertEquals("", t.line(1))
+        t.put("b\u001b[1m\u001b[3b")
+        assertEquals("b", t.line(1))
+        t.put("\rc\u001b[2b\u001b[2b")
+        assertEquals("ccc", t.line(1))
+        /* Nor a zero width one, as in xterm, which this terminal leaves out. */
+        t.put("\rde\u0301\u001b[2b")
+        assertEquals("dec", t.line(1))
+    }
+
+    @Test
     fun resetParserDropsPartialInput() {
         val t = term()
         t.put("\u001b]0;title without end")
@@ -297,8 +311,8 @@ class TerminalTest {
         repeat(2000) {
             val columns = 1 + r.nextInt(9)
             val rows = 1 + r.nextInt(4)
-            /* Too wide for one column, it is not printed and REP repeats the one before. */
-            val c = chars[r.nextInt(if (columns > 1) chars.size else 1)]
+            /* Too wide for one column, it is neither printed nor repeated. */
+            val c = chars[r.nextInt(chars.size)]
             val n = 1 + r.nextInt(columns * rows)
             val start = buildString {
                 append("\u001b[${1 + r.nextInt(rows)};${1 + r.nextInt(columns)}H")
