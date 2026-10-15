@@ -14,13 +14,13 @@ TERMINAL
 
 HOSTS
 • Saved as Host blocks in ~/.ssh/config: user, port, identity file, local, remote and dynamic forwards, jump hosts, and any other ssh_config option
-• Your own blocks, Host * and Match included, are left as they are, apart from the identity files of a key you rename, and ssh checks the file before it is saved
+• Your own blocks, Host * and Match included, are left as they are, apart from IdentityFile lines kept pointing at your keys, and ssh checks the file before it is saved
 • Quick connect with plain ssh arguments, like -p 2222 me@example.org or -J jump host
 
 KEYS
 • Generate ed25519, ecdsa, rsa and post-quantum mldsa44-ed25519 keys, or import your own
-• Private keys that have their public key are encrypted with a key held in the Android Keystore and unlocked with your fingerprint
-• Each connection gets its own ssh-agent, emptied once ssh is logged in, or after 60 seconds for sftp and scp, so jump hosts, sftp and scp use the keys without writing them to disk
+• Private keys with their public key move into a vault encrypted with a key held in the Android Keystore and unlocked with your fingerprint, a few such as links staying in clear
+• Each connection gets its own ssh-agent, emptied once ssh is logged in, or after 60 seconds for sftp, scp and shared connections, so jump hosts, sftp and scp use the keys without writing them to disk
 • A warning when a server's host key changes, with the new fingerprint to confirm
 
 LOCAL SHELL
