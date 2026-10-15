@@ -10,6 +10,7 @@ import android.os.ParcelFileDescriptor
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import it.allard.rassh.config.SshConfig
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Files
 import java.security.GeneralSecurityException
@@ -198,6 +199,13 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
         val kept = mutableListOf<String>()
         val moved = mutableListOf<String>()
         val adding = mutableListOf<Pair<String, ByteArray>>()
+        /* Read again past the prompt: one grown over Keys.MAX_SIZE meanwhile stays in clear. */
+        fun secret(name: String): ByteArray? {
+            val data = FileInputStream(File(paths.sshDir, name)).use { Keys.read(it) }
+            if (data.size <= Keys.MAX_SIZE) return data
+            data.fill(0)
+            return null
+        }
         try {
             /*
              * ssh-keygen does not sync the files it writes, a power cut
@@ -210,15 +218,15 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
             val sealed = vault.readAll(key, known)
             try {
                 for ((i, name) in known.withIndex()) {
-                    val secret = File(paths.sshDir, name).readBytes()
-                    if (sealed[i].contentEquals(secret)) moved.add(name) else kept.add(name)
-                    secret.fill(0)
+                    val data = secret(name) ?: continue
+                    if (sealed[i].contentEquals(data)) moved.add(name) else kept.add(name)
+                    data.fill(0)
                 }
             } finally {
                 sealed.forEach { it.fill(0) }
             }
             for (name in pending.filter { it !in stored })
-                adding.add(name to File(paths.sshDir, name).readBytes())
+                secret(name)?.let { adding.add(name to it) }
             vault.addAll(key, adding)
             moved.addAll(adding.map { it.first })
         } catch (e: IOException) {
