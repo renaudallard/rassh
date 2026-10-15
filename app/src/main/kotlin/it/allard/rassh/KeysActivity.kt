@@ -108,19 +108,21 @@ class KeysActivity : Activity() {
     }
 
     private fun load() {
-        keys = try {
-            Keys.list(paths.sshDir, vault).also { toldVault = false }
+        val sealed = try {
+            vault.names().also { toldVault = false }
         } catch (e: IOException) {
             /* Loaded at each focus, the same error is said once. */
             if (!toldVault) toast(getString(R.string.vault_error, e.message))
             toldVault = true
-            Keys.plaintext(paths.sshDir)
+            emptyList()
         }
-        keys = (keys + Keys.misnamed(paths.sshDir)).distinct().sorted()
+        keys = (sealed + Keys.plaintext(paths.sshDir) + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
             val pub = Keys.publicKey(paths.sshDir, name)
             name to when {
-                !Keys.isValidName(name) -> getString(R.string.key_name_not_allowed)
+                /* Named as early versions allowed, a key of the vault is in it already. */
+                !Keys.isValidName(name) -> getString(
+                    if (name in sealed) R.string.key_name_not_allowed_sealed else R.string.key_name_not_allowed)
                 pub != null -> pub.split(' ').let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }.trim()
                 else -> getString(R.string.public_key_missing)
             }

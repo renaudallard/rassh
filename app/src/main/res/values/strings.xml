@@ -118,6 +118,7 @@
     <string name="public_key_copied">Public key copied</string>
     <string name="public_key_missing">No public key</string>
     <string name="key_name_not_allowed">Name not allowed, rename it to move it into the vault and export it</string>
+    <string name="key_name_not_allowed_sealed">Name not allowed, rename it to export it</string>
     <string name="derive_public_key">Create public key</string>
     <string name="error_key_name">Use letters, digits, dot, dash and underscore, not starting with a dot, not ending in .pub, .tmp or -cert, not a reserved name</string>
     <string name="error_key_exists">A key or file with this name already exists</string>
