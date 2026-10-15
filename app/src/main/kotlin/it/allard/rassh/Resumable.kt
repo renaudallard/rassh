@@ -34,9 +34,10 @@ sealed class Resumable {
      * uris uploaded as names into dir, done up to index. The file there
      * was length bytes long and last modified at modified, in ns, when
      * the server had started to take it, length is -1 when it had not.
+     * sha256 is the hash of its first sent bytes, those read when cut.
      */
     class Upload(val dir: String, override val uris: List<Uri>, val names: List<String>, val index: Int,
-        val length: Long, val modified: Long) : Resumable() {
+        val length: Long, val modified: Long, val sent: Long, val sha256: String) : Resumable() {
         override val write: Boolean
             get() = false
     }
@@ -61,7 +62,7 @@ fun Context.resumable(host: String): Resumable? {
             if (uris.length() != names.length()) return null
             Resumable.Upload(o.getString("dir"), (0 until uris.length()).map { Uri.parse(uris.getString(it)) },
                 (0 until names.length()).map { names.getString(it) }, o.getInt("index"), o.getLong("length"),
-                o.getLong("modified"))
+                o.getLong("modified"), o.getLong("sent"), o.getString("sha256"))
         }
     } catch (_: JSONException) {
         null
@@ -78,6 +79,7 @@ private fun Resumable.json(): String {
         is Resumable.Upload -> {
             o.put("dir", dir).put("uris", JSONArray(uris.map { it.toString() }))
                 .put("names", JSONArray(names)).put("index", index).put("length", length).put("modified", modified)
+                .put("sent", sent).put("sha256", sha256)
         }
     }
     return o.toString()

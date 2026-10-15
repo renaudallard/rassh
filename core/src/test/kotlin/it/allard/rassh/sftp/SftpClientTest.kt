@@ -145,16 +145,19 @@ class SftpClientTest {
         val cut = 4_000_000
         remote.writeBytes(data.copyOf(cut).also { it.fill(0, cut - 100_000, cut - 50_000) })
         var first = -1L
-        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst", { if (first < 0) first = it; true })
+        val sent = cut + 100_000L
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), sent, "$dir/dst", { if (first < 0) first = it; true })
         assertContentEquals(data, remote.readBytes())
         assertEquals(cut - SftpClient.IN_FLIGHT, first)
-        /* Longer than what is uploaded, it is not the start of it: written from the start. */
-        remote.writeBytes(Random(6).nextBytes(data.size + 10))
-        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst")
+        /* Longer than what was sent, the upload did not write all of it: written from the start. */
+        remote.writeBytes(Random(6).nextBytes(cut + 200_000))
+        first = -1
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), sent, "$dir/dst", { if (first < 0) first = it; true })
         assertContentEquals(data, remote.readBytes())
+        assertEquals(0, first)
         /* Gone, it is made again. */
         remote.delete()
-        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), "$dir/dst")
+        sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), sent, "$dir/dst")
         assertContentEquals(data, remote.readBytes())
         assertFalse(sftp.isBroken)
     }

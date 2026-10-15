@@ -26,8 +26,11 @@ import it.allard.rassh.sftp.SftpClient
 import it.allard.rassh.sftp.SftpEntry
 import it.allard.rassh.sftp.shownName
 import it.allard.rassh.sftp.SftpException
+import java.io.FilterInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.io.OutputStream
+import java.security.MessageDigest
 import java.text.DateFormat
 import java.util.Collections
 import java.util.Date
@@ -474,6 +477,50 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     /*
+     * Whether the file at uri starts with the bytes r, an upload cut
+     * short, had read of it: they are hashed again, the file is read up
+     * to there twice. A file changed but for its size and time is not
+     * taken for the start of what the server has.
+     */
+    private fun samePrefix(uri: Uri, r: Resumable.Upload): Boolean {
+        val input = Hashing(contentResolver.openInputStream(uri) ?: return false)
+        input.use {
+            val buf = ByteArray(BUFFER_SIZE)
+            while (it.count < r.sent) {
+                if (it.read(buf, 0, minOf(buf.size.toLong(), r.sent - it.count).toInt()) < 0) return false
+            }
+        }
+        return input.hex() == r.sha256
+    }
+
+    /* input, with the SHA-256 and the count of the bytes read from it, the start of it as nothing skips. */
+    private class Hashing(input: InputStream) : FilterInputStream(input) {
+        private val digest = MessageDigest.getInstance("SHA-256")
+        var count = 0L
+            private set
+
+        override fun read(): Int {
+            val c = super.read()
+            if (c >= 0) {
+                digest.update(c.toByte())
+                count++
+            }
+            return c
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            val n = super.read(b, off, len)
+            if (n > 0) {
+                digest.update(b, off, n)
+                count += n
+            }
+            return n
+        }
+
+        fun hex(): String = digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    /*
      * A transfer done, stopped, or failed for good: the one it resumed is
      * forgotten, and the files it kept the right to are let go, but for
      * those a transfer cut short still needs.
@@ -538,6 +585,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             /* The file at index once the server opened it, to go on with if it is the same then. */
             var length = -1L
             var modified = 0L
+            var hashing: Hashing? = null
             try {
                 while (index < uris.size) {
                     val path = path(dir, names[index])
@@ -545,7 +593,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     val afd = contentResolver.openAssetFileDescriptor(uris[index], "r")
                         ?: throw IOException("cannot open ${uris[index]}")
                     val file = wholeFile(afd)
-                    afd.createInputStream().use { input ->
+                    /* The same file as when cut short, its size and time first, then what it starts with. */
+                    val same = resumed != null && index == resumed.index && file != null &&
+                        file.first == resumed.length && file.second == resumed.modified && samePrefix(uris[index], resumed)
+                    Hashing(afd.createInputStream()).also { hashing = it }.use { input ->
                         /* Called first before the server opens the file, then after each write. */
                         var calls = 0
                         val counted = { bytes: Long ->
@@ -555,9 +606,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                             }
                             progress(bytes)
                         }
-                        if (resumed != null && index == resumed.index && file != null &&
-                            file.first == resumed.length && file.second == resumed.modified)
-                            c.resumeUpload(input, file.first, path, counted)
+                        if (resumed != null && file != null && same)
+                            c.resumeUpload(input, file.first, resumed.sent, path, counted)
                         else
                             c.upload(input, path, counted)
                     }
@@ -565,9 +615,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 }
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
-                if (host != null && kept && c.isBroken && !stopped())
-                    keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified))
-                else
+                if (host != null && kept && c.isBroken && !stopped()) {
+                    val h = hashing
+                    keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified,
+                        h?.count ?: 0, h?.hex() ?: ""))
+                } else
                     ended(host, kept, uris, false, resumed)
                 throw e
             } finally {
@@ -781,6 +833,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_REFRESH = 3
         private const val MENU_TERMINAL = 4
         private const val PROGRESS_NANOS = 200_000_000L
+        private const val BUFFER_SIZE = 65536
 
         /* The hosts a transfer cut short is going on with, from any browser. */
         private val resuming: MutableSet<String> = Collections.synchronizedSet(HashSet())

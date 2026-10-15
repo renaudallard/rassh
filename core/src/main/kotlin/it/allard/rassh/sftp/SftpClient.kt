@@ -239,19 +239,20 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
     /**
      * Go on with an upload of input, length bytes long, to path, cut short
-     * with its connection. What the server has is kept, but for its last
-     * IN_FLIGHT bytes: the writes in flight then may have landed in any
-     * order, a hole may be left among them. Uploaded from the start when
-     * the file is gone, or longer than input.
+     * with its connection once sent bytes of input were read. What the
+     * server has is kept, but for its last IN_FLIGHT bytes: the writes in
+     * flight then may have landed in any order, a hole may be left among
+     * them. Uploaded from the start when the file is gone, or holds more
+     * than was sent, which the upload did not write.
      */
     @Synchronized
     @Throws(IOException::class)
-    fun resumeUpload(input: InputStream, length: Long, path: String, progress: (Long) -> Boolean = { true }) {
-        put(input, path, progress, length)
+    fun resumeUpload(input: InputStream, length: Long, sent: Long, path: String, progress: (Long) -> Boolean = { true }) {
+        put(input, path, progress, minOf(length, sent))
     }
 
-    /* As upload(), resumed when length, that of input, is known. */
-    private fun put(input: InputStream, path: String, progress: (Long) -> Boolean, length: Long) {
+    /* As upload(), resumed when known, the bytes of input the server may have, is not -1. */
+    private fun put(input: InputStream, path: String, progress: (Long) -> Boolean, known: Long) {
         val existed = try {
             lstat(path)
             true
@@ -270,7 +271,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             if (target?.permissions != null && !target.isFile) throw IOException("not a regular file")
             size = target?.size
         }
-        val offset = if (length < 0 || size == null || size > length) 0L else maxOf(0L, size - IN_FLIGHT)
+        val offset = if (known < 0 || size == null || size > known) 0L else maxOf(0L, size - IN_FLIGHT)
         /*
          * Stopped before it began, as between the files of an upload, it
          * must not truncate one: seen right before the open.
