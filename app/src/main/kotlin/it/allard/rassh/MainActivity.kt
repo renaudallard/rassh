@@ -249,7 +249,9 @@ class MainActivity : Activity(), SessionService.Listener {
      * Once a long press shows the menu of a host, moving the finger
      * closes it and takes the host along, its place in the config is
      * saved when the finger is lifted. The list scrolls while the finger
-     * is near its top or bottom edge. Other fingers are ignored.
+     * is near its top or bottom edge. The list long-presses the row of
+     * the last finger down, or of the one it keeps when that one is
+     * lifted, the drag follows the same finger only.
      */
     private fun drag(e: MotionEvent) {
         when (e.actionMasked) {
@@ -274,7 +276,19 @@ class MainActivity : Activity(), SessionService.Listener {
                     list.postOnAnimation(scroll)
                 }
             }
-            MotionEvent.ACTION_POINTER_UP -> if (held >= 0 && e.getPointerId(e.actionIndex) == finger) drop()
+            MotionEvent.ACTION_POINTER_DOWN -> if (held < 0) {
+                finger = e.getPointerId(e.actionIndex)
+                downY = e.getY(e.actionIndex)
+            }
+            MotionEvent.ACTION_POINTER_UP -> if (e.getPointerId(e.actionIndex) == finger) {
+                if (held >= 0) {
+                    drop()
+                } else {
+                    val p = if (e.actionIndex == 0) 1 else 0
+                    finger = e.getPointerId(p)
+                    downY = e.getY(p)
+                }
+            }
             MotionEvent.ACTION_UP -> if (held >= 0) drop()
             MotionEvent.ACTION_CANCEL -> if (held >= 0) loadHosts()
         }
