@@ -21,11 +21,13 @@ private class KnownHost(val name: String, val files: List<File>)
  */
 @Throws(IOException::class)
 private fun knownHost(paths: Paths, target: List<String>): KnownHost {
-    val config = runProgram(paths.ssh, listOf("ssh", "-G") + target, paths.env, paths.home.path)
-        .lines().mapNotNull { line ->
-            val i = line.indexOf(' ')
-            if (i > 0) line.substring(0, i) to line.substring(i + 1) else null
-        }.toMap()
+    val (out, status) = execute(paths.ssh, listOf("ssh", "-G") + target, paths.env, paths.home.path)
+    /* A config edited since, in the local shell for instance, may be refused: ssh says why. */
+    if (status != 0) throw IOException(out.trim().ifEmpty { "ssh -G: exit $status" })
+    val config = out.lines().mapNotNull { line ->
+        val i = line.indexOf(' ')
+        if (i > 0) line.substring(0, i) to line.substring(i + 1) else null
+    }.toMap()
     /* An alias is taken as it is, the port only goes with the host name, see sshconnect.c. */
     val alias = config["hostkeyalias"]
     val port = config["port"] ?: "22"
@@ -52,8 +54,10 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
  */
 @Throws(IOException::class)
 private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
-    val out = runProgram(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
-        .split('\n')
+    val (text, status) = execute(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
+    /* 1 when nothing was found. */
+    if (status != 0 && status != 1) throw IOException(text.trim().ifEmpty { "ssh-keygen -F: exit $status" })
+    val out = text.split('\n')
     val found = out.indices.filter { FOUND.matches(out[it]) }.mapNotNull { out.getOrNull(it + 1)?.trimEnd() }.toSet()
     return file.readText().split('\n').filter { it.trimEnd() in found }.toSet()
 }
