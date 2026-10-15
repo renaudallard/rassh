@@ -193,6 +193,12 @@ class SshConfigTest {
         assertTrue(Host.isValidOption("\"Host unterminated"))
         assertTrue(Host.isValidWord("user@example"))
         assertFalse(Host.isValidWord("a b"))
+        assertTrue(Host.isValidUser("John Smith"))
+        assertTrue(Host.isValidUser("o'brien#1"))
+        assertFalse(Host.isValidUser("a\nb"))
+        val config = SshConfig.parse("")
+        config.put(null, Host("w", user = "John \"J\" Smith"))
+        assertEquals("John \"J\" Smith", SshConfig.parse(config.toString()).find("w")!!.user)
     }
 
     @Test

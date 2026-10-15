@@ -216,8 +216,8 @@ class HostActivity : Activity() {
             hostName.error = getString(R.string.error_word)
             ok = false
         }
-        if (!Host.isValidWord(u)) {
-            user.error = getString(R.string.error_word)
+        if (!Host.isValidUser(u)) {
+            user.error = getString(R.string.error_user)
             ok = false
         }
         if (!Host.isValidPort(p)) {

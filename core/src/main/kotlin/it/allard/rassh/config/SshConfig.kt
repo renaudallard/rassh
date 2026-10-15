@@ -26,9 +26,16 @@ data class Host(
             name.isNotEmpty() && !name.startsWith("-") &&
                 name.none { it.isWhitespace() || it.isISOControl() || it in "*?!,\"'#=`$\\;&<>|(){}@/[]" }
 
-        /** A single word usable as a HostName or User value. */
+        /** A single word usable as a HostName value. */
         fun isValidWord(value: String): Boolean =
             value.none { it.isWhitespace() || it in "\"'#" }
+
+        /*
+         * A User value. ssh takes one from the config as written, spaces
+         * and quotes included, which are quoted when saved: only a line
+         * break, or another control character, could not be.
+         */
+        fun isValidUser(value: String): Boolean = value.none { it.isISOControl() }
 
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
