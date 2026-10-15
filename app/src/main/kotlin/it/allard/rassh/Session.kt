@@ -206,14 +206,18 @@ class Session(
     /*
      * Hang up the program and what it started on the terminal. Whatever
      * still holds the terminal after a while is killed, as it would keep
-     * the reader thread and the terminal open. The child is reaped only
-     * once the terminal is released, its group id cannot be reused until
-     * then.
+     * the reader thread and the terminal open, and so is the program
+     * itself: one ignoring the hangup, off the terminal, would go on
+     * outside any session. The child is reaped only once the terminal is
+     * released, its group id cannot be reused until then.
      */
     fun close() {
         if (isRunning) child.signal(SIGHUP)
         if (readerDone.count > 0L) child.signalGroup(SIGHUP)
-        handler.postDelayed({ if (readerDone.count > 0L) child.signalGroup(SIGKILL) }, CLOSE_MILLIS)
+        handler.postDelayed({
+            if (isRunning) child.signal(SIGKILL)
+            if (readerDone.count > 0L) child.signalGroup(SIGKILL)
+        }, CLOSE_MILLIS)
     }
 
     override fun titleChanged(title: String) {
