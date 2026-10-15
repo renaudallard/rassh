@@ -420,7 +420,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         .also { opened = true }
                 }, append?.second ?: 0, progress)
                 /* Forgotten while still claimed: a host edited meanwhile would drop the record and the file. */
-                ended(host, kept, listOf(uri), true, resumed)
+                ended(host, resumed)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
                 if (!opened) append?.first?.close()
@@ -431,10 +431,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 } else if (!cut || resumed == null) {
                     /* Not to leave a partial or empty file behind. Cut again before going on, it stays as it was. */
                     if (opened || resumed != null || isEmptyDocument(uri)) deleteDocument(uri)
-                    ended(host, kept, listOf(uri), true, resumed)
+                    ended(host, resumed)
                 }
                 throw e
             } finally {
+                /* Let go once forgotten or kept for later, see doneWith(). */
+                if (kept) doneWith(listOf(uri), true)
                 if (host != null && resumed != null) unclaimResumable(host)
             }
         }) { toast(getString(R.string.downloaded, name)) }
@@ -534,14 +536,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         fun hex(): String = digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    /*
-     * A transfer done, stopped, or failed for good: the one it resumed is
-     * forgotten, and the files it kept the right to are let go, but for
-     * those a transfer cut short still needs.
-     */
-    private fun ended(host: String?, kept: Boolean, uris: List<Uri>, write: Boolean, resumed: Resumable?) {
+    /* A transfer done, stopped, or failed for good: the one it resumed is forgotten. */
+    private fun ended(host: String?, resumed: Resumable?) {
         if (host != null && resumed != null) forgetResumable(host, resumed)
-        if (kept) letGo(uris, write)
     }
 
     /* Names of the device files, made safe to use on the server. */
@@ -632,7 +629,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     index++
                 }
                 /* Forgotten while still claimed, see saveTo(). */
-                ended(host, kept, uris, false, resumed)
+                ended(host, resumed)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
                 if (host != null && kept && c.isBroken && !stopped()) {
@@ -648,9 +645,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified,
                             h?.count ?: 0, h?.hex() ?: ""))
                 } else
-                    ended(host, kept, uris, false, resumed)
+                    ended(host, resumed)
                 throw e
             } finally {
+                if (kept) doneWith(uris, false)
                 if (host != null && resumed != null) unclaimResumable(host)
                 /* Some files may be there even when a later one failed. */
                 runOnUiThread { if (!isDestroyed) load(dir) }

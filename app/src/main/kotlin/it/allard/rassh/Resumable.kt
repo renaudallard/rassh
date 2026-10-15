@@ -51,6 +51,9 @@ private val lock = Any()
 /* The hosts whose transfer cut short a browser goes on with, under lock. */
 private val resuming = HashSet<String>()
 
+/* How many running transfers use each file they kept the right to, under lock. */
+private val inUse = HashMap<Uri, Int>()
+
 /*
  * Server names are kept as their UTF-16 units in hex: one not in UTF-8
  * holds lone surrogates, see decodeName(), which the preferences file
@@ -183,26 +186,44 @@ fun Context.dropAllResumable() {
     for (host in getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys) dropResumable(host)
 }
 
-/* Keep the right to uris past the screen, false when a provider does not let it. */
+/*
+ * Keep the right to uris past the screen for a transfer, which tells
+ * when it is done with them with doneWith(). false when a provider does
+ * not let it.
+ */
 fun Context.keepAccess(uris: List<Uri>, write: Boolean): Boolean {
-    /* Those kept already, for a transfer cut short, are not to be let go here. */
-    val held = contentResolver.persistedUriPermissions.map { it.uri }.toSet()
-    val kept = mutableListOf<Uri>()
-    for (uri in uris) {
-        try {
-            contentResolver.takePersistableUriPermission(uri, accessFlags(write))
-        } catch (_: SecurityException) {
-            releaseAccess(kept.filter { it !in held }, write)
-            return false
+    synchronized(lock) {
+        /* Those kept already, for another transfer, are not to be let go here. */
+        val held = contentResolver.persistedUriPermissions.map { it.uri }.toSet()
+        val kept = mutableListOf<Uri>()
+        for (uri in uris) {
+            try {
+                contentResolver.takePersistableUriPermission(uri, accessFlags(write))
+            } catch (_: SecurityException) {
+                releaseAccess(kept.filter { it !in held }, write)
+                return false
+            }
+            kept.add(uri)
         }
-        kept.add(uri)
+        for (uri in uris) inUse[uri] = (inUse[uri] ?: 0) + 1
+        return true
     }
-    return true
+}
+
+/* A transfer is done with the files of keepAccess(), see letGo(). */
+fun Context.doneWith(uris: List<Uri>, write: Boolean) {
+    synchronized(lock) {
+        for (uri in uris) {
+            val n = (inUse[uri] ?: continue) - 1
+            if (n > 0) inUse[uri] = n else inUse.remove(uri)
+        }
+        letGo(uris, write)
+    }
 }
 
 /*
- * Let go of uris but for those a transfer cut short to any host still
- * needs: the app holds one right to a file, however many keep it.
+ * Let go of uris but for those another transfer uses or one cut short to
+ * any host needs: the app holds one right to a file, however many keep it.
  */
 fun Context.letGo(uris: List<Uri>, write: Boolean) {
     synchronized(lock) {
@@ -212,8 +233,8 @@ fun Context.letGo(uris: List<Uri>, write: Boolean) {
 }
 
 /*
- * Let go of the files no record needs, kept for a transfer that left
- * none, as when the app was killed during it. Only while none runs.
+ * Let go of the files no transfer needs, kept by one that ended without
+ * telling, as when the app was killed during it.
  */
 fun Context.letGoUnneeded() {
     synchronized(lock) {
@@ -223,9 +244,10 @@ fun Context.letGoUnneeded() {
     }
 }
 
-/* The files the transfers cut short need, called under lock. */
+/* The files the transfers running or cut short need, called under lock. */
 private fun Context.needed(): Set<Uri> =
-    getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet()
+    getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys.flatMap { resumable(it)?.uris.orEmpty() }.toSet() +
+        inUse.keys
 
 fun Context.releaseAccess(uris: List<Uri>, write: Boolean) {
     for (uri in uris) {

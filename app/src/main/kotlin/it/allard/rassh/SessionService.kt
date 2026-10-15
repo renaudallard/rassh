@@ -63,7 +63,7 @@ class SessionService : Service() {
         removeKeyLinks(paths)
         /* The socket of the agent shared by all sessions in older versions. */
         File(paths.tmp, "agent.sock").delete()
-        /* Nor any transfer, which needs a session. */
+        /* Nor any transfer but one cut with its browser, which tells it uses its files. */
         letGoUnneeded()
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
