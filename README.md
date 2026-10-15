@@ -240,6 +240,14 @@ can take the decrypted keys at the next fingerprint, or sign with them
 until they leave the agent. Keys on a phone where untrusted code ran
 as root should be treated as exposed and replaced.
 
+A program running as the app can do the same without root. Anyone who
+had the phone unlocked in hand can start one from the local shell, and
+it keeps running as long as the app does. It can then read the keys
+`ssh-add` loads at the next fingerprint, or use them through the agent
+of the connection while they are in it. When the phone was left
+unlocked out of your hands, force-stop the app or restart the phone
+before connecting.
+
 ## Moving to another phone
 
 Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
