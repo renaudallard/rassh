@@ -74,7 +74,8 @@ build_abi()
 	prefix=$dir/prefix
 	cc=$toolchain/bin/$target$API-clang
 	ldflags="-Wl,-z,max-page-size=16384"
-	# For the code built here, OpenSSH's configure adds the stack protector itself.
+	# For the code compiled here directly: OpenSSH's configure adds the
+	# stack protector to its own, not _FORTIFY_SOURCE, given below.
 	hardening="-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2"
 	export CC="$cc" AR="$toolchain/bin/llvm-ar" \
 	    RANLIB="$toolchain/bin/llvm-ranlib" \
