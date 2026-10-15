@@ -52,7 +52,7 @@ class SessionService : Service() {
     override fun onCreate() {
         super.onCreate()
         paths = Paths(this)
-        /* ssh-add is run through PATH before any session, the links must be current. */
+        /* Sessions find ssh and the others through ~/bin, the links must be current. */
         try {
             paths.linkPrograms()
         } catch (_: ErrnoException) {
