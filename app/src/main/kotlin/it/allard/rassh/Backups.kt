@@ -234,7 +234,11 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
     }
     if (items.none { it.type == Backup.KEY && (replace || !Keys.isTaken(paths.sshDir, it.name, present)) && sealable(items, it, seal) })
         return write(null)
-    withVaultKey(vault, getString(R.string.import_reason), { zero() }) { key -> write(key) }
+    /* Android closes the prompt of an app left while the file was read, which must not go unsaid. */
+    withVaultKey(vault, getString(R.string.import_reason), { zero() }, {
+        zero()
+        toast(getString(R.string.restore_failed, getString(R.string.import_dismissed)))
+    }) { key -> write(key) }
 }
 
 /* Returns the number of hosts and keys there are now. */
