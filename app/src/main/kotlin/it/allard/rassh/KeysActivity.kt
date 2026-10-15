@@ -285,10 +285,10 @@ class KeysActivity : Activity() {
         }
     }
 
-    /* ssh-keygen -y prints the public key, it may ask the passphrase. */
+    /* ssh-keygen -y prints the public key, it may ask the passphrase. Helpers from /system/bin, not ~/bin. */
     private fun derivePublicKey(name: String) {
         val key = File(paths.sshDir, name).path
-        val script = "\"\$0\" -y -f \"\$1\" > \"\$1.pub.tmp\" && mv \"\$1.pub.tmp\" \"\$1.pub\"; " +
+        val script = "PATH=/system/bin; \"\$0\" -y -f \"\$1\" > \"\$1.pub.tmp\" && mv \"\$1.pub.tmp\" \"\$1.pub\"; " +
             "s=\$?; rm -f \"\$1.pub.tmp\"; exit \$s"
         run(name, SHELL, listOf("sh", "-c", script, paths.keygen, key))
     }

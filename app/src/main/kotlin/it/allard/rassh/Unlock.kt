@@ -319,9 +319,10 @@ private val KEY_LINKS = Regex("""keys\.\d+""")
  * another without keys in the middle of its login. ProxyJump and
  * LocalCommand reach it through SSH_AUTH_SOCK.
  */
-fun withAgent(argv: List<String>, names: List<String>): List<String> {
+fun withAgent(paths: Paths, argv: List<String>, names: List<String>): List<String> {
+    fun quote(s: String) = "'" + s.replace("'", "'\\''") + "'"
     val files = names.indices.joinToString(" ") { "/dev/fd/${3 + it}" }
-    val quoted = names.map { "'" + it.replace("'", "'\\''") + "'" }
+    val quoted = names.map { quote(it) }
     val links = quoted.withIndex().joinToString("") { (i, name) -> " && ln -s /dev/fd/${3 + i} \"\$d\"/$name" }
     val keys = quoted.joinToString(" ") { "./$it" }
     /*
@@ -339,14 +340,20 @@ fun withAgent(argv: List<String>, names: List<String>): List<String> {
      * as sftp does, must not end the shell with it: a trap catching
      * SIGINT is reset to the default in the program. It is only set for
      * the program, a Ctrl-C at a passphrase of ssh-add stops it all.
+     *
+     * The keys are open on its descriptors: what it runs before the
+     * program comes from /system/bin or the app, never from ~/bin, where
+     * the local shell may put anything. The program gets the PATH back,
+     * scp and sftp find ssh through it.
      */
-    val script = "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
-        "ssh-agent -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
+    val script = "p=\$PATH; PATH=/system/bin; " +
+        "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
+        "${quote(paths.agent)} -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "d=\"\$TMPDIR/keys.\$\$\"; rm -rf \"\$d\"; mkdir -m 700 \"\$d\"$links && " +
-        "(cd \"\$d\" && exec ssh-add -t $KEY_LIFETIME $keys) >&2; rm -rf \"\$d\"; " +
+        "(cd \"\$d\" && exec ${quote(paths.add)} -t $KEY_LIFETIME $keys) >&2; rm -rf \"\$d\"; " +
         "cat $files >/dev/null 2>&1; " +
-        "trap : INT; \"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
+        "PATH=\$p; trap : INT; \"\$0\" \"\$@\"; s=\$?; kill \$agent 2>/dev/null; exit \$s"
     return listOf("sh", "-c", script) + argv
 }
 
@@ -354,7 +361,7 @@ fun withAgent(argv: List<String>, names: List<String>): List<String> {
 fun clearAgents(paths: Paths) {
     for (socket in agentSockets(paths)) {
         try {
-            runProgram(SHELL, listOf("sh", "-c", "exec ssh-add -D"), paths.env + "SSH_AUTH_SOCK=$socket", paths.home.path)
+            runProgram(paths.add, listOf("ssh-add", "-D"), paths.env + "SSH_AUTH_SOCK=$socket", paths.home.path)
         } catch (_: IOException) {
         }
     }

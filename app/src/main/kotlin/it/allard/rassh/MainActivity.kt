@@ -301,7 +301,7 @@ class MainActivity : Activity(), SessionService.Listener {
                 return@withVaultKey
             }
             try {
-                start(service, l, SHELL, withAgent(clearAfterLogin(l.argv), names), pipes)
+                start(service, l, SHELL, withAgent(paths, clearAfterLogin(l.argv), names), pipes)
             } finally {
                 pipes.forEach { it.close() }
             }

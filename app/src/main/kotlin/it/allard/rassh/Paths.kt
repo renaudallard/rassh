@@ -22,6 +22,8 @@ class Paths(context: Context) {
     private val lib = context.applicationInfo.nativeLibraryDir
     val ssh = program("ssh")
     val keygen = program("ssh-keygen")
+    val agent = program("ssh-agent")
+    val add = program("ssh-add")
     val scp = program("scp")
     val sftp = program("sftp")
     val env = listOf(
