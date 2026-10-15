@@ -2,6 +2,7 @@ package it.allard.rassh
 
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 
 /** Private keys, in the vault or in clear in ~/.ssh until moved there. */
 object Keys {
@@ -79,6 +80,27 @@ object Keys {
         } catch (_: IOException) {
             false
         }
+
+    /*
+     * Up to MAX_SIZE + 1 bytes of a key file, so that a larger one is
+     * told apart. readNBytes() leaves the key in buffers of its own, this
+     * array is zeroed once copied.
+     */
+    @Throws(IOException::class)
+    fun read(input: InputStream): ByteArray {
+        val buf = ByteArray(MAX_SIZE + 1)
+        try {
+            var n = 0
+            while (n < buf.size) {
+                val r = input.read(buf, n, buf.size - n)
+                if (r < 0) break
+                n += r
+            }
+            return buf.copyOf(n)
+        } finally {
+            buf.fill(0)
+        }
+    }
 
     /** Whether data starts as a private key file does. */
     fun isPem(data: ByteArray): Boolean = data.size >= PEM.size && PEM.indices.all { data[it] == PEM[it] }

@@ -244,7 +244,7 @@ class KeysActivity : Activity() {
             thread(name = "import-key") {
                 val error = try {
                     /* Kept in a byte array, zeroed after use, never in a String. */
-                    val key = contentResolver.openInputStream(uri)?.use { it.readNBytes(Keys.MAX_SIZE + 1) }
+                    val key = contentResolver.openInputStream(uri)?.use { Keys.read(it) }
                         ?: throw IOException("cannot open $uri")
                     try {
                         if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
