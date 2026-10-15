@@ -77,9 +77,10 @@ keys are encrypted and unlocked with it.
   it then to another row moves its block in the file, but only past the
   blocks of other saved hosts: ssh takes the first value it finds, past
   a `Host *` or `Match` block the host would get other options. Nor
-  does it move when it or a host it would pass has an `IgnoreUnknown` or
-  `Include` line, as ssh skips an option it does not know only after an
-  `IgnoreUnknown` line naming it
+  does it move when its block or one it would pass has an
+  `IgnoreUnknown` or `Include` line, as ssh skips an option it does not
+  know only after an `IgnoreUnknown` line naming it, which an included
+  file may hold
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
