@@ -48,23 +48,38 @@ private const val PREFS = "resume"
 /* Two browsers of a host may lose their connection at once. */
 private val lock = Any()
 
+/*
+ * Server names are kept as their UTF-16 units in hex: one not in UTF-8
+ * holds lone surrogates, see decodeName(), which the preferences file
+ * would write as "?".
+ */
+private fun units(s: String): String = s.map { it.code.toString(16).padStart(4, '0') }.joinToString("")
+
+private fun fromUnits(hex: String): String {
+    if (hex.length % 4 != 0) throw NumberFormatException(hex)
+    return hex.chunked(4).joinToString("") { it.toInt(16).toChar().toString() }
+}
+
 /** The transfer to host cut short, if any. */
 fun Context.resumable(host: String): Resumable? {
     val text = getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(host, null) ?: return null
     return try {
         val o = JSONObject(text)
         if (o.has("remote")) {
-            Resumable.Download(o.getString("remote"), Uri.parse(o.getString("uri")), o.getLong("size"),
+            Resumable.Download(fromUnits(o.getString("remote")), Uri.parse(o.getString("uri")), o.getLong("size"),
                 if (o.has("mtime")) o.getLong("mtime") else null)
         } else {
             val uris = o.getJSONArray("uris")
             val names = o.getJSONArray("names")
             if (uris.length() != names.length()) return null
-            Resumable.Upload(o.getString("dir"), (0 until uris.length()).map { Uri.parse(uris.getString(it)) },
-                (0 until names.length()).map { names.getString(it) }, o.getInt("index"), o.getLong("length"),
-                o.getLong("modified"), o.getLong("sent"), o.getString("sha256"))
+            Resumable.Upload(fromUnits(o.getString("dir")),
+                (0 until uris.length()).map { Uri.parse(uris.getString(it)) },
+                (0 until names.length()).map { fromUnits(names.getString(it)) }, o.getInt("index"),
+                o.getLong("length"), o.getLong("modified"), o.getLong("sent"), o.getString("sha256"))
         }
     } catch (_: JSONException) {
+        null
+    } catch (_: NumberFormatException) {
         null
     }
 }
@@ -73,13 +88,13 @@ private fun Resumable.json(): String {
     val o = JSONObject()
     when (this) {
         is Resumable.Download -> {
-            o.put("remote", remote).put("uri", uri.toString()).put("size", size)
+            o.put("remote", units(remote)).put("uri", uri.toString()).put("size", size)
             mtime?.let { o.put("mtime", it) }
         }
         is Resumable.Upload -> {
-            o.put("dir", dir).put("uris", JSONArray(uris.map { it.toString() }))
-                .put("names", JSONArray(names)).put("index", index).put("length", length).put("modified", modified)
-                .put("sent", sent).put("sha256", sha256)
+            o.put("dir", units(dir)).put("uris", JSONArray(uris.map { it.toString() }))
+                .put("names", JSONArray(names.map { units(it) })).put("index", index).put("length", length)
+                .put("modified", modified).put("sent", sent).put("sha256", sha256)
         }
     }
     return o.toString()
