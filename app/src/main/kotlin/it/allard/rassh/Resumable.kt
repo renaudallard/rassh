@@ -181,9 +181,10 @@ fun Context.dropResumable(host: String, r: Resumable? = null) {
     letGo(old.uris, old.write)
 }
 
-/* Drop the transfers cut short to every host, see dropResumable(). */
-fun Context.dropAllResumable() {
-    for (host in getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys) dropResumable(host)
+/* Drop the transfers cut short to every host but those of keep, see dropResumable(). */
+fun Context.dropResumables(keep: Set<String> = emptySet()) {
+    for (host in getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys)
+        if (host !in keep) dropResumable(host)
 }
 
 /*

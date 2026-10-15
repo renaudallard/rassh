@@ -14,6 +14,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.system.ErrnoException
+import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
@@ -65,6 +66,19 @@ class SessionService : Service() {
         File(paths.tmp, "agent.sock").delete()
         /* Nor any transfer but one cut with its browser, which tells it uses its files. */
         letGoUnneeded()
+        /*
+         * A transfer cut after its host was deleted or renamed kept its
+         * record under a name no browser offers it for. The provider may
+         * be slow.
+         */
+        thread(name = "drop-resume") {
+            val hosts = try {
+                SshConfig.parse(paths.textOf(paths.config)).hosts.map { it.name }.toSet()
+            } catch (_: IOException) {
+                null
+            }
+            if (hosts != null) applicationContext.dropResumables(hosts)
+        }
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF), RECEIVER_NOT_EXPORTED)
         val channel = NotificationChannel(CHANNEL, getString(R.string.channel_sessions),
             NotificationManager.IMPORTANCE_LOW)

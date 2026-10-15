@@ -114,8 +114,9 @@ keys are encrypted and unlocked with it.
   download removes its partial file, an upload the file it created if
   the connection still works, but not one a resumed upload found there.
   Deleting or editing the host drops what was cut short, as does a
-  Replace import, but a transfer still running then is offered again if
-  it is cut afterwards
+  Replace import. A transfer still running then and cut afterwards is
+  offered again if the host kept its name, or dropped when the app
+  starts again
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with
