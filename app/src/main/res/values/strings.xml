@@ -65,6 +65,7 @@
     <string name="resume">Resume</string>
     <string name="discard">Discard</string>
     <string name="later">Later</string>
+    <string name="resume_gone">That transfer was dropped meanwhile</string>
     <string name="replace_files">Some files exist already on the server. Replace them? A transfer stopped halfway leaves them cut short.</string>
     <string name="replace">Replace</string>
     <string name="upload_same_name">Some of the files have the same name, upload them one at a time</string>

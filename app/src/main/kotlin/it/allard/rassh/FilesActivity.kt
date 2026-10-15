@@ -400,8 +400,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun saveTo(remote: String, uri: Uri, resumed: Resumable.Download? = null) {
         val c = client() ?: return
         val host = host()
-        /* Once, two browsers of the host may have offered it. */
-        if (host != null && resumed != null && !resuming.add(host)) return
+        if (!startResuming(host, resumed)) return
         val name = shownName(remote.substringAfterLast('/'))
         /* Kept past this screen, it may be resumed after connecting again. */
         val kept = host != null && keepAccess(listOf(uri), true)
@@ -475,6 +474,20 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         } catch (_: ErrnoException) {
             null
         }
+    }
+
+    /*
+     * Whether resumed, if any, may go on: once, as two browsers of the host
+     * may have offered it, and while kept, as another may have dropped it
+     * since, a download into its file for one.
+     */
+    private fun startResuming(host: String?, resumed: Resumable?): Boolean {
+        if (host == null || resumed == null) return true
+        if (!resuming.add(host)) return false
+        if (isKept(host, resumed)) return true
+        resuming.remove(host)
+        toast(getString(R.string.resume_gone))
+        return false
     }
 
     /*
@@ -578,8 +591,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String, resumed: Resumable.Upload? = null) {
         val c = client() ?: return
         val host = host()
-        /* Once, two browsers of the host may have offered it. */
-        if (host != null && resumed != null && !resuming.add(host)) return
+        if (!startResuming(host, resumed)) return
         val from = resumed?.index ?: 0
         /* Kept past this screen, it may be resumed after connecting again. */
         val kept = host != null && keepAccess(uris, false)

@@ -126,6 +126,9 @@ fun Context.forgetDownloadsInto(uri: Uri, except: Resumable?) {
     }
 }
 
+/** Whether r is still the transfer to host cut short, not dropped since it was read. */
+fun Context.isKept(host: String, r: Resumable): Boolean = resumable(host)?.json() == r.json()
+
 /* Drop the transfer to host, a partial download with it. A provider may be slow, not on the UI thread. */
 fun Context.dropResumable(host: String) {
     val r = resumable(host) ?: return
