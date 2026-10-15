@@ -480,14 +480,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * Whether the file at uri starts with the bytes r, an upload cut
      * short, had read of it: they are hashed again, the file is read up
      * to there twice. A file changed but for its size and time is not
-     * taken for the start of what the server has.
+     * taken for the start of what the server has. progress shows the
+     * bytes hashed and may stop it, as during a transfer.
      */
-    private fun samePrefix(uri: Uri, r: Resumable.Upload): Boolean {
+    private fun samePrefix(uri: Uri, r: Resumable.Upload, progress: (Long) -> Boolean): Boolean {
         val input = Hashing(contentResolver.openInputStream(uri) ?: return false)
         input.use {
             val buf = ByteArray(BUFFER_SIZE)
             while (it.count < r.sent) {
                 if (it.read(buf, 0, minOf(buf.size.toLong(), r.sent - it.count).toInt()) < 0) return false
+                if (!progress(it.count)) throw SftpCancelledException()
             }
         }
         return input.hex() == r.sha256
@@ -598,7 +600,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         /* The same file as when cut short, its size and time first, then what it starts with. */
                         val same = resumed != null && index == resumed.index && file != null &&
                             file.first == resumed.length && file.second == resumed.modified &&
-                            samePrefix(uris[index], resumed)
+                            samePrefix(uris[index], resumed, progress)
                         /* Called first before the server opens the file, then after each write. */
                         var calls = 0
                         val counted = { bytes: Long ->
