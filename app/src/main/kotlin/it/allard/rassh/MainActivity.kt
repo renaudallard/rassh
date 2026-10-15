@@ -263,10 +263,10 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     /*
-     * Start argv[0] on a terminal. With keys in the vault, ask for a
-     * fingerprint and give the program an agent of its own holding them,
-     * see withAgent(). Without it the program runs anyway, for password
-     * logins.
+     * Start argv[0] on a terminal. With keys in the vault, offer to end
+     * the strays that could read them, ask for a fingerprint and give the
+     * program an agent of its own holding them, see withAgent(). Without
+     * it the program runs anyway, for password logins.
      */
     private fun open(service: SessionService, l: Launch) {
         val names = try {
@@ -278,7 +278,7 @@ class MainActivity : Activity(), SessionService.Listener {
         if (names.isEmpty())
             start(service, l, l.path, l.argv, emptyList())
         else
-            unlockAndStart(service, names, l)
+            withoutStrays { unlockAndStart(service, names, l) }
     }
 
     private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {

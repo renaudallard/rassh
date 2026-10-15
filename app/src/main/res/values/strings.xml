@@ -139,6 +139,10 @@
     <!-- Key storage -->
     <string name="unlock_title">Unlock SSH keys</string>
     <string name="unlock_reason">Load your keys to log in</string>
+    <string name="strays_title">Programs left running</string>
+    <string name="strays_message">These programs run as rassh outside its sessions, like those left in the background of a local shell. Any of them could read the keys you are about to unlock.\n\n%1$s\n\nKeep them only if you started them, such as a ControlPersist connection or ssh -f.</string>
+    <string name="strays_end">End them</string>
+    <string name="strays_keep">Keep them</string>
     <string name="protect_reason">Encrypt the private keys found in ~/.ssh</string>
     <string name="vault_title">Protect SSH keys</string>
     <string name="vault_question">Private keys are encrypted with a key kept in the phone\'s secure hardware, and your fingerprint unlocks them.\n\nShould adding a fingerprint to the phone later destroy them? Someone who learns your PIN then cannot enroll a finger to use your keys, but every stored key is lost, and removing all fingerprints destroys them too.</string>
