@@ -178,6 +178,11 @@ fun Context.dropResumable(host: String, r: Resumable? = null) {
     letGo(old.uris, old.write)
 }
 
+/* Drop the transfers cut short to every host, see dropResumable(). */
+fun Context.dropAllResumable() {
+    for (host in getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.keys) dropResumable(host)
+}
+
 /* Keep the right to uris past the screen, false when a provider does not let it. */
 fun Context.keepAccess(uris: List<Uri>, write: Boolean): Boolean {
     /* Those kept already, for a transfer cut short, are not to be let go here. */

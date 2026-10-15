@@ -112,7 +112,8 @@ keys are encrypted and unlocked with it.
   64 requests of 32 KiB are in flight. Otherwise the file starts again.
   A transfer stopped or refused by the server is not offered: a
   download removes its partial file, an upload removes a new file.
-  Deleting or editing the host drops what was cut short
+  Deleting or editing the host drops what was cut short, as does a
+  Replace import
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with

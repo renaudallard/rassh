@@ -224,6 +224,8 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
         try {
             val (hosts, keys) = if (replace) replaceAll(paths, vault, key, items, present, seal)
                 else append(paths, vault, key, items, present, seal)
+            /* Any host may be another server now, as when edited. The provider may be slow. */
+            if (replace) thread(name = "drop-resume") { applicationContext.dropAllResumable() }
             toast(getString(R.string.imported, hosts, keys))
         } catch (e: IOException) {
             toast(getString(R.string.restore_failed, e.message))
