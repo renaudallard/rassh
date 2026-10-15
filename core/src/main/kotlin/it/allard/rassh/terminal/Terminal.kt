@@ -164,9 +164,8 @@ class Terminal(
          */
         val y = other.resize(columns, rows, other.saved?.y ?: (this.rows - 1))
         if (other.saved != null) moveSaved(other, y, columns, rows)
-        val tabs = defaultTabs(columns)
-        tabStops.copyInto(tabs, 0, 0, minOf(this.columns, columns))
-        tabStops = tabs
+        /* The stops of the columns a narrower screen loses come back with them. */
+        if (columns > tabStops.size) tabStops = defaultTabs(columns).also { tabStops.copyInto(it) }
         this.columns = columns
         this.rows = rows
         cursorX = minOf(cursorX, columns - 1)
@@ -906,6 +905,10 @@ class Terminal(
                 "┘┐┌└┼⎺⎻─⎼⎽" +
                 "├┤┴┬│≤≥π≠£·"
 
-        private fun defaultTabs(columns: Int) = BooleanArray(columns) { it > 0 && it % 8 == 0 }
+        /* As in xterm, stops are kept for 1024 columns, wider than the screen. */
+        private const val TAB_COLUMNS = 1024
+
+        private fun defaultTabs(columns: Int) =
+            BooleanArray(maxOf(columns, TAB_COLUMNS)) { it > 0 && it % 8 == 0 }
     }
 }

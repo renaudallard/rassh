@@ -326,6 +326,21 @@ class TerminalTest {
     }
 
     @Test
+    fun tabStopsSurviveANarrowerScreen() {
+        val t = term(columns = 80)
+        t.put("\u001b[3g\u001b[61G\u001bH\r")
+        t.resize(50, 4)
+        t.resize(80, 4)
+        t.put("\tX")
+        assertEquals(60, t.cursorX - 1)
+        val cleared = term(columns = 20)
+        cleared.put("\u001b[3g")
+        cleared.resize(40, 4)
+        cleared.put("\r\t")
+        assertEquals(39, cleared.cursorX)
+    }
+
+    @Test
     fun resizeKeepsCursorLine() {
         val t = term(columns = 10, rows = 4)
         t.put("1\r\n2\r\n3\r\n4")
