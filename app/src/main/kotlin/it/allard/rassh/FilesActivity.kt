@@ -411,6 +411,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var started: Resumable.Download? = null
             var append: Pair<OutputStream, Long>? = null
             try {
+                forgetDownloadsInto(uri, resumed)
                 val attrs = c.stat(remote)
                 started = Resumable.Download(remote, uri, attrs.size ?: -1, attrs.mtime)
                 /* Changed on the server since, it is another file: downloaded again. */

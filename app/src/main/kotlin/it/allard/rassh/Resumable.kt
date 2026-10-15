@@ -110,6 +110,22 @@ fun Context.forgetResumable(host: String, r: Resumable? = null) {
     releaseAccess(old.uris, old.write)
 }
 
+/*
+ * Forget the downloads cut short into uri but except, without deleting
+ * it nor letting it go: a download about to write it is in its hands.
+ * Kept, Discard would delete a file it completed.
+ */
+fun Context.forgetDownloadsInto(uri: Uri, except: Resumable?) {
+    synchronized(lock) {
+        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val gone = prefs.all.keys.filter { host ->
+            val r = resumable(host)
+            r is Resumable.Download && r.uri == uri && (except == null || r.json() != except.json())
+        }
+        if (gone.isNotEmpty()) prefs.edit().apply { gone.forEach { remove(it) } }.apply()
+    }
+}
+
 /* Drop the transfer to host, a partial download with it. A provider may be slow, not on the UI thread. */
 fun Context.dropResumable(host: String) {
     val r = resumable(host) ?: return
