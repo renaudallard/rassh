@@ -166,6 +166,10 @@ class SshConfigTest {
             "Host a\n    User x\n\nHost b a\n    User y\n\nHost b\n",
             "Host a\n    User x\n\nHost b\n\nHost a\n    Port 2222\n\nHost c\n",
             "Host a\n    User x\n\nHost A\n    Port 2222\n\nHost b\n",
+            "Host a\n    IgnoreUnknown UseKeychain\n\nHost b\n    IgnoreUnknown UseKeychain\n    UseKeychain yes\n",
+            "Host a\n    HostName a.example\n\nHost b\n    ignoreunknown=UseKeychain\n",
+            "Host a\n    HostName a.example\n\nHost b\n    Include ~/.ssh/b.conf\n",
+            "Host a\n    \"Include\" ~/.ssh/a.conf\n\nHost b\n",
         )) {
             val config = SshConfig.parse(text)
             assertFalse(config.move("a", config.hosts.lastIndex))

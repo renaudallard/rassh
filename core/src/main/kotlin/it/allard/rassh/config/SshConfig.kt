@@ -144,14 +144,23 @@ class SshConfig private constructor(
      * Move the block of name, the one hosts lists, to position to of
      * hosts. ssh takes the first value it finds: the block only moves
      * past blocks of other single hosts, false is returned with nothing
-     * changed when another block between could apply to it too.
+     * changed when another block between could apply to it too, or when
+     * it or one of them holds an IgnoreUnknown or Include line. ssh skips
+     * an option it does not know only after an IgnoreUnknown line naming
+     * it applied, the order of blocks then decides for the lines of the
+     * others, read even where they do not apply. An included file may
+     * hold one.
      */
     fun move(name: String, to: Int): Boolean {
         val firsts = blocks.indices.filter { blocks[it].isHost }.distinctBy { blocks[it].name }
         val i = firsts.find { blocks[it].name == name } ?: return true
         val j = firsts[to.coerceIn(firsts.indices)]
         val between = if (i < j) i + 1..j else j until i
-        if (between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } })
+        fun ordered(b: Block) = b.lines.any { line ->
+            keyword(line)?.first.let { it.equals("IgnoreUnknown", true) || it.equals("Include", true) }
+        }
+        if (ordered(blocks[i]) ||
+            between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } || ordered(blocks[k]) })
             return false
         /* The last block may end without a blank line, which keeps it apart from the next one. */
         val last = blocks.last()
