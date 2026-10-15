@@ -161,13 +161,16 @@ fun Context.forgetDownloadsInto(uri: Uri, except: Resumable?) {
  * a browser goes on with it already, or it was dropped since it was read.
  */
 fun Context.claimResumable(host: String, r: Resumable): Boolean = synchronized(lock) {
-    host !in resuming && resumable(host)?.json() == r.json() && resuming.put(host, r.json()) == null
+    host !in resuming && isKept(host, r) && resuming.put(host, r.json()) == null
 }
 
 /* Done going on with the transfer to host, see claimResumable(). */
 fun unclaimResumable(host: String) {
     synchronized(lock) { resuming.remove(host) }
 }
+
+/** Whether r is still the transfer to host cut short. */
+fun Context.isKept(host: String, r: Resumable): Boolean = synchronized(lock) { resumable(host)?.json() == r.json() }
 
 /** Whether a browser goes on with the transfer to host. */
 fun isResuming(host: String): Boolean = synchronized(lock) { host in resuming }

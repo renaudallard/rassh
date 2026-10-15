@@ -432,6 +432,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     /* Not to leave a partial or empty file behind. Cut again before going on, it stays as it was. */
                     if (opened || resumed != null || isEmptyDocument(uri)) deleteDocument(uri)
                     ended(host, resumed)
+                } else if (!isKept(host, resumed)) {
+                    /* Unless another browser of the host kept its own in its place meanwhile: nothing has it then. */
+                    deleteDocument(uri)
                 }
                 throw e
             } finally {
