@@ -82,7 +82,7 @@ class Paths(context: Context) {
         writePrivate(file, text.toByteArray())
     }
 
-    /* Write what is cached of file to the disk. */
+    /* Write what is cached of file, or of a directory, to the disk. */
     @Throws(IOException::class)
     fun sync(file: File) {
         try {
@@ -109,12 +109,7 @@ class Paths(context: Context) {
             }
             Os.chmod(tmp.path, "600".toInt(8))
             if (!tmp.renameTo(target)) throw IOException("rename ${tmp.path}")
-            val dir = Os.open(target.parent, OsConstants.O_RDONLY, 0)
-            try {
-                Os.fsync(dir)
-            } finally {
-                Os.close(dir)
-            }
+            sync(target.parentFile ?: throw IOException("no directory for ${target.path}"))
         } catch (e: ErrnoException) {
             /* The temporary file may hold a private key. */
             tmp.delete()

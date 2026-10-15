@@ -202,14 +202,10 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
             /*
              * ssh-keygen does not sync the files it writes, a power cut
              * could leave a public key empty, which only the key in clear
-             * can make again. The vault write syncs their directory.
+             * can make again.
              */
-            for (name in pending) {
-                for (suffix in Keys.SUFFIXES) {
-                    val file = File(paths.sshDir, name + suffix)
-                    if (file.isFile) paths.sync(file)
-                }
-            }
+            for (name in pending) paths.sync(File(paths.sshDir, "$name.pub"))
+            paths.sync(paths.sshDir)
             val known = pending.filter { it in stored }
             val sealed = vault.readAll(key, known)
             try {
