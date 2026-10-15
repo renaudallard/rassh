@@ -87,7 +87,8 @@ keys are encrypted and unlocked with it.
   unlocked keys while it logs in, so `ssh`, `scp`, `sftp` and `ProxyJump`
   hosts use them without writing them to disk, and one login emptying
   its agent cannot leave another without keys. `ssh` and the file browser
-  remove the keys once logged in, `scp` and `sftp` after 60 seconds.
+  remove the keys once logged in, `scp`, `sftp` and an `ssh` reusing a
+  `ControlMaster` connection after 60 seconds.
   Agent forwarding is off, as the server could use the keys while they
   are loaded. `-A` turns it on, but ssh only forwards the agent once
   logged in, when the keys have left it, so no vault key reaches the
@@ -195,14 +196,15 @@ There is no PIN fallback.
   pipes into an agent started for that connection alone, so the
   decrypted keys never touch the disk. `ssh` removes them from it as
   soon as it is logged in, through `LocalCommand`, which then takes the
-  place of one set for the host. Otherwise, with `scp`, `sftp` or a
-  failed login, they leave it 60 seconds after the fingerprint, or when
-  the screen turns off, and the agent ends with the connection. A login
-  that takes longer, such as one waiting on a new host key to be
-  confirmed, goes on without them. The Cancel button of the prompt, or
-  an error such as too many attempts, connects without them, for
-  password logins, while closing it with Back, leaving the app or
-  turning the screen off connects nothing.
+  place of one set for the host. Otherwise, with `scp`, `sftp`, an
+  `ssh` reusing a `ControlMaster` connection, which does not log in
+  itself, or a failed login, they leave it 60 seconds after the
+  fingerprint, or when the screen turns off, and the agent ends with the
+  connection. A login that takes longer, such as one waiting on a new
+  host key to be confirmed, goes on without them. The Cancel button of
+  the prompt, or an error such as too many attempts, connects without
+  them, for password logins, while closing it with Back, leaving the app
+  or turning the screen off connects nothing.
 
 Public keys stay in clear next to the vault. For an `IdentityFile` whose
 private key is gone, `ssh` takes the public key next to it and finds the

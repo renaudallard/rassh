@@ -383,8 +383,9 @@ fun agentSockets(paths: Paths): List<File> =
 /*
  * ssh options removing the keys from the agent once logged in: ssh runs
  * LocalCommand right after authentication. Options given here win over
- * the config. scp and sftp refuse LocalCommand, KEY_LIFETIME covers them
- * and failed logins.
+ * the config. scp and sftp refuse LocalCommand, KEY_LIFETIME covers them,
+ * failed logins and an ssh going through a ControlMaster connection,
+ * which does not log in itself.
  */
 fun clearAfterLogin(argv: List<String>): List<String> =
     if (argv.firstOrNull() != "ssh") argv
