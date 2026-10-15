@@ -250,6 +250,8 @@ class KeysActivity : Activity() {
                         if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
                         if (!Keys.isPem(key)) throw IOException("not a private key")
                         paths.ensureSshDir()
+                        /* Checked again: a key generated while the file was read must not be replaced. */
+                        if (Keys.isTaken(paths.sshDir, n, vault.names())) throw IOException(getString(R.string.error_key_exists))
                         paths.writePrivate(File(paths.sshDir, n), key)
                     } finally {
                         key.fill(0)
