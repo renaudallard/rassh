@@ -38,23 +38,37 @@ jobs:
       - name: Test and build
         run: ./gradlew --no-daemon :core:test :app:lintDebug :app:assembleDebug
 
-      # The signing secrets are only visible to this step. Only pushes to
-      # main are signed: other branches would make APKs that install over
-      # the release of the same version.
       - name: Build release
+        run: ./gradlew --no-daemon :app:assembleRelease :app:bundleRelease
+
+      # The signing secrets are only visible to this step, out of Gradle
+      # and the plugins it runs. Only pushes to main are signed: other
+      # branches would make APKs that install over the release of the
+      # same version. v2 only with the alignment kept, as Gradle signed,
+      # F-Droid copies this signature onto its own unsigned build.
+      - name: Sign release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           RASSH_KEYSTORE: ${{ secrets.RASSH_KEYSTORE }}
           RASSH_KEYSTORE_PASSWORD: ${{ secrets.RASSH_KEYSTORE_PASSWORD }}
           RASSH_KEY_ALIAS: ${{ secrets.RASSH_KEY_ALIAS }}
           RASSH_KEY_PASSWORD: ${{ secrets.RASSH_KEY_PASSWORD }}
         run: |
-          if [ -n "$RASSH_KEYSTORE" ] && [ "$GITHUB_EVENT_NAME" = push ] &&
-              [ "$GITHUB_REF" = refs/heads/main ]; then
-              echo "$RASSH_KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
-              export RASSH_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
-          fi
-          ./gradlew --no-daemon :app:assembleRelease :app:bundleRelease
-          rm -f "$RUNNER_TEMP/release.jks"
+          [ -n "$RASSH_KEYSTORE" ] || exit 0
+          ks="$RUNNER_TEMP/release.jks"
+          trap 'rm -f "$ks"' EXIT
+          echo "$RASSH_KEYSTORE" | base64 -d > "$ks"
+          apk=app/build/outputs/apk/release
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$ks" \
+              --ks-pass env:RASSH_KEYSTORE_PASSWORD --ks-key-alias "$RASSH_KEY_ALIAS" \
+              --key-pass env:RASSH_KEY_PASSWORD --v1-signing-enabled false \
+              --v2-signing-enabled true --v3-signing-enabled false \
+              --v4-signing-enabled false --alignment-preserved true \
+              --out "$apk/app-release.apk" "$apk/app-release-unsigned.apk"
+          rm "$apk/app-release-unsigned.apk"
+          jarsigner -keystore "$ks" -storepass:env RASSH_KEYSTORE_PASSWORD \
+              -keypass:env RASSH_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
+              app/build/outputs/bundle/release/app-release.aab "$RASSH_KEY_ALIAS"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
