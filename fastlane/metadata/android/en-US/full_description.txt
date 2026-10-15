@@ -19,7 +19,7 @@ HOSTS
 
 KEYS
 • Generate ed25519, ecdsa, rsa and post-quantum mldsa44-ed25519 keys, or import your own
-• Private keys with their public key move into a vault encrypted with a key held in the Android Keystore and unlocked with your fingerprint, a few such as links staying in clear
+• Private keys with their public key move into a vault encrypted with a key held in the Android Keystore and unlocked with your fingerprint, a few, such as links, staying in clear
 • Each connection gets its own ssh-agent, emptied once ssh is logged in, or after 60 seconds for sftp, scp and shared connections, so jump hosts, sftp and scp use the keys without writing them to disk
 • A warning when a server's host key changes, with the new fingerprint to confirm
 
