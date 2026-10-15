@@ -48,6 +48,9 @@ private const val PREFS = "resume"
 /* Two browsers of a host may lose their connection at once. */
 private val lock = Any()
 
+/* The hosts whose transfer cut short a browser goes on with, under lock. */
+private val resuming = HashSet<String>()
+
 /*
  * Server names are kept as their UTF-16 units in hex: one not in UTF-8
  * holds lone surrogates, see decodeName(), which the preferences file
@@ -114,14 +117,20 @@ fun Context.keepResumable(host: String, r: Resumable) {
     letGo(old.uris, old.write)
 }
 
+/*
+ * Remove the record of the transfer to host if it is still r when given,
+ * and unless idle is asked for while a browser goes on with it.
+ */
+private fun Context.removeRecord(host: String, r: Resumable?, idle: Boolean): Resumable? = synchronized(lock) {
+    val old = resumable(host)
+    if (old == null || idle && host in resuming || r != null && old.json() != r.json()) return null
+    getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(host).apply()
+    old
+}
+
 /* Forget the transfer to host, letting go of its files, only if it is still r when given. */
 fun Context.forgetResumable(host: String, r: Resumable? = null) {
-    val old = synchronized(lock) {
-        val old = resumable(host)
-        if (old == null || r != null && old.json() != r.json()) return
-        getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(host).apply()
-        old
-    }
+    val old = removeRecord(host, r, false) ?: return
     letGo(old.uris, old.write)
 }
 
@@ -141,14 +150,32 @@ fun Context.forgetDownloadsInto(uri: Uri, except: Resumable?) {
     }
 }
 
-/** Whether r is still the transfer to host cut short, not dropped since it was read. */
-fun Context.isKept(host: String, r: Resumable): Boolean = resumable(host)?.json() == r.json()
+/*
+ * Take r, the transfer to host cut short, to go on with it: false when
+ * a browser goes on with it already, or it was dropped since it was read.
+ */
+fun Context.claimResumable(host: String, r: Resumable): Boolean = synchronized(lock) {
+    host !in resuming && resumable(host)?.json() == r.json() && resuming.add(host)
+}
 
-/* Drop the transfer to host, a partial download with it. A provider may be slow, not on the UI thread. */
-fun Context.dropResumable(host: String) {
-    val r = resumable(host) ?: return
-    if (r is Resumable.Download) deleteDocument(r.uri)
-    forgetResumable(host, r)
+/* Done going on with the transfer to host, see claimResumable(). */
+fun unclaimResumable(host: String) {
+    synchronized(lock) { resuming.remove(host) }
+}
+
+/** Whether a browser goes on with the transfer to host. */
+fun isResuming(host: String): Boolean = synchronized(lock) { host in resuming }
+
+/*
+ * Drop the transfer to host, a partial download with it, only if it is
+ * still r when given. Not while a browser goes on with it, which would
+ * lose the file it appends to or those left to upload: it forgets it
+ * when done. A provider may be slow, not on the UI thread.
+ */
+fun Context.dropResumable(host: String, r: Resumable? = null) {
+    val old = removeRecord(host, r, true) ?: return
+    if (old is Resumable.Download) deleteDocument(old.uri)
+    letGo(old.uris, old.write)
 }
 
 /* Keep the right to uris past the screen, false when a provider does not let it. */

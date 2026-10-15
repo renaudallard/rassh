@@ -32,7 +32,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
 import java.text.DateFormat
-import java.util.Collections
 import java.util.Date
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -207,7 +206,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         resumeOffered = true
         val host = host() ?: return
         /* Not while another browser of the host goes on with it. */
-        if (host in resuming) return
+        if (isResuming(host)) return
         val r = resumable(host) ?: return
         val message = when (r) {
             is Resumable.Download -> getString(R.string.resume_download, shownName(r.remote.substringAfterLast('/')))
@@ -224,7 +223,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             }
             .setNegativeButton(R.string.discard) { _, _ ->
                 /* The part downloaded goes, the provider may be slow. What an upload left on the server stays. */
-                worker.execute { dropResumable(host) }
+                worker.execute { dropResumable(host, r) }
             }
             .setNeutralButton(R.string.later, null)
             .show()
@@ -420,6 +419,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri"))
                         .also { opened = true }
                 }, append?.second ?: 0, progress)
+                /* Forgotten while still claimed: a host edited meanwhile would drop the record and the file. */
+                ended(host, kept, listOf(uri), true, resumed)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
                 if (!opened) append?.first?.close()
@@ -434,9 +435,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 }
                 throw e
             } finally {
-                if (host != null && resumed != null) resuming.remove(host)
+                if (host != null && resumed != null) unclaimResumable(host)
             }
-            ended(host, kept, listOf(uri), true, resumed)
         }) { toast(getString(R.string.downloaded, name)) }
     }
 
@@ -483,10 +483,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      */
     private fun startResuming(host: String?, resumed: Resumable?): Boolean {
         if (host == null || resumed == null) return true
-        if (!resuming.add(host)) return false
-        if (isKept(host, resumed)) return true
-        resuming.remove(host)
-        toast(getString(R.string.resume_gone))
+        if (claimResumable(host, resumed)) return true
+        if (!isResuming(host)) toast(getString(R.string.resume_gone))
         return false
     }
 
@@ -633,6 +631,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     }
                     index++
                 }
+                /* Forgotten while still claimed, see saveTo(). */
+                ended(host, kept, uris, false, resumed)
             } catch (e: Exception) {
                 if (!isFileError(e)) throw e
                 if (host != null && kept && c.isBroken && !stopped()) {
@@ -651,11 +651,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     ended(host, kept, uris, false, resumed)
                 throw e
             } finally {
-                if (host != null && resumed != null) resuming.remove(host)
+                if (host != null && resumed != null) unclaimResumable(host)
                 /* Some files may be there even when a later one failed. */
                 runOnUiThread { if (!isDestroyed) load(dir) }
             }
-            ended(host, kept, uris, false, resumed)
         }) {}
     }
 
@@ -866,9 +865,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_CLOSE = 5
         private const val PROGRESS_NANOS = 200_000_000L
         private const val BUFFER_SIZE = 65536
-
-        /* The hosts a transfer cut short is going on with, from any browser. */
-        private val resuming: MutableSet<String> = Collections.synchronizedSet(HashSet())
 
         /* Permissions as ls -l shows them. */
         fun mode(p: Int): String {
