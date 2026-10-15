@@ -535,7 +535,8 @@ class MainActivity : Activity(), SessionService.Listener {
         /*
          * The agent holds the keys while logging in, a server reached with
          * agent forwarding could use them then. A -o from the command line
-         * wins over the config, -A typed in quick connect still wins.
+         * wins over the config, -A typed in quick connect still wins, but
+         * ssh only forwards the agent once logged in, emptied by then.
          */
         private val SSH = listOf("ssh", "-o", "ForwardAgent=no")
 

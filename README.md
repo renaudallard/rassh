@@ -89,7 +89,9 @@ keys are encrypted and unlocked with it.
   its agent cannot leave another without keys. `ssh` and the file browser
   remove the keys once logged in, `scp` and `sftp` after 60 seconds.
   Agent forwarding is off, as the server could use the keys while they
-  are loaded, unless asked with `-A`
+  are loaded. `-A` turns it on, but ssh only forwards the agent once
+  logged in, when the keys have left it, so no vault key reaches the
+  server
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
   key, show, copy or share public keys. OpenSSH 10.6 renamed the
