@@ -88,10 +88,19 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             runOnUiThread { toast(getString(R.string.host_key_failed, e.message)) }
             return@thread
         }
+        /*
+         * A screen gone first, recreated on a theme change, leaves it to
+         * the next one, which may already listen to the session.
+         */
+        fun offerAgain() {
+            session.hostKeyOffered = false
+            session.listener?.onUpdate()
+        }
         runOnUiThread {
+            if (isDestroyed) return@runOnUiThread offerAgain()
             /* A jump host's key may be the one refused, never offer to drop another. */
-            if (isDestroyed || found.first != changed || found.second.isEmpty()) return@runOnUiThread
-            AlertDialog.Builder(this)
+            if (found.first != changed || found.second.isEmpty()) return@runOnUiThread
+            val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
                 .setMessage(getString(R.string.host_key_changed_text, found.first))
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
@@ -105,6 +114,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                 }
                 .setNegativeButton(R.string.host_key_keep, null)
                 .show()
+            dismissWithScreen(dialog) { if (isDestroyed) offerAgain() }
         }
     }
 }
