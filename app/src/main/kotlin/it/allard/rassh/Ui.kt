@@ -128,10 +128,11 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
 
 /*
  * Whether e is a failure of a file or a content provider. A provider in
- * another app may also refuse with the exceptions Android passes back
- * from it, a revoked permission for instance, or a mode it does not
- * support. Uncaught in a thread, those would end the app and its
- * sessions.
+ * another app may also refuse with exceptions Android passes back from
+ * it, for a revoked permission or a mode it does not support. Uncaught
+ * in a thread, those would end the app and its sessions. Android passes
+ * back NullPointerException too, left out as it would hide bugs of the
+ * app.
  */
 fun isFileError(e: Exception): Boolean =
     e is IOException || e is SecurityException || e is IllegalArgumentException ||
