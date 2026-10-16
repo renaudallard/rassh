@@ -9,7 +9,9 @@ none of which collects data or contacts any server but yours.
 ## Network
 
 rassh connects only to the servers you choose, with ssh, sftp and scp,
-and opens only the port forwards you configure. Nothing else is sent
+and opens only the port forwards you configure. Their names are looked
+up through the phone's DNS resolver, as for any app, so the network or
+the Private DNS provider you set sees them. Nothing else is sent
 anywhere.
 
 ## Data on your phone
