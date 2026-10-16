@@ -266,6 +266,11 @@ class HostActivity : Activity() {
         )
         config.put(original, host)
         val text = config.toString()
+        /* Larger than the app reads, see Paths.bytesOf(), it would be lost to it. */
+        if (text.toByteArray().size > Paths.MAX_TEXT) {
+            toast(getString(R.string.config_failed, "config is too large"))
+            return
+        }
         checking = true
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {

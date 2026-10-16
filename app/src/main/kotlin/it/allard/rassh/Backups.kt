@@ -321,6 +321,20 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val known = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
         Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
     }
+    var hosts = 0
+    val configText = config?.let { (mine, theirs) ->
+        hosts = mine.addMissing(theirs).size
+        if (hosts > 0) mine.toString() else null
+    }
+    val knownText = known?.let { (text, theirs) ->
+        val lines = text.lines().toSet()
+        val missing = theirs.lines().filter { line -> line.isNotBlank() && line !in lines }.distinct()
+        val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
+        if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
+    }
+    /* Merged before anything is written: larger than the app reads, see Paths.bytesOf(), it would be lost to it. */
+    for ((name, text) in listOf(CONFIG to configText, KNOWN_HOSTS to knownText))
+        if (text != null && text.toByteArray().size > Paths.MAX_TEXT) throw IOException("$name is too large")
     val names = present + keys.map { it.name }
     /*
      * Into the vault or in clear, see sealable(), the vault in one write
@@ -338,19 +352,8 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
             }
         }
     }
-    var hosts = 0
-    config?.let { (mine, theirs) ->
-        hosts = mine.addMissing(theirs).size
-        if (hosts > 0) paths.writePrivate(configFile, mine.toString())
-    }
-    known?.let { (text, theirs) ->
-        val lines = text.lines().toSet()
-        val missing = theirs.lines().filter { line -> line.isNotBlank() && line !in lines }.distinct()
-        if (missing.isNotEmpty()) {
-            val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
-            paths.writePrivate(knownFile, start + missing.joinToString("\n", postfix = "\n"))
-        }
-    }
+    configText?.let { paths.writePrivate(configFile, it) }
+    knownText?.let { paths.writePrivate(knownFile, it) }
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)

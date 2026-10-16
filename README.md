@@ -66,8 +66,8 @@ keys are encrypted and unlocked with it.
   stops with a message. One that is a link is rewritten in the file it
   names, but a changed host key is only offered for removal from a
   `known_hosts` in `~/.ssh`. Neither is read when over 1 MiB, which
-  could take all the memory of the app, nor imported, nor is a vault
-  over 16 MiB. A checkbox attaches to the last tmux session or starts
+  could take all the memory of the app, nor made so large by a save or
+  an import, nor is a vault over 16 MiB. A checkbox attaches to the last tmux session or starts
   one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under the identity file, makes `ssh` use
   only that key with `IdentitiesOnly yes`, without trying the other keys
   of the agent when the server refuses it. Common options, such as
