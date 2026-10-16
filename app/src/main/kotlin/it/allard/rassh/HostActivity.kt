@@ -195,7 +195,7 @@ class HostActivity : Activity() {
         val text = config.toString()
         thread(name = "show-defaults") {
             val values = try {
-                val (out, status) = dumpConfig(paths, text, listOf(name)).single()
+                val (out, status) = dumpConfig(paths, text, name)
                 if (status == 0) Choices.effective(out) else emptyMap()
             } catch (_: IOException) {
                 emptyMap()
@@ -300,7 +300,7 @@ class HostActivity : Activity() {
             /* Not ssh's verdict, the check itself could not run. */
             var failed: String? = null
             try {
-                refused = configRefusal(paths, text, names)
+                refused = configRefusal(paths, text, names, read, listOf(n))
             } catch (e: IOException) {
                 failed = e.message
             }

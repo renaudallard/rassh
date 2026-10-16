@@ -62,19 +62,20 @@ keys are encrypted and unlocked with it.
   each host its `Host` lines name and for a name they do not, like those
   of quick connect, since one bad line would stop them all: ssh reads
   every block, and an option a host's own `IgnoreUnknown` lets pass
-  stops the others. A file changed during that check is not overwritten.
-  A config or `known_hosts` that is not UTF-8 is never rewritten:
-  saving, deleting or moving a host, renaming a key, removing a changed
-  host key or an Append import then stops with a message. One that is a
-  link is rewritten in the file it names, but a changed host key is only
-  offered for removal from a `known_hosts` in `~/.ssh`. Neither is read
-  when over 1 MiB, which could take all the memory of the app, nor made
-  so large by the app, an import or a save for one, nor is a vault over
-  16 MiB. A checkbox attaches to the last tmux session or starts one,
-  with `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another,
-  under the identity file, makes `ssh` use only that key with
-  `IdentitiesOnly yes`, without trying the other keys of the agent when
-  the server refuses it. Common options, such as `ServerAliveInterval`,
+  stops the others. Another host ssh refused already does not stop the
+  change. A file changed during that check is not overwritten. A config
+  or `known_hosts` that is not UTF-8 is never rewritten: saving,
+  deleting or moving a host, renaming a key, removing a changed host key
+  or an Append import then stops with a message. One that is a link is
+  rewritten in the file it names, but a changed host key is only offered
+  for removal from a `known_hosts` in `~/.ssh`. Neither is read when
+  over 1 MiB, which could take all the memory of the app, nor made so
+  large by the app, an import or a save for one, nor is a vault over 16
+  MiB. A checkbox attaches to the last tmux session or starts one, with
+  `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
+  the identity file, makes `ssh` use only that key with `IdentitiesOnly
+  yes`, without trying the other keys of the agent when the server
+  refuses it. Common options, such as `ServerAliveInterval`,
   `Compression`, `StrictHostKeyChecking` or `LogLevel`, have a list of
   values each. Left at Default, an option writes no line, and the value
   shown next to Default is what `ssh -G` gives the saved host without

@@ -166,8 +166,9 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 val opened = checked(Backup.open(sealed, pass))
                 try {
                     /* ssh may run Match exec, not on the UI thread. */
-                    if (!replace)
-                        merged = merge(paths, opened)?.also { refused = configRefusal(paths, it.text, it.names) }
+                    if (!replace) merged = merge(paths, opened)?.also {
+                        refused = configRefusal(paths, it.text, it.names, it.read, it.added)
+                    }
                 } catch (e: IOException) {
                     opened.forEach { it.data.fill(0) }
                     throw e
@@ -320,10 +321,10 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
 
 /*
  * The config with the hosts of an export added, the text it was made
- * from, the number of hosts added and the names ssh must take it for,
- * see checkedNames().
+ * from, the hosts added and the names ssh must take it for, see
+ * checkedNames().
  */
-private class Merged(val read: String, val text: String, val hosts: Int, val names: List<String>)
+private class Merged(val read: String, val text: String, val added: List<String>, val names: List<String>)
 
 /* The hosts of items added to the config, null when there are none to add. */
 @Throws(IOException::class)
@@ -333,7 +334,7 @@ private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
     val mine = SshConfig.parse(read)
     val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)))
     if (added.isEmpty()) return null
-    return Merged(read, mine.toString(), added.size, checkedNames(mine, added))
+    return Merged(read, mine.toString(), added, checkedNames(mine, added))
 }
 
 /* Returns the number of hosts and keys added. */
@@ -355,7 +356,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val known = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
         Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
     }
-    val hosts = merged?.hosts ?: 0
+    val hosts = merged?.added?.size ?: 0
     val configText = merged?.text
     val knownText = known?.let { (text, theirs) ->
         val lines = text.lines().toSet()

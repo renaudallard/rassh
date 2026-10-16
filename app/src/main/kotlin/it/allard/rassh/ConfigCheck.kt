@@ -21,30 +21,32 @@ fun Context.refusedMessage(refusal: Pair<String, String>): String {
     return getString(R.string.config_refused, name, refusal.second)
 }
 
-/*
- * The output of ssh -G and its exit status with text as its config, for
- * each of names up to the first it refuses.
- */
+/* use called with a file holding text, its own: a check left running by a recreated screen may still use another. */
 @Throws(IOException::class)
-fun dumpConfig(paths: Paths, text: String, names: List<String>): List<Pair<String, Int>> {
-    /* Its own, a check left running by a recreated screen may still use another. */
+private fun <T> withConfigFile(paths: Paths, text: String, use: (File) -> T): T {
     val file = File.createTempFile("config", ".check", paths.tmp)
     try {
         paths.writePrivate(file, text)
-        val dumps = mutableListOf<Pair<String, Int>>()
-        for (name in names) {
-            /* Not looking the name up: offline, a canonicalized name would fail the check. */
-            val argv = listOf("ssh", "-G", "-F", file.path, "-o", "CanonicalizeHostname=no",
-                "-o", "CanonicalizePermittedCNAMEs=none", name)
-            val (out, status) = execute(paths.ssh, argv, paths.env, paths.home.path)
-            dumps.add(Pair(out.replace(file.path, "config"), status))
-            if (status != 0) break
-        }
-        return dumps
+        return use(file)
     } finally {
         file.delete()
     }
 }
+
+/* The output of ssh -G for name with file as its config, and its exit status. */
+@Throws(IOException::class)
+private fun dump(paths: Paths, file: File, name: String): Pair<String, Int> {
+    /* Not looking the name up: offline, a canonicalized name would fail the check. */
+    val argv = listOf("ssh", "-G", "-F", file.path, "-o", "CanonicalizeHostname=no",
+        "-o", "CanonicalizePermittedCNAMEs=none", name)
+    val (out, status) = execute(paths.ssh, argv, paths.env, paths.home.path)
+    return Pair(out.replace(file.path, "config"), status)
+}
+
+/* The same with text as the config. */
+@Throws(IOException::class)
+fun dumpConfig(paths: Paths, text: String, name: String): Pair<String, Int> =
+    withConfigFile(paths, text) { dump(paths, it, name) }
 
 /*
  * The first of names ssh refuses text as its configuration for, with
@@ -53,10 +55,17 @@ fun dumpConfig(paths: Paths, text: String, names: List<String>): List<Pair<Strin
  * User expand % tokens. ssh reads the lines of every block, an option
  * it does not know passes only after an IgnoreUnknown line naming it
  * applied to the host: one host may take an option the others fail on.
+ * A name refused in before, the config the change was made to, is not
+ * the change's doing, unless among own, the names it adds or edits: a
+ * line written in the local shell must not stop every other change.
  */
 @Throws(IOException::class)
-fun configRefusal(paths: Paths, text: String, names: List<String>): Pair<String, String>? {
-    val dumps = dumpConfig(paths, text, names)
-    val (out, status) = dumps.lastOrNull() ?: return null
-    return if (status == 0) null else Pair(names[dumps.lastIndex], out)
-}
+fun configRefusal(paths: Paths, text: String, names: List<String>, before: String,
+    own: List<String>): Pair<String, String>? =
+    withConfigFile(paths, text) { file ->
+        names.firstNotNullOfOrNull { name ->
+            val (out, status) = dump(paths, file, name)
+            val refused = status != 0 && (name in own || dumpConfig(paths, before, name).second == 0)
+            if (refused) Pair(name, out) else null
+        }
+    }
