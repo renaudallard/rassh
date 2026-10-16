@@ -106,9 +106,9 @@ keys are encrypted and unlocked with it.
   forwarding is off, as the server could use the keys while they are
   loaded. `-A` turns it on, but ssh only forwards the agent once logged
   in, when the keys have left it, so no vault key reaches the server.
-  The agent also serves nothing to a connection ssh forwards, so a jump
-  host whose block sets `ForwardAgent yes`, read by its own ssh without
-  the app's options, gets no key either
+  The agent also serves nothing to a connection ssh forwards with agent
+  forwarding, so a jump host whose block sets `ForwardAgent yes`, read by
+  its own ssh without the app's options, gets no key either
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
   key, show, copy or share public keys. OpenSSH 10.6 renamed the

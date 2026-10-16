@@ -373,8 +373,8 @@ fun withAgent(paths: Paths, argv: List<String>, names: List<String>): List<Strin
      * the local shell may put anything. The program gets the PATH back,
      * scp and sftp find ssh through it.
      *
-     * The agent serves nothing to a connection ssh forwards for a
-     * server, see the patch of ssh-agent.c: the ssh of a jump host
+     * The agent serves nothing to a connection ssh forwards with agent
+     * forwarding, see the patch of ssh-agent.c: the ssh of a jump host
      * reads the config without the -o options of the program, and
      * forwards the agent while the keys are in it when its block asks.
      */
