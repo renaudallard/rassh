@@ -272,9 +272,11 @@ class HostActivity : Activity() {
         )
         config.put(original, host)
         val text = config.toString()
-        /* Larger than the app reads, see Paths.bytesOf(), it would be lost to it. */
-        if (text.toByteArray().size > Paths.MAX_TEXT) {
-            toast(getString(R.string.config_failed, "config is too large"))
+        /* Before ssh checks it. */
+        try {
+            Paths.checkText(paths.config.name, text)
+        } catch (e: IOException) {
+            toast(getString(R.string.config_failed, e.message))
             return
         }
         checking = true
@@ -310,7 +312,7 @@ class HostActivity : Activity() {
                         return@runOnUiThread
                     }
                     paths.ensureSshDir()
-                    paths.writePrivate(paths.config, text)
+                    paths.writeText(paths.config, text)
                     /* Edited, the host may be another server: a transfer cut short there is not resumed. */
                     original?.let { thread(name = "drop-resume") { applicationContext.dropResumable(it) } }
                 } catch (e: IOException) {

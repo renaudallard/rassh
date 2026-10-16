@@ -324,7 +324,7 @@ class MainActivity : Activity(), SessionService.Listener {
         if (to == heldFrom) return
         try {
             val config = SshConfig.parse(paths.textOf(paths.config))
-            if (config.move(name, to)) paths.writePrivate(paths.config, config.toString())
+            if (config.move(name, to)) paths.writeText(paths.config, config.toString())
             else toast(getString(R.string.move_refused, name))
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
@@ -556,7 +556,7 @@ class MainActivity : Activity(), SessionService.Listener {
                 try {
                     val config = SshConfig.parse(paths.textOf(paths.config))
                     config.remove(name)
-                    paths.writePrivate(paths.config, config.toString())
+                    paths.writeText(paths.config, config.toString())
                     /* A transfer cut short goes with the host, the provider may be slow. */
                     thread(name = "drop-resume") { applicationContext.dropResumable(name) }
                 } catch (e: IOException) {

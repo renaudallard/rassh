@@ -332,9 +332,9 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
     }
-    /* Merged before anything is written: larger than the app reads, see Paths.bytesOf(), it would be lost to it. */
+    /* Merged and checked before anything is written. */
     for ((name, text) in listOf(CONFIG to configText, KNOWN_HOSTS to knownText))
-        if (text != null && text.toByteArray().size > Paths.MAX_TEXT) throw IOException("$name is too large")
+        if (text != null) Paths.checkText(name, text)
     val names = present + keys.map { it.name }
     /*
      * Into the vault or in clear, see sealable(), the vault in one write
@@ -352,8 +352,8 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
             }
         }
     }
-    configText?.let { paths.writePrivate(configFile, it) }
-    knownText?.let { paths.writePrivate(knownFile, it) }
+    configText?.let { paths.writeText(configFile, it) }
+    knownText?.let { paths.writeText(knownFile, it) }
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)

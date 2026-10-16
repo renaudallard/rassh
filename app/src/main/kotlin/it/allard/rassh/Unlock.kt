@@ -293,7 +293,7 @@ fun rewriteIdentities(paths: Paths, files: Map<String, String>, certificates: Bo
     val map = files.flatMap { (from, to) -> spellings(from).zip(spellings(to)) }.toMap()
     val text = paths.textOf(paths.config)
     val changed = SshConfig.replaceIdentities(text, map, certificates)
-    if (changed != text) paths.writePrivate(paths.config, changed)
+    if (changed != text) paths.writeText(paths.config, changed)
 }
 
 /**

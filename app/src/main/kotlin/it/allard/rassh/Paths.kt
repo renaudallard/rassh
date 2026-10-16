@@ -80,6 +80,13 @@ class Paths(context: Context) {
     @Throws(IOException::class)
     fun readConfig(): SshConfig = SshConfig.parse(if (config.isFile) bytesOf(config).toString(Charsets.UTF_8) else "")
 
+    /* Replace a config or known_hosts with text, see checkText(). */
+    @Throws(IOException::class)
+    fun writeText(file: File, text: String) {
+        checkText(file.name, text)
+        writePrivate(file, text)
+    }
+
     /*
      * Replace file with text, readable by the owner only. The data and
      * the rename reach the disk before returning, as callers may delete
@@ -146,6 +153,12 @@ class Paths(context: Context) {
          * shell would otherwise take all the memory, and end the app each
          * time it starts.
          */
+        /* Refuse text for a config or known_hosts larger than the app reads back, see bytesOf(). */
+        @Throws(IOException::class)
+        fun checkText(name: String, text: String) {
+            if (text.toByteArray().size > MAX_TEXT) throw IOException("$name is too large")
+        }
+
         @Throws(IOException::class)
         fun bytesOf(file: File, max: Int = MAX_TEXT): ByteArray {
             val data = FileInputStream(file).use { it.readNBytes(max + 1) }
