@@ -145,6 +145,7 @@ class SessionService : Service() {
         } catch (e: ErrnoException) {
             e.rethrowAsIOException()
         }
+        removeKeyLinks(paths)
         val prefs = getSharedPreferences(TerminalView.PREFS, MODE_PRIVATE)
         val session = Session(nextId++, name, server, target, path, argv, paths.env, cwd, fds,
             prefs.getInt(TerminalView.PREF_COLUMNS, COLUMNS), prefs.getInt(TerminalView.PREF_ROWS, ROWS),
