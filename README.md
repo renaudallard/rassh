@@ -301,7 +301,9 @@ replace:
   as they could change the hosts already there.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
-  then what the file does not hold is removed.
+  then what the file does not hold is removed, but for keys named in a
+  way the app does not take, see [Key storage](#key-storage), which
+  stay.
 
 Storing keys in the vault takes a fingerprint, cancelling it imports
 nothing, as does leaving the app while the file is read, since Android
