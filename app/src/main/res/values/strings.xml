@@ -24,6 +24,7 @@
     <string name="config_changed">The ssh config changed meanwhile, save again</string>
     <string name="config_refused">ssh refuses this configuration for %1$s: %2$s</string>
     <string name="config_unlisted">hosts no Host line names</string>
+    <string name="config_checking">Checking with ssh</string>
     <string name="config_check_failed">Cannot check the configuration: %1$s</string>
     <string name="sftp">sftp</string>
     <string name="scp">scp</string>

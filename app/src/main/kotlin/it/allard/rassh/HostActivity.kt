@@ -300,6 +300,8 @@ class HostActivity : Activity() {
         /* The host saved first, ssh's message is most likely about it. */
         val names = checkedNames(config, listOf(n))
         checking = true
+        /* One ssh -G for each host, a long config takes a while. */
+        actionBar?.setSubtitle(R.string.config_checking)
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
             var refused: Pair<String, String>? = null
@@ -313,6 +315,7 @@ class HostActivity : Activity() {
             runOnUiThread {
                 checking = false
                 if (isDestroyed) return@runOnUiThread
+                actionBar?.subtitle = null
                 if (failed != null) {
                     toast(getString(R.string.config_check_failed, failed))
                     return@runOnUiThread
