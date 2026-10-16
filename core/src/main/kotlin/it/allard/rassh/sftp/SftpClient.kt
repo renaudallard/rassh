@@ -66,14 +66,17 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     /* Replies read while waiting for another one, by request id. */
     private val early = HashMap<Int, Reply>()
 
+    /* What broke the connection, given again to whatever tries it after. */
+    @Volatile
+    private var broken: IOException? = null
+
     /**
      * The connection failed, or went out of step: nothing more goes
      * through it, unlike after an error the server reported. A transfer
      * cut short so may be resumed over a new one.
      */
-    @Volatile
-    var isBroken = false
-        private set
+    val isBroken: Boolean
+        get() = broken != null
 
     private class Reply(val type: Int, val body: Reader)
 
@@ -134,7 +137,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 if (entries.size > MAX_ENTRIES || chars > MAX_CHARS) throw IOException("too many files")
             }
         } finally {
-            closeHandle(handle)
+            if (!isBroken) closeHandle(handle)
         }
         return entries
     }
@@ -171,8 +174,10 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         try {
             open().use { out -> copy(handle, out, pending, progress, offset) }
         } finally {
-            drain(pending.map { it.id })
-            closeHandle(handle)
+            if (!isBroken) {
+                drain(pending.map { it.id })
+                closeHandle(handle)
+            }
         }
     }
 
@@ -316,9 +321,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             while (pending.isNotEmpty()) ok(reply(pending.removeFirst()))
             failed = false
         } finally {
-            drain(pending)
-            /* Closing reports errors of the last writes, they matter then. */
-            if (failed) closeHandle(handle) else ok(request(Writer(FXP_CLOSE).bytes(handle)))
+            if (!isBroken) {
+                drain(pending)
+                /* Closing reports errors of the last writes, they matter then. */
+                if (failed) closeHandle(handle) else ok(request(Writer(FXP_CLOSE).bytes(handle)))
+            }
         }
     }
 
@@ -343,19 +350,21 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun request(w: Writer): Reply = reply(send(w))
 
     private fun send(w: Writer): Int {
+        broken?.let { throw IOException(it.message) }
         val id = nextId++
         w.id(id)
         try {
             output.write(w.packet())
             output.flush()
         } catch (e: IOException) {
-            isBroken = true
+            broken = e
             throw e
         }
         return id
     }
 
     private fun reply(id: Int): Reply {
+        broken?.let { throw IOException(it.message) }
         early.remove(id)?.let { return it }
         try {
             while (true) {
@@ -366,7 +375,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 early[got] = r
             }
         } catch (e: IOException) {
-            isBroken = true
+            broken = e
             throw e
         }
     }

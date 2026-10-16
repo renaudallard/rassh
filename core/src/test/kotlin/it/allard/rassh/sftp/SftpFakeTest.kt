@@ -46,6 +46,22 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun outOfStepStaysBroken() {
+        /* The version and the handle of the directory, then text from the shell. */
+        val input = byteArrayOf(0, 0, 0, 5, 2, 0, 0, 0, 3, 0, 0, 0, 10, 102, 0, 0, 0, 0, 0, 0, 0, 1, 'h'.code.toByte()) +
+            "Welcome to the machine\n".toByteArray()
+        val output = java.io.ByteArrayOutputStream()
+        val client = SftpClient(java.io.ByteArrayInputStream(input), output)
+        val e = assertFailsWith<java.io.IOException> { client.list("/d") }
+        assertTrue(e.message!!.startsWith("bad packet length ${0x57656c63},"))
+        assertTrue(client.isBroken)
+        /* Nothing more is sent, nor read from the middle of the text. */
+        val sent = output.size()
+        assertEquals(e.message, assertFailsWith<java.io.IOException> { client.stat("/f") }.message)
+        assertEquals(sent, output.size())
+    }
+
+    @Test(timeout = TIMEOUT)
     fun emptyReadsEnd() {
         val fake = FakeServer { type, id, _ ->
             when (type) {
