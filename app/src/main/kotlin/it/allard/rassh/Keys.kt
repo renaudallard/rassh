@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 
@@ -121,11 +122,17 @@ object Keys {
             .forEach { it.delete() }
     }
 
-    /** The public key next to a private key, or null. */
+    /*
+     * The public key next to a private key, or null. Not one larger than
+     * a private key may be: a huge one, made in the local shell, would be
+     * more than the clipboard or a share can take, ending the app.
+     */
     fun publicKey(dir: File, name: String): String? {
         val f = File(dir, "$name.pub")
         return try {
-            if (f.isFile) f.readText().trim().ifEmpty { null } else null
+            if (!f.isFile) return null
+            val data = FileInputStream(f).use { it.readNBytes(MAX_SIZE + 1) }
+            if (data.size > MAX_SIZE) null else data.toString(Charsets.UTF_8).trim().ifEmpty { null }
         } catch (_: IOException) {
             null
         }
