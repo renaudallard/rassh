@@ -437,7 +437,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         val clip = clipboard.primaryClip ?: return
         if (clip.itemCount == 0) return
-        pasteText(clip.getItemAt(0).coerceToText(context).toString())
+        /* Its text only: a clip naming a file would have it read whole, on the UI thread. */
+        pasteText(clip.getItemAt(0).text?.toString() ?: return)
     }
 
     private fun pasteText(text: String) {
