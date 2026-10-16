@@ -14,6 +14,7 @@ TERMINAL
 
 HÔTES
 • Enregistrés comme blocs Host dans ~/.ssh/config : utilisateur, port, fichier d'identité, redirections locales, distantes et dynamiques, hôtes de rebond, et toute autre option de ssh_config
+• Réordonnés en maintenant et en faisant glisser un hôte, l'ordre étant gardé dans ~/.ssh/config
 • Vos propres blocs, Host * et Match compris, restent tels quels, sauf les lignes IdentityFile et CertificateFile tenues à jour pour vos clés, et ssh vérifie le fichier avant son enregistrement
 • Connexion rapide avec de simples arguments ssh, comme -p 2222 moi@example.org ou -J rebond hôte
 

@@ -1,0 +1,6 @@
+- Saved hosts can be reordered by holding and dragging them, the order kept in ~/.ssh/config
+- Saving a host or appending an import checks the config for every host: one host's IgnoreUnknown no longer breaks the others
+- A resumed download stops if the file on the phone changed
+- Keys are offered for protection again when Android closes the fingerprint prompt
+- Oversized config, known_hosts or key files are refused instead of crashing
+- Many fixes in the file browser, keys, import, terminal

@@ -14,6 +14,7 @@ TERMINAL
 
 HOSTS
 • Saved as Host blocks in ~/.ssh/config: user, port, identity file, local, remote and dynamic forwards, jump hosts, and any other ssh_config option
+• Reordered by holding and dragging a host, the order kept in ~/.ssh/config
 • Your own blocks, Host * and Match included, are left as they are, apart from IdentityFile and CertificateFile lines kept pointing at your keys, and ssh checks the file before it is saved
 • Quick connect with plain ssh arguments, like -p 2222 me@example.org or -J jump host
 
