@@ -105,7 +105,10 @@ keys are encrypted and unlocked with it.
   two reusing a `ControlMaster` connection after 60 seconds. Agent
   forwarding is off, as the server could use the keys while they are
   loaded. `-A` turns it on, but ssh only forwards the agent once logged
-  in, when the keys have left it, so no vault key reaches the server
+  in, when the keys have left it, so no vault key reaches the server.
+  The agent also serves nothing to a connection ssh forwards, so a jump
+  host whose block sets `ForwardAgent yes`, read by its own ssh without
+  the app's options, gets no key either
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
   key, show, copy or share public keys. OpenSSH 10.6 renamed the
@@ -354,7 +357,7 @@ fastlane/ store descriptions, screenshots and changelogs, read by F-Droid
 | **getpwuid** | Bionic reports `/data` as the home of app users. The programs are linked with `-Wl,--wrap=getpwuid` and `native/homedir.c` answers `$HOME` |
 | **SSHFP** | The resolver behind `res_query()` reaches no DNS server from an app, so `VerifyHostKeyDNS` found nothing. The programs are linked with `-Wl,--wrap=res_query` and `native/dns.c` sends the query to the system resolver with `android_res_nquery()`. It clears the authenticated data bit of the answer, which anyone answering on the network could set, as OpenBSD and glibc do by default: a fingerprint found shows as matching and ssh still asks |
 | **Files** | The browser runs `ssh -s host sftp` with pipes as its standard input and output and speaks SFTP version 3 to it. ssh keeps the terminal for its messages and questions, shown while connecting |
-| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, lets the SSHFP resolver code build without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, keeps no `known_hosts.old` when ssh rewrites the file for `UpdateHostKeys`, checking instead that the new file was fully written before it takes the place of the old one, and moves the `ControlMaster` socket into place with `renameat2()`, since Android refuses `link()` to apps |
+| **Patch** | `native/openssh-android.patch` uses the OpenBSD libc `explicit_bzero()`, since bionic has neither it nor the `bzero()` function the portable fallback relies on, lets the SSHFP resolver code build without the state bionic keeps private, skips the setgid calls the Android seccomp filter kills, keeps no `known_hosts.old` when ssh rewrites the file for `UpdateHostKeys`, checking instead that the new file was fully written before it takes the place of the old one, and moves the `ControlMaster` socket into place with `renameat2()`, since Android refuses `link()` to apps. It also gives `ssh-agent` a `-O no-forwarded` option, which the app uses, serving nothing to a connection ssh binds as one it forwards for a server |
 
 ## Building
 

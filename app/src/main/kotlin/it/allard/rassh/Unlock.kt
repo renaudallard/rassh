@@ -372,10 +372,15 @@ fun withAgent(paths: Paths, argv: List<String>, names: List<String>): List<Strin
      * program comes from /system/bin or the app, never from ~/bin, where
      * the local shell may put anything. The program gets the PATH back,
      * scp and sftp find ssh through it.
+     *
+     * The agent serves nothing to a connection ssh forwards for a
+     * server, see the patch of ssh-agent.c: the ssh of a jump host
+     * reads the config without the -o options of the program, and
+     * forwards the agent while the keys are in it when its block asks.
      */
     val script = "p=\$PATH; PATH=/system/bin; " +
         "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
-        "${quote(paths.agent)} -D -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
+        "${quote(paths.agent)} -D -O no-forwarded -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "d=\"\$TMPDIR/keys.\$\$\"; rm -rf \"\$d\"; mkdir -m 700 \"\$d\"$links && " +
         "(cd \"\$d\" && exec ${quote(paths.add)} -t $KEY_LIFETIME $keys) >&2; rm -rf \"\$d\"; " +
