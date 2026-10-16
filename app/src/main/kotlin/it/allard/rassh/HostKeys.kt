@@ -91,7 +91,8 @@ private fun removeLines(paths: Paths, file: File, gone: Set<String>) {
 /**
  * When ssh refused session as the host key changed, warn and offer to
  * remove the known key. Connecting again then shows the new key to
- * confirm, as for a new host.
+ * confirm, as for a new host, unless StrictHostKeyChecking makes ssh
+ * take it or refuse it.
  */
 fun Activity.offerNewHostKey(paths: Paths, session: Session) {
     val changed = session.changedHostKey ?: return
@@ -124,14 +125,15 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             /* A line also naming other hosts, or a pattern, would take their keys with it. */
             if (found.second.values.flatten().any { !namesAlone(it, found.first) })
                 return@runOnUiThread toast(getString(R.string.host_key_shared, found.first))
+            /* What the next connection does once the key is gone: ssh prompts only when asked to. */
+            val (then, removed) = when (found.third) {
+                "accept-new", "false" -> R.string.host_key_then_accepted to R.string.host_key_removed_accepted
+                "true" -> R.string.host_key_then_refused to R.string.host_key_removed_refused
+                else -> R.string.host_key_then_asked to R.string.host_key_removed
+            }
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
-                /* What the next connection does once the key is gone: ssh prompts only when asked to. */
-                .setMessage(getString(R.string.host_key_changed_text, found.first, getString(when (found.third) {
-                    "accept-new" -> R.string.host_key_then_accepted
-                    "true" -> R.string.host_key_then_refused
-                    else -> R.string.host_key_then_asked
-                })))
+                .setMessage(getString(R.string.host_key_changed_text, found.first, getString(then)))
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
                         for ((file, lines) in found.second) removeLines(paths, file, lines)
@@ -139,7 +141,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                         toast(getString(R.string.host_key_remove_failed, e.message))
                         return@setPositiveButton
                     }
-                    toast(getString(R.string.host_key_removed))
+                    toast(getString(removed))
                 }
                 .setNegativeButton(R.string.host_key_keep, null)
                 .show()
