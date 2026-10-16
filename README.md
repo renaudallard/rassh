@@ -59,7 +59,8 @@ keys are encrypted and unlocked with it.
   name, user, port or identity file line. Further `Host` blocks of the
   same name only change with it: renaming the host renames them,
   deleting it deletes them. ssh checks the file before it is saved,
-  since one bad line would stop every host. A config or `known_hosts`
+  since one bad line would stop every host, and a file changed during
+  that check is not overwritten. A config or `known_hosts`
   that is not UTF-8 is never rewritten: saving or deleting a host,
   renaming a key, removing a changed host key or an Append import then
   stops with a message. One that is a link is rewritten in the file it

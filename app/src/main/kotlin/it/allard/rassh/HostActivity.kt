@@ -198,12 +198,13 @@ class HostActivity : Activity() {
         val h = hostName.text.toString().trim()
         val u = user.text.toString().trim()
         val p = port.text.toString().trim()
-        val config = try {
-            SshConfig.parse(paths.textOf(paths.config))
+        val read = try {
+            paths.textOf(paths.config)
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
             return
         }
+        val config = SshConfig.parse(read)
         var ok = true
         if (!Host.isValidName(n)) {
             name.error = getString(R.string.error_name)
@@ -288,6 +289,11 @@ class HostActivity : Activity() {
                     return@runOnUiThread
                 }
                 try {
+                    /* Written meanwhile, by an import finishing for one, it would be lost. */
+                    if (paths.textOf(paths.config) != read) {
+                        toast(getString(R.string.config_changed))
+                        return@runOnUiThread
+                    }
                     paths.ensureSshDir()
                     paths.writePrivate(paths.config, text)
                     /* Edited, the host may be another server: a transfer cut short there is not resumed. */
