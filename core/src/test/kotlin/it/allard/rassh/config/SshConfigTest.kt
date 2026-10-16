@@ -101,6 +101,21 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsApartFromTheHeader() {
+        val config = SshConfig.parse("# notes\n")
+        config.put(null, Host("a", user = "me"))
+        val again = SshConfig.parse(config.toString())
+        again.remove("a")
+        assertEquals("# notes\n\n", again.toString())
+        val added = SshConfig.parse("User me\n")
+        added.addMissing(SshConfig.parse("Host b\n"))
+        assertEquals("User me\n\nHost b\n", added.toString())
+        val blank = SshConfig.parse("# notes\n\n")
+        blank.put(null, Host("a"))
+        assertEquals("# notes\n\nHost a\n\n", blank.toString())
+    }
+
+    @Test
     fun quotedPort() {
         assertEquals("2222", SshConfig.parse("Host q\n    Port \"2222\"\n").hosts[0].port)
     }

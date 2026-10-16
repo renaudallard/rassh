@@ -55,7 +55,7 @@ data class Host(
  * are exposed as Host entries, every other line is kept as is.
  */
 class SshConfig private constructor(
-    private val header: List<String>,
+    private var header: List<String>,
     private val blocks: MutableList<Block>,
     private val footer: List<String>,
 ) {
@@ -122,9 +122,18 @@ class SshConfig private constructor(
                 }
             }
         } else {
-            val at = blocks.indexOfFirst { !it.isHost }
-            blocks.add(if (at < 0) blocks.size else at, Block(emptyList(), "Host", host.name, render(host)))
+            val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
+            headerApart(at)
+            blocks.add(at, Block(emptyList(), "Host", host.name, render(host)))
         }
+    }
+
+    /*
+     * A block added at k right below the header starts after a blank
+     * line, a comment ending the header would be read back as its own.
+     */
+    private fun headerApart(k: Int) {
+        if (k == 0 && header.lastOrNull()?.isBlank() == false) header = header + ""
     }
 
     /* The Host line of b naming name instead, what follows the old name, a comment, kept. */
@@ -191,6 +200,7 @@ class SshConfig private constructor(
         val added = other.blocks.filter { b -> b.name?.let { !isUsed(it) } == true }
         if (added.isEmpty()) return emptyList()
         val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
+        headerApart(at)
         blocks.addAll(at, added)
         /* Apart from each other and from the blocks around them, as the comments ending the file. */
         for (k in maxOf(at - 1, 0) until at + added.size)
