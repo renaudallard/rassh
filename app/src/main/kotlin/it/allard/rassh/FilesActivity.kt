@@ -409,6 +409,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var append: Pair<OutputStream, Long>? = null
             try {
                 forgetDownloadsInto(uri, resumed)
+                /* Changed on the phone since, it may be another file now: left alone, as deletePartial() does. */
+                if (resumed != null && resumed.length >= 0 && wholeFile(uri) != Pair(resumed.length, resumed.modified))
+                    throw IOException(getString(R.string.resume_changed))
                 val attrs = c.stat(remote)
                 started = Resumable.Download(remote, uri, attrs.size ?: -1, attrs.mtime)
                 /* Changed on the server since, it is another file: downloaded again. */
