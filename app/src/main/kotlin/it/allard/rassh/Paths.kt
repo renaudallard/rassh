@@ -4,6 +4,7 @@ import android.content.Context
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
+import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -74,6 +75,10 @@ class Paths(context: Context) {
      */
     @Throws(IOException::class)
     fun textOf(file: File): String = if (file.isFile) utf8(bytesOf(file), file.name) else ""
+
+    /* The config as shown, decoded leniently: textOf() is for one written back. */
+    @Throws(IOException::class)
+    fun readConfig(): SshConfig = SshConfig.parse(if (config.isFile) bytesOf(config).toString(Charsets.UTF_8) else "")
 
     /*
      * Replace file with text, readable by the owner only. The data and

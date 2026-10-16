@@ -230,12 +230,9 @@ class MainActivity : Activity(), SessionService.Listener {
         invalidateOptionsMenu()
     }
 
-    private fun readConfig(): SshConfig =
-        SshConfig.parse(if (paths.config.isFile) Paths.bytesOf(paths.config).toString(Charsets.UTF_8) else "")
-
     private fun loadHosts() {
         hosts = try {
-            readConfig().hosts
+            paths.readConfig().hosts
         } catch (e: IOException) {
             toast(getString(R.string.config_read_failed, e.message))
             emptyList()

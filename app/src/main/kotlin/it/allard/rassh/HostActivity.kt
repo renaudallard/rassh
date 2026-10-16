@@ -71,7 +71,7 @@ class HostActivity : Activity() {
 
         paths = Paths(this)
         val config = try {
-            readConfig()
+            paths.readConfig()
         } catch (e: IOException) {
             toast(getString(R.string.config_read_failed, e.message))
             finish()
@@ -198,9 +198,6 @@ class HostActivity : Activity() {
             }
         }
     }
-
-    private fun readConfig(): SshConfig =
-        SshConfig.parse(if (paths.config.isFile) Paths.bytesOf(paths.config).toString(Charsets.UTF_8) else "")
 
     private fun lines(e: EditText): List<String> =
         e.text.lines().map { SshConfig.trimOption(it) }.filter { it.isNotEmpty() }

@@ -393,8 +393,7 @@ private fun Context.putSetting(item: Backup.Item) {
 }
 
 @Throws(IOException::class)
-private fun hostCount(paths: Paths): Int =
-    if (paths.config.isFile) SshConfig.parse(Paths.bytesOf(paths.config).toString(Charsets.UTF_8)).hosts.size else 0
+private fun hostCount(paths: Paths): Int = paths.readConfig().hosts.size
 
 /*
  * Ask a passphrase, twice when choosing one, and pass it to use, which
