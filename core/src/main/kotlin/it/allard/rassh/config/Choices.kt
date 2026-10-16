@@ -58,7 +58,8 @@ object Choices {
      */
     fun effective(dump: String): Map<Choice, String> {
         val values = mutableMapOf<Choice, String>()
-        for (line in dump.lines()) {
+        /* Lines end in line feeds only: a value may hold a carriage return, which must not start a line. */
+        for (line in dump.split('\n')) {
             val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: continue
             val choice = ALL.find { it.keyword.equals(key, true) } ?: continue
             values[choice] = when (value) {

@@ -27,7 +27,8 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     val (out, status) = execute(paths.ssh, listOf("ssh", "-G") + target, paths.env, paths.home.path)
     /* A config edited since, in the local shell for instance, may be refused: ssh says why. */
     if (status != 0) throw IOException(out.trim().ifEmpty { "ssh -G: exit $status" })
-    val config = out.lines().mapNotNull { line ->
+    /* Lines end in line feeds only: a value may hold a carriage return, which must not start a line. */
+    val config = out.split('\n').mapNotNull { line ->
         val i = line.indexOf(' ')
         if (i > 0) line.substring(0, i) to line.substring(i + 1) else null
     }.toMap()

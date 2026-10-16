@@ -49,6 +49,9 @@ class ChoicesTest {
             choice("LogLevel") to "INFO",
             choice("ConnectTimeout") to "none",
         ), Choices.effective(dump))
+        /* A carriage return within a value is no line of its own. */
+        assertEquals(mapOf(choice("Compression") to "no"),
+            Choices.effective("compression no\nsetenv A=1\rcompression yes\n"))
     }
 
     @Test
