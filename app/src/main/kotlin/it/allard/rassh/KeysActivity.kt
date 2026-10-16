@@ -82,7 +82,8 @@ class KeysActivity : Activity() {
 
     /* Move new keys into the vault, not asking twice for the same ones. */
     private fun protect() {
-        if (protecting || !vault.isSetUp) return
+        /* Nothing goes into a vault it cannot read, protectKeys() would say so again. */
+        if (protecting || toldVault || !vault.isSetUp) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
         protecting = true
@@ -94,11 +95,13 @@ class KeysActivity : Activity() {
         }
     }
 
+    /* Read at each focus and before each change, the same error is said once. */
     private fun vaultNames(): List<String> =
         try {
-            vault.names()
+            vault.names().also { toldVault = false }
         } catch (e: IOException) {
-            toast(getString(R.string.vault_error, e.message))
+            if (!toldVault) toast(getString(R.string.vault_error, e.message))
+            toldVault = true
             emptyList()
         }
 
@@ -108,14 +111,7 @@ class KeysActivity : Activity() {
     }
 
     private fun load() {
-        val sealed = try {
-            vault.names().also { toldVault = false }
-        } catch (e: IOException) {
-            /* Loaded at each focus, the same error is said once. */
-            if (!toldVault) toast(getString(R.string.vault_error, e.message))
-            toldVault = true
-            emptyList()
-        }
+        val sealed = vaultNames()
         keys = (sealed + Keys.plaintext(paths.sshDir) + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
             val pub = Keys.publicKey(paths.sshDir, name)
