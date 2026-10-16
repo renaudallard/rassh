@@ -68,6 +68,7 @@
     <string name="discard">Discard</string>
     <string name="later">Later</string>
     <string name="resume_changed">the file on the phone changed since, download it again</string>
+    <string name="resume_elsewhere">Another browser of this host is resuming that transfer</string>
     <string name="resume_gone">That transfer was dropped meanwhile</string>
     <string name="replace_files">Some files exist already on the server. Replace them? A transfer stopped halfway leaves them cut short.</string>
     <string name="replace">Replace</string>

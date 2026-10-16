@@ -494,7 +494,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun startResuming(host: String?, resumed: Resumable?): Boolean {
         if (host == null || resumed == null) return true
         if (claimResumable(host, resumed)) return true
-        if (!isResuming(host)) toast(getString(R.string.resume_gone))
+        toast(getString(if (isResuming(host)) R.string.resume_elsewhere else R.string.resume_gone))
         return false
     }
 
