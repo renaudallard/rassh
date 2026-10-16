@@ -86,6 +86,11 @@ class SshConfig private constructor(
     val hosts: List<Host>
         get() = blocks.filter { it.isHost }.distinctBy { it.name }.map { toHost(it) }
 
+    /** Every host name the Host lines list, alone or with others, patterns and negations left out. */
+    val names: List<String>
+        get() = blocks.filter { it.keyword.equals("Host", ignoreCase = true) }
+            .flatMap { arguments(it.value).orEmpty() }.filter { Host.isValidName(it) }.distinct()
+
     fun find(name: String): Host? =
         blocks.find { it.name == name }?.let { toHost(it) }
 

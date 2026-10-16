@@ -292,7 +292,7 @@ class HostActivity : Activity() {
             return
         }
         /* The host saved first, ssh's message is most likely about it. */
-        val names = (listOf(n) + config.hosts.map { it.name }).distinct()
+        val names = checkedNames(config, listOf(n))
         checking = true
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
@@ -314,7 +314,7 @@ class HostActivity : Activity() {
                 if (refused != null) {
                     /* A dialog, a toast would cut ssh's lines short. */
                     AlertDialog.Builder(this)
-                        .setMessage(getString(R.string.config_refused, refused.first, refused.second))
+                        .setMessage(refusedMessage(refused))
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                     return@runOnUiThread

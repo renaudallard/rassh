@@ -337,6 +337,12 @@ class SshConfigTest {
     }
 
     @Test
+    fun namesListsEveryPlainName() {
+        val config = SshConfig.parse("Host web db\nHost mail # prod\nHost !x *.lan\nMatch host y\nHost web\n")
+        assertEquals(listOf("web", "db", "mail"), config.names)
+    }
+
+    @Test
     fun indentedCommentStaysWithItsBlock() {
         val config = SshConfig.parse("Host *\n    User u\n    # ForwardAgent yes\n# the work host\nHost work\n    HostName w\n")
         config.remove("work")

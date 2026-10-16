@@ -1,7 +1,25 @@
 package it.allard.rassh
 
+import android.content.Context
+import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
+
+/*
+ * A name no Host line lists, for the destinations of quick connect and
+ * the blocks of patterns: .invalid never names a real host.
+ */
+private const val UNLISTED = "unlisted.invalid"
+
+/* The names ssh must take config for, first ones first: those its Host lines list and one they do not. */
+fun checkedNames(config: SshConfig, first: List<String>): List<String> =
+    (first + config.names + UNLISTED).distinct()
+
+/* What to tell of a refusal from configRefusal(). */
+fun Context.refusedMessage(refusal: Pair<String, String>): String {
+    val name = if (refusal.first == UNLISTED) getString(R.string.config_unlisted) else refusal.first
+    return getString(R.string.config_refused, name, refusal.second)
+}
 
 /*
  * The output of ssh -G and its exit status with text as its config, for

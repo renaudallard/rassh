@@ -189,8 +189,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                     toast(getString(R.string.restore_failed, error))
                 } else if (refusal != null) {
                     opened.forEach { it.data.fill(0) }
-                    val message = getString(R.string.restore_failed,
-                        getString(R.string.config_refused, refusal.first, refusal.second))
+                    val message = getString(R.string.restore_failed, refusedMessage(refusal))
                     /* A dialog, a toast would cut ssh's lines short. */
                     if (isDestroyed) applicationContext.toast(message)
                     else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
@@ -321,7 +320,8 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
 
 /*
  * The config with the hosts of an export added, the text it was made
- * from, the number of hosts added and the names ssh must take it for.
+ * from, the number of hosts added and the names ssh must take it for,
+ * see checkedNames().
  */
 private class Merged(val read: String, val text: String, val hosts: Int, val names: List<String>)
 
@@ -333,7 +333,7 @@ private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
     val mine = SshConfig.parse(read)
     val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)))
     if (added.isEmpty()) return null
-    return Merged(read, mine.toString(), added.size, (added + mine.hosts.map { it.name }).distinct())
+    return Merged(read, mine.toString(), added.size, checkedNames(mine, added))
 }
 
 /* Returns the number of hosts and keys added. */
