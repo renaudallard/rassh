@@ -26,16 +26,25 @@ data class Host(
             name.isNotEmpty() && !name.startsWith("-") &&
                 name.none { it.isWhitespace() || it.isISOControl() || it in "*?!,\"'#=`$\\;&<>|(){}@/[]" }
 
-        /** A single word usable as a HostName value. */
+        /*
+         * A HostName value: one word, without the characters ssh refuses
+         * in a host name given on its command line, see ssh_valid_hostname()
+         * in readconf.c. ssh takes one from the config as written, and %h
+         * hands it to the shell of a ProxyCommand as it is.
+         */
         fun isValidWord(value: String): Boolean =
-            value.none { it.isWhitespace() || it in "\"'#" }
+            !value.startsWith("-") &&
+                value.none { it.isWhitespace() || it.isISOControl() || it in "'`\"$\\;&<>|(){},#" }
 
         /*
-         * A User value. ssh takes one from the config as written, spaces
-         * and quotes included, which are quoted when saved: only a line
-         * break, or another control character, could not be.
+         * A User value, without the characters ssh refuses in a user name
+         * it expanded, see ssh_valid_ruser() in readconf.c: one taken from
+         * the config as written is not checked, and %r hands it to the
+         * shell of a ProxyCommand as it is. Spaces are quoted when saved.
          */
-        fun isValidUser(value: String): Boolean = value.none { it.isISOControl() }
+        fun isValidUser(value: String): Boolean =
+            !value.startsWith("-") && " -" !in value &&
+                value.none { it.isISOControl() || it in "'`\";&<>|(){}$\\" }
 
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
