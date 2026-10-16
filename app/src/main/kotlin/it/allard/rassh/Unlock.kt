@@ -101,6 +101,24 @@ fun Activity.withVaultKey(
         })
 }
 
+/*
+ * Call then, unless the vault key was invalidated, which is told first,
+ * failed called once that is closed. Other errors are left to
+ * withVaultKey().
+ */
+fun Activity.unlessInvalidated(vault: Vault, failed: () -> Unit, then: () -> Unit) {
+    try {
+        vault.cipher()
+    } catch (_: KeyPermanentlyInvalidatedException) {
+        vaultInvalidated(vault, failed)
+        return
+    } catch (_: GeneralSecurityException) {
+    } catch (_: IOException) {
+    } catch (_: ProviderException) {
+    }
+    then()
+}
+
 /* closed is called once the dialog is gone. */
 private fun Activity.vaultInvalidated(vault: Vault, closed: () -> Unit = {}) {
     val dialog = AlertDialog.Builder(this)

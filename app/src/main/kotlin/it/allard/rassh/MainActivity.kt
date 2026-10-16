@@ -395,18 +395,18 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.vault_error, e.message))
             emptyList()
         }
+        /* Not once the screen is gone, its dialog dismissed then, see dismissWithScreen(). */
+        val withoutKeys = { if (!isDestroyed && !isFinishing) start(service, l, l.path, l.argv, emptyList()) }
         if (names.isEmpty())
             start(service, l, l.path, l.argv, emptyList())
         else
-            withoutStrays { unlockAndStart(service, names, l) }
+            /* Keys lost, there are none to protect from strays. */
+            unlessInvalidated(vault, withoutKeys) { withoutStrays { unlockAndStart(service, names, l, withoutKeys) } }
     }
 
-    private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch) {
+    private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch, withoutKeys: () -> Unit) {
         /* Cancel or an error connects without keys, a prompt closed with Back or by leaving the app starts nothing. */
-        withVaultKey(vault, getString(R.string.unlock_reason), {
-            /* Not once the screen is gone, its dialog dismissed then, see dismissWithScreen(). */
-            if (!isDestroyed && !isFinishing) start(service, l, l.path, l.argv, emptyList())
-        }, {}) { key ->
+        withVaultKey(vault, getString(R.string.unlock_reason), withoutKeys, {}) { key ->
             /*
              * The prompt outlives a screen recreated meanwhile, as by a
              * theme change, whose service may have gone with it.
