@@ -33,16 +33,20 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     fun discard() {
         if (isEmptyDocument(uri)) deleteDocument(uri)
     }
+    /* A vault it cannot read is said before the passphrase is asked. */
+    val names = try {
+        vault.names()
+    } catch (e: IOException) {
+        discard()
+        toast(getString(R.string.vault_error, e.message))
+        return
+    }
     /*
      * A key named as 0.1.2 and 0.1.3 allowed, or in the local shell,
      * refused by every import, said before the passphrase and the
      * fingerprint are asked. Left out, it would be lost unnoticed.
      */
-    val misnamed = try {
-        Keys.list(paths.sshDir, vault).firstOrNull { !Keys.isValidName(it) }
-    } catch (_: IOException) {
-        null
-    } ?: Keys.misnamed(paths.sshDir).firstOrNull()
+    val misnamed = names.sorted().firstOrNull { !Keys.isValidName(it) } ?: Keys.misnamed(paths.sshDir).firstOrNull()
     if (misnamed != null) {
         discard()
         toast(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
@@ -80,14 +84,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                 }
             }
         }
-        val names = try {
-            vault.names()
-        } catch (e: IOException) {
-            pass.fill('\u0000')
-            discard()
-            toast(getString(R.string.vault_error, e.message))
-            return@askPassphrase
-        }
+        /* Keys put in the vault meanwhile stop the export, see exportItems(). */
         if (names.isEmpty())
             export(null)
         else
