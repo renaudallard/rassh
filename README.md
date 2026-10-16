@@ -298,7 +298,9 @@ replace:
   the missing `known_hosts` lines and the font size if not set yet. Only
   `Host` blocks naming a single host are taken: global options, `Match`
   blocks and `Host` blocks with wildcards or several names are left out,
-  as they could change the hosts already there.
+  as they could change the hosts already there. A host added whose key
+  has the name of one already there uses that one, not the key of the
+  file.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed, but for keys named in a
