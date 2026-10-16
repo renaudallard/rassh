@@ -115,8 +115,13 @@ class HostActivity : Activity() {
             local.setText(host.localForwards.joinToString("\n"))
             remote.setText(host.remoteForwards.joinToString("\n"))
             dynamic.setText(host.dynamicForwards.joinToString("\n"))
-            /* The tmux lines belong to the checkbox, not to the other options. */
-            val attach = host.other.any { isTmuxLine(it) }
+            /*
+             * The tmux lines belong to the checkbox, not to the other
+             * options, unless another RemoteCommand or RequestTTY line is
+             * there too, which a save with the box ticked would refuse.
+             */
+            val attach = host.other.any { isTmuxLine(it) } &&
+                host.other.all { keyword(it) !in TMUX_KEYWORDS || isTmuxLine(it) || isTtyLine(it) }
             tmux.isChecked = attach
             val rest = host.other.filterNot {
                 attach && (isTmuxLine(it) || isTtyLine(it)) || restrict && isOnlyLine(it)
