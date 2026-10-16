@@ -307,7 +307,9 @@ Import reads the file on the other phone and asks whether to append or
 replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
-  the missing `known_hosts` lines and the font size if not set yet. Only
+  the `known_hosts` lines of hosts not known here yet, as ssh would
+  trust again an old key of one, removed here once changed, hashed and
+  `@revoked` lines as they are, and the font size if not set yet. Only
   `Host` blocks naming a single host are taken: global options, `Match`
   blocks and `Host` blocks with wildcards or several names are left out,
   as they could change the hosts already there. ssh checks the result

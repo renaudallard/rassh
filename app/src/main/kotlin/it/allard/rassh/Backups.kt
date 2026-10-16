@@ -369,7 +369,16 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     fun lines(text: String) = text.split('\n').map { it.removeSuffix("\r") }
     val knownText = known?.let { (text, theirs) ->
         val lines = lines(text).toSet()
-        val missing = lines(theirs).filter { line -> line.isNotBlank() && line !in lines }.distinct()
+        /*
+         * Not for a host known here already: ssh takes a key any of its
+         * lines holds, an old one, removed here once changed, would be
+         * trusted again.
+         */
+        val names = lines.mapNotNull { knownNames(it) }.flatMap { (kind, hosts) -> hosts.map { kind to it } }.toSet()
+        val missing = lines(theirs).filter { line ->
+            val k = knownNames(line)
+            line.isNotBlank() && line !in lines && (k == null || k.second.none { (k.first to it) in names })
+        }.distinct()
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
     }
@@ -400,6 +409,20 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         if (!prefs.contains(item.name)) putSetting(item)
     useKeyNames(paths, keys.filter { sealable(items, it, seal) }.map { it.name })
     return Pair(hosts, keys.size)
+}
+
+/*
+ * The marker of a known_hosts line, empty for a key, and the host names
+ * it is for, in lower case as ssh compares them, those negated left out.
+ * Null for a comment, a hashed name, which cannot be compared, and a
+ * @revoked line, which only takes trust away. See hostfile.c.
+ */
+private fun knownNames(line: String): Pair<String, List<String>>? {
+    val fields = line.trim().split(' ', '\t').filter { it.isNotEmpty() }
+    val marker = fields.firstOrNull()?.takeIf { it.startsWith("@") } ?: ""
+    val hosts = fields.getOrNull(if (marker.isEmpty()) 0 else 1) ?: return null
+    if (hosts.startsWith("#") || hosts.startsWith("|") || marker == "@revoked") return null
+    return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }.map { it.lowercase() }
 }
 
 /*
