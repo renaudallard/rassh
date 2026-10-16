@@ -244,37 +244,31 @@ class KeysActivity : Activity() {
             dialog.dismiss()
             /* In a thread, a provider may have to download the file first. */
             thread(name = "import-key") {
-                val error = try {
-                    /* Kept in a byte array, zeroed after use, never in a String. */
-                    val key = contentResolver.openInputStream(uri)?.use { Keys.read(it) }
+                /* Kept in a byte array, zeroed after use, never in a String. */
+                var key: ByteArray? = null
+                val failed = try {
+                    val read = contentResolver.openInputStream(uri)?.use { Keys.read(it) }
                         ?: throw IOException("cannot open $uri")
-                    try {
-                        if (key.size > Keys.MAX_SIZE) throw IOException("file too large")
-                        if (!Keys.isPem(key)) throw IOException("not a private key")
-                        paths.ensureSshDir()
-                        /*
-                         * Checked again: a key generated while the file was
-                         * read must not be replaced. A vault that cannot be
-                         * read stops nothing, as when the name was chosen.
-                         */
-                        val stored = try {
-                            vault.names()
-                        } catch (_: IOException) {
-                            emptyList()
-                        }
-                        if (Keys.isTaken(paths.sshDir, n, stored)) throw IOException(getString(R.string.error_key_exists))
-                        paths.writePrivate(File(paths.sshDir, n), key)
-                    } finally {
-                        key.fill(0)
-                    }
+                    key = read
+                    if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
+                    if (!Keys.isPem(read)) throw IOException("not a private key")
                     null
-                } catch (e: ErrnoException) {
-                    e.message
                 } catch (e: Exception) {
                     if (!isFileError(e)) throw e
                     e.message
                 }
+                /* Written on the UI thread, as every key: two imports under one name would share a temporary file. */
                 runOnUiThread {
+                    val error = try {
+                        if (failed == null) storeKey(n, key ?: throw IOException("cannot open $uri"))
+                        failed
+                    } catch (e: ErrnoException) {
+                        e.message
+                    } catch (e: IOException) {
+                        e.message
+                    } finally {
+                        key?.fill(0)
+                    }
                     if (isDestroyed) return@runOnUiThread
                     /* Android refuses to start the session from the background. */
                     if (error != null) toast(getString(R.string.import_failed, error))
@@ -283,6 +277,23 @@ class KeysActivity : Activity() {
                 }
             }
         }
+    }
+
+    /*
+     * Write key as n. Checked again: a key generated while the file was
+     * read must not be replaced. A vault that cannot be read stops
+     * nothing, as when the name was chosen.
+     */
+    @Throws(IOException::class, ErrnoException::class)
+    private fun storeKey(n: String, key: ByteArray) {
+        paths.ensureSshDir()
+        val stored = try {
+            vault.names()
+        } catch (_: IOException) {
+            emptyList()
+        }
+        if (Keys.isTaken(paths.sshDir, n, stored)) throw IOException(getString(R.string.error_key_exists))
+        paths.writePrivate(File(paths.sshDir, n), key)
     }
 
     /* ssh-keygen -y prints the public key, it may ask the passphrase. Helpers from /system/bin, not ~/bin. */
