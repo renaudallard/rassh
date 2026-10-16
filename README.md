@@ -419,7 +419,8 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
 - Combining characters are not rendered
 - Screen readers such as TalkBack do not read the terminal output
 - Saving a host writes its host name, user, port, identity file and
-  forwards before its other options, which changes the values that win
+  forwards before its other options, and the common options, the tmux
+  and the key-only lines after them, which changes the values that win
   when its block has an `Include`. Names used in included files are not
   checked when a host is added
 - The vault holds at most 64 keys, all loaded for each connection, and
