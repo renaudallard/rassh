@@ -87,10 +87,14 @@ class HostActivity : Activity() {
         } catch (_: IOException) {
             emptyList()
         }).distinct().map { "~/.ssh/$it" }
-        if (host.identityFile.isNotEmpty() && host.identityFile !in identities)
-            identities = identities + host.identityFile
+        /* Kept by name across a recreation, the keys may have changed since. */
+        val chosen = savedInstanceState?.getString(STATE_IDENTITY) ?: host.identityFile
+        if (chosen.isNotEmpty() && chosen !in identities)
+            identities = identities + chosen
         val labels = listOf(getString(R.string.identity_default)) + identities
+        identity.isSaveEnabled = false
         identity.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+        identity.setSelection(identities.indexOf(chosen) + 1)
         /* Without a key of its own, IdentitiesOnly would leave the host with ssh's default files. */
         identity.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -105,7 +109,6 @@ class HostActivity : Activity() {
             hostName.setText(host.hostName)
             user.setText(host.user)
             port.setText(host.port)
-            identity.setSelection(identities.indexOf(host.identityFile) + 1)
             /* The IdentitiesOnly line of a host with a key belongs to the checkbox. */
             val restrict = host.identityFile.isNotEmpty() && host.other.any { isOnlyLine(it) }
             only.isChecked = restrict
@@ -134,6 +137,7 @@ class HostActivity : Activity() {
         super.onSaveInstanceState(outState)
         outState.putIntArray(STATE_CHOICES, spinners.map { it.selectedItemPosition }.toIntArray())
         outState.putBoolean(STATE_SHOWN, choices.visibility == View.VISIBLE)
+        outState.putString(STATE_IDENTITY, identities.getOrNull(identity.selectedItemPosition - 1).orEmpty())
     }
 
     private fun addChoices() {
@@ -358,6 +362,7 @@ class HostActivity : Activity() {
         private const val MENU_SAVE = 1
         private const val STATE_CHOICES = "choices"
         private const val STATE_SHOWN = "choices_shown"
+        private const val STATE_IDENTITY = "identity"
 
         /*
          * Attach to the last tmux session or start one, with plain
