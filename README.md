@@ -215,17 +215,18 @@ There is no PIN fallback.
   the key storage then also removes their public keys and certificates.
 - Private keys found in clear in `~/.ssh`, existing, generated or
   imported, are moved into the vault after a fingerprint, once their
-  public key sits next to them, if the vault has room and the key is not
-  over 64 KiB. One named as a key of the vault never replaces it, it
-  stays in clear unless it is the same key. Names hold letters, digits,
-  `.`, `_` and `-` only, as they go into `IdentityFile` lines, and
-  neither end in `.tmp` nor take the name of another file there,
-  `config` or `known_hosts` for instance: a key named otherwise, made
-  in the local shell for instance, is listed with a note, stays out of
-  the vault and stops exports until renamed. Nor can a key be given a
-  name starting with a dot, left out as hidden, or ending in `.pub` or
-  `-cert`, those of the files that go with a key. A key that is a link
-  stays in clear, the file it names would be left behind.
+  public key sits next to them, if the vault has room and neither key is
+  over 64 KiB, a larger public key being taken as missing. One named as
+  a key of the vault never replaces it, it stays in clear unless it is
+  the same key. Names hold letters, digits, `.`, `_` and `-` only, as
+  they go into `IdentityFile` lines, and neither end in `.tmp` nor take
+  the name of another file there, `config` or `known_hosts` for
+  instance: a key named otherwise, made in the local shell for instance,
+  is listed with a note, stays out of the vault and stops exports until
+  renamed. Nor can a key be given a name starting with a dot, left out
+  as hidden, or ending in `.pub` or `-cert`, those of the files that go
+  with a key. A key that is a link stays in clear, the file it names
+  would be left behind.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add` loads the keys through
   pipes into an agent started for that connection alone, so the
