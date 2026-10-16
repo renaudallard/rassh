@@ -63,6 +63,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private val output = BufferedOutputStream(output, BUFFER_SIZE)
     private var nextId = 0
 
+    /* Requests sent whose reply was not read yet, a reply to any other is out of step. */
+    private val waiting = HashSet<Int>()
+
     /* Replies read while waiting for another one, by request id. */
     private val early = HashMap<Int, Reply>()
 
@@ -353,6 +356,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         broken?.let { throw IOException(it.message) }
         val id = nextId++
         w.id(id)
+        waiting.add(id)
         try {
             output.write(w.packet())
             output.flush()
@@ -370,8 +374,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             while (true) {
                 val r = readPacket()
                 val got = r.body.u32()
+                if (!waiting.remove(got)) throw IOException("unexpected reply")
                 if (got == id) return r
-                if (early.size >= MAX_EARLY) throw IOException("unexpected reply")
                 early[got] = r
             }
         } catch (e: IOException) {
@@ -546,8 +550,6 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val MAX_ENTRIES = 200_000
         private const val MAX_NAME = 4096
         private const val MAX_CHARS = 16L * 1024 * 1024
-        /* Replies come before the one awaited, at most those of the other requests in flight. */
-        private const val MAX_EARLY = MAX_REQUESTS
 
         private const val FXP_INIT = 1
         private const val FXP_VERSION = 2

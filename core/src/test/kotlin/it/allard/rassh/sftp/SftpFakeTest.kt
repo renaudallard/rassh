@@ -62,6 +62,19 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun replyToNoRequestIsBroken() {
+        /* The version, then the attributes of request 0 twice and of 7, never sent. */
+        val attrs = { id: Byte -> byteArrayOf(0, 0, 0, 9, 105, 0, 0, 0, id, 0, 0, 0, 0) }
+        val version = byteArrayOf(0, 0, 0, 5, 2, 0, 0, 0, 3)
+        for (input in listOf(version + attrs(0) + attrs(0), version + attrs(7))) {
+            val client = SftpClient(java.io.ByteArrayInputStream(input), java.io.ByteArrayOutputStream())
+            if (input.size > version.size + 13) client.stat("/f")
+            assertEquals("unexpected reply", assertFailsWith<java.io.IOException> { client.stat("/f") }.message)
+            assertTrue(client.isBroken)
+        }
+    }
+
+    @Test(timeout = TIMEOUT)
     fun emptyReadsEnd() {
         val fake = FakeServer { type, id, _ ->
             when (type) {
