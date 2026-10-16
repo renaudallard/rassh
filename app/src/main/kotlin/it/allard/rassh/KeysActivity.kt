@@ -462,7 +462,7 @@ class KeysActivity : Activity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             MENU_GENERATE -> if (!vaultFull()) generate()
-            MENU_IMPORT -> if (!vaultFull()) startActivityForResult(
+            MENU_IMPORT -> if (!vaultFull()) pick(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
             android.R.id.home -> finish()

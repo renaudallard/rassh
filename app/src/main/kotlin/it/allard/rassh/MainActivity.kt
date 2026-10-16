@@ -627,12 +627,12 @@ class MainActivity : Activity(), SessionService.Listener {
             MENU_SESSIONS -> startActivity(Intent(this, TerminalActivity::class.java))
             MENU_KEYS -> startActivity(Intent(this, KeysActivity::class.java))
             MENU_LOCAL -> localShell()
-            MENU_EXPORT -> startActivityForResult(
+            MENU_EXPORT -> pick(
                 Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("application/octet-stream")
                     .putExtra(Intent.EXTRA_TITLE, "rassh-${LocalDate.now()}.rassh"),
                 REQUEST_EXPORT)
-            MENU_IMPORT -> startActivityForResult(
+            MENU_IMPORT -> pick(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),
                 REQUEST_IMPORT)
             MENU_ABOUT -> about()

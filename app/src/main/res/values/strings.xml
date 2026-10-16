@@ -198,6 +198,7 @@
     <!-- About -->
     <string name="privacy">Privacy</string>
     <string name="no_browser">No app can open %1$s</string>
+    <string name="no_picker">No app can choose files on this phone</string>
     <string name="about_text">rassh %1$s\n%2$s</string>
     <string name="cancel">Cancel</string>
     <string name="stopping">Stopping, Back disconnects</string>

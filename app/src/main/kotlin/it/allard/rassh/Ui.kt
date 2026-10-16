@@ -3,6 +3,7 @@ package it.allard.rassh
 import android.app.Activity
 import android.app.Application
 import android.app.Dialog
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -77,6 +78,15 @@ private const val DIALOG_PADDING = 20
 
 fun Context.toast(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+}
+
+/* Open the document picker, which a phone may have disabled. */
+fun Activity.pick(intent: Intent, request: Int) {
+    try {
+        startActivityForResult(intent, request)
+    } catch (_: ActivityNotFoundException) {
+        toast(getString(R.string.no_picker))
+    }
 }
 
 /** A binding to the session service, connected is called once it is up. */

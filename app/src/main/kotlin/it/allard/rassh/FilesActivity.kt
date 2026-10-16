@@ -350,7 +350,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         client() ?: return
         downloading = path(dir, e.name)
         val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(e.name.substringAfterLast('.', "").lowercase())
-        startActivityForResult(
+        pick(
             Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                 .setType(type ?: "application/octet-stream")
                 .putExtra(Intent.EXTRA_TITLE, shownName(e.name)),
@@ -359,7 +359,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     private fun upload() {
         uploading = cwd ?: return
-        startActivityForResult(
+        pick(
             Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true),
             REQUEST_UPLOAD)
