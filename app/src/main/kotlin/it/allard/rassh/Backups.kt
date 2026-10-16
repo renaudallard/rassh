@@ -169,7 +169,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 try {
                     /* ssh may run Match exec, not on the UI thread. */
                     if (!replace && opened.any { it.type == Backup.FILE && it.name == CONFIG }) {
-                        /* One ssh -G for each host, a long config takes a while. */
+                        /* Two ssh -G for each host, its names reached and the check: a long config takes a while. */
                         runOnUiThread { toast(getString(R.string.config_checking)) }
                         merged = merge(paths, opened)?.also {
                             refused = configRefusal(paths, it.text, it.names, it.read, it.added)
