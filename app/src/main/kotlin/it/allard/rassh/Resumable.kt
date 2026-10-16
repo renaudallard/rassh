@@ -204,8 +204,9 @@ fun Context.dropResumable(host: String, r: Resumable? = null) {
 
 /*
  * Delete the file d was cut into, unless it changed since: the provider
- * may have given its name to another file meanwhile. One kept by an
- * earlier version, its size not known, goes as before.
+ * may have given its name to another file meanwhile. One whose size was
+ * not known, kept by an earlier version or not a regular file when cut,
+ * goes as before.
  */
 fun Context.deletePartial(d: Resumable.Download) {
     if (d.length < 0 || wholeFile(d.uri) == Pair(d.length, d.modified)) deleteDocument(d.uri)
