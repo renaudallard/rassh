@@ -17,8 +17,8 @@ import kotlin.concurrent.thread
 
 /* Moving hosts, keys and settings to another phone, see Backup. */
 
-/* Far above what Keys.MAX_COUNT keys and a config take. */
-private const val MAX_EXPORT_SIZE = 16 * 1024 * 1024
+/* Far above what Keys.MAX_COUNT keys and a config take, the most read of a file of ~/.ssh as well. */
+private const val MAX_EXPORT_SIZE = Paths.MAX_FILE
 /* The keys of the vault are in the export in clear, the passphrase alone keeps them from a guess. */
 private const val MIN_PASSPHRASE = 12
 private const val CONFIG = "config"
