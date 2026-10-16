@@ -8,13 +8,13 @@ TRANSFERTS AVEC LE STOCKAGE DU TÉLÉPHONE
 
 TERMINAL
 • Terminal compatible xterm avec couleurs et écran alternatif, pour vim, tmux, htop et les autres
-• Une rangée de touches absentes du clavier du téléphone : Échap, Tab, Ctrl, Alt, flèches, Début, Fin, Page préc. et suiv.
+• Deux rangées de touches absentes du clavier du téléphone : Échap, Tab, Ctrl, Alt, flèches, Début, Fin, Page préc. et suiv.
 • Plusieurs sessions à la fois, gardées ouvertes en arrière-plan
 • Une option d'hôte pour rejoindre votre dernière session tmux ou en démarrer une
 
 HÔTES
 • Enregistrés comme blocs Host dans ~/.ssh/config : utilisateur, port, fichier d'identité, redirections locales, distantes et dynamiques, hôtes de rebond, et toute autre option de ssh_config
-• Vos propres blocs, Host * et Match compris, restent tels quels, sauf les lignes IdentityFile tenues à jour pour vos clés, et ssh vérifie le fichier avant son enregistrement
+• Vos propres blocs, Host * et Match compris, restent tels quels, sauf les lignes IdentityFile et CertificateFile tenues à jour pour vos clés, et ssh vérifie le fichier avant son enregistrement
 • Connexion rapide avec de simples arguments ssh, comme -p 2222 moi@example.org ou -J rebond hôte
 
 CLÉS
@@ -24,7 +24,7 @@ CLÉS
 • Un avertissement quand la clé d'un serveur change, avec la nouvelle empreinte à confirmer
 
 SHELL LOCAL
-• Le shell et la boîte à outils d'Android, avec les programmes OpenSSH en tête du PATH, et l'accès à vos fichiers avec l'accès à tous les fichiers
+• Le shell et le toybox d'Android, avec les programmes OpenSSH en tête du PATH, et l'accès à vos fichiers avec l'accès à tous les fichiers
 
 CHANGER DE TÉLÉPHONE
 • Hôtes, clés et réglages exportés dans un seul fichier chiffré par une phrase de passe
