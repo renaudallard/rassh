@@ -46,6 +46,11 @@ class MainActivity : Activity(), SessionService.Listener {
     /* The vault names and config time useKeyNames() last went through. */
     private var keyNamesDone: Pair<List<String>, Long>? = null
     private var protecting = false
+    /*
+     * The prompt to protect keys was closed, with Back or by the system
+     * as the screen went off: asked again once the screen is back.
+     */
+    private var protectClosed = false
 
     /* Each vault question is asked once while the vault is missing, see setUp(). */
     private var askedReset = false
@@ -139,6 +144,7 @@ class MainActivity : Activity(), SessionService.Listener {
 
     override fun onResume() {
         super.onResume()
+        protectClosed = false
         loadHosts()
     }
 
@@ -209,11 +215,14 @@ class MainActivity : Activity(), SessionService.Listener {
         toldNoBiometric = false
         askedSetUp = false
         /* Nothing goes into a vault it cannot read, protectKeys() would say so again. */
-        if (protecting || toldVault) return
+        if (protecting || toldVault || protectClosed) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
         protecting = true
-        protectKeys(paths, vault) { moved ->
+        protectKeys(paths, vault, {
+            protecting = false
+            protectClosed = true
+        }) { moved ->
             protecting = false
             /* The keys still in clear, some may have moved. */
             if (!moved) declined = Keys.plaintext(paths.sshDir).toSet()

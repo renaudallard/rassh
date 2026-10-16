@@ -186,9 +186,10 @@ fun Activity.setUpVault(vault: Vault, done: () -> Unit) {
  * Move the private keys left in clear in ~/.ssh into the vault, which
  * must be set up, those with a public key next to them and a name the
  * vault does not hold already. done is called when it finished, with
- * false if the fingerprint was refused or the keys could not be moved.
+ * false if the fingerprint was refused or the keys could not be moved,
+ * dismissed instead when the prompt was closed, see withVaultKey().
  */
-fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
+fun Activity.protectKeys(paths: Paths, vault: Vault, dismissed: () -> Unit, done: (Boolean) -> Unit) {
     /*
      * Too large a key would fill its pipe to ssh-add before it reads, see
      * Keys.MAX_SIZE. No fingerprint is asked for keys a full vault would
@@ -208,7 +209,7 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, done: (Boolean) -> Unit) {
     }.partition { it in stored }
     val pending = taken + fresh.take(maxOf(Keys.MAX_COUNT - stored.size, 0))
     if (pending.isEmpty()) return done(true)
-    withVaultKey(vault, getString(R.string.protect_reason), { done(false) }) { key ->
+    withVaultKey(vault, getString(R.string.protect_reason), { done(false) }, dismissed) { key ->
         /*
          * Named as a stored key, a different one, as copied by scp, must not
          * replace it, the same key is left by a move cut short. The others

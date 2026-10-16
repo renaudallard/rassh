@@ -30,6 +30,11 @@ class KeysActivity : Activity() {
     private var declined = emptySet<String>()
     private var toldVault = false
     private var protecting = false
+    /*
+     * The prompt to protect keys was closed, with Back or by the system
+     * as the screen went off: asked again once the screen is back.
+     */
+    private var protectClosed = false
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
     private var resumed = false
@@ -58,6 +63,7 @@ class KeysActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
+        protectClosed = false
         load()
         val names = deriveLater.toList()
         deriveLater.clear()
@@ -83,11 +89,14 @@ class KeysActivity : Activity() {
     /* Move new keys into the vault, not asking twice for the same ones. */
     private fun protect() {
         /* Nothing goes into a vault it cannot read, protectKeys() would say so again. */
-        if (protecting || toldVault || !vault.isSetUp) return
+        if (protecting || toldVault || protectClosed || !vault.isSetUp) return
         val pending = Keys.plaintext(paths.sshDir).toSet()
         if (pending.isEmpty() || pending == declined) return
         protecting = true
-        protectKeys(paths, vault) { moved ->
+        protectKeys(paths, vault, {
+            protecting = false
+            protectClosed = true
+        }) { moved ->
             protecting = false
             /* The keys still in clear, some may have moved. */
             if (!moved) declined = Keys.plaintext(paths.sshDir).toSet()
