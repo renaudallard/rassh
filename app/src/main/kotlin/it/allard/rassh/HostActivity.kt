@@ -18,7 +18,6 @@ import android.widget.TextView
 import it.allard.rassh.config.Choices
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
-import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
 
@@ -196,7 +195,7 @@ class HostActivity : Activity() {
         val text = config.toString()
         thread(name = "show-defaults") {
             val values = try {
-                val (out, status) = dump(text, name)
+                val (out, status) = dumpConfig(paths, text, listOf(name)).single()
                 if (status == 0) Choices.effective(out) else emptyMap()
             } catch (_: IOException) {
                 emptyMap()
@@ -292,14 +291,16 @@ class HostActivity : Activity() {
             toast(getString(R.string.config_failed, e.message))
             return
         }
+        /* The host saved first, ssh's message is most likely about it. */
+        val names = (listOf(n) + config.hosts.map { it.name }).distinct()
         checking = true
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
-            var refused: String? = null
+            var refused: Pair<String, String>? = null
             /* Not ssh's verdict, the check itself could not run. */
             var failed: String? = null
             try {
-                refused = refusal(text, n)
+                refused = configRefusal(paths, text, names)
             } catch (e: IOException) {
                 failed = e.message
             }
@@ -313,7 +314,7 @@ class HostActivity : Activity() {
                 if (refused != null) {
                     /* A dialog, a toast would cut ssh's lines short. */
                     AlertDialog.Builder(this)
-                        .setMessage(getString(R.string.config_refused, refused))
+                        .setMessage(getString(R.string.config_refused, refused.first, refused.second))
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                     return@runOnUiThread
@@ -337,34 +338,6 @@ class HostActivity : Activity() {
                 }
                 finish()
             }
-        }
-    }
-
-    /*
-     * What ssh says of text as its configuration for name, null when it
-     * takes it. One bad line makes ssh refuse the whole file, every host
-     * would then fail, and HostName or User expand % tokens.
-     */
-    @Throws(IOException::class)
-    private fun refusal(text: String, name: String): String? {
-        val (out, status) = dump(text, name)
-        return if (status == 0) null else out
-    }
-
-    /* The output of ssh -G for name with text as its config, and its exit status. */
-    @Throws(IOException::class)
-    private fun dump(text: String, name: String): Pair<String, Int> {
-        /* Its own, a check left running by a recreated screen may still use another. */
-        val file = File.createTempFile("config", ".check", paths.tmp)
-        try {
-            paths.writePrivate(file, text)
-            /* Not looking the name up: offline, a canonicalized name would fail the check. */
-            val argv = listOf("ssh", "-G", "-F", file.path, "-o", "CanonicalizeHostname=no",
-                "-o", "CanonicalizePermittedCNAMEs=none", name)
-            val (out, status) = execute(paths.ssh, argv, paths.env, paths.home.path)
-            return Pair(out.replace(file.path, "config"), status)
-        } finally {
-            file.delete()
         }
     }
 

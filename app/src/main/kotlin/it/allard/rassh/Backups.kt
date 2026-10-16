@@ -157,11 +157,22 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
         /* In the thread, a provider may have to download the file first. */
         thread(name = "import") {
             var items: List<Backup.Item>? = null
+            var merged: Merged? = null
+            var refused: Pair<String, String>? = null
             val error = try {
                 val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
                 val sealed = input.use { it.readNBytes(MAX_EXPORT_SIZE + 1) }
                 if (sealed.size > MAX_EXPORT_SIZE) throw IOException("file too large")
-                items = checked(Backup.open(sealed, pass))
+                val opened = checked(Backup.open(sealed, pass))
+                try {
+                    /* ssh may run Match exec, not on the UI thread. */
+                    if (!replace)
+                        merged = merge(paths, opened)?.also { refused = configRefusal(paths, it.text, it.names) }
+                } catch (e: IOException) {
+                    opened.forEach { it.data.fill(0) }
+                    throw e
+                }
+                items = opened
                 null
             } catch (_: GeneralSecurityException) {
                 getString(R.string.wrong_passphrase)
@@ -173,14 +184,22 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
             }
             runOnUiThread {
                 val opened = items
+                val refusal = refused
                 if (opened == null) {
                     toast(getString(R.string.restore_failed, error))
+                } else if (refusal != null) {
+                    opened.forEach { it.data.fill(0) }
+                    val message = getString(R.string.restore_failed,
+                        getString(R.string.config_refused, refusal.first, refusal.second))
+                    /* A dialog, a toast would cut ssh's lines short. */
+                    if (isDestroyed) applicationContext.toast(message)
+                    else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
                 } else if (isDestroyed) {
                     /* Adding keys needs a fingerprint prompt, which only a live screen shows. */
                     opened.forEach { it.data.fill(0) }
                     applicationContext.toast(getString(R.string.restore_failed, getString(R.string.import_interrupted)))
                 } else {
-                    store(paths, vault, opened, replace, done)
+                    store(paths, vault, opened, replace, merged, done)
                 }
             }
         }
@@ -211,7 +230,8 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
 }
 
 /* Store the items, which are zeroed afterwards, asking for a fingerprint when keys are to be added. */
-private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>, replace: Boolean, done: () -> Unit) {
+private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>, replace: Boolean, merged: Merged?,
+    done: () -> Unit) {
     fun zero() = items.forEach { it.data.fill(0) }
     val present = try {
         Keys.list(paths.sshDir, vault)
@@ -225,7 +245,7 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
     fun write(key: ByteArray?) {
         try {
             val (hosts, keys) = if (replace) replaceAll(paths, vault, key, items, present, seal)
-                else append(paths, vault, key, items, present, seal)
+                else append(paths, vault, key, items, present, seal, merged)
             /* Any host may be another server now, as when edited. The provider may be slow. */
             if (replace) thread(name = "drop-resume") { applicationContext.dropResumables() }
             toast(getString(R.string.imported, hosts, keys))
@@ -299,30 +319,44 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     return Pair(hostCount(paths), keys.size)
 }
 
+/*
+ * The config with the hosts of an export added, the text it was made
+ * from, the number of hosts added and the names ssh must take it for.
+ */
+private class Merged(val read: String, val text: String, val hosts: Int, val names: List<String>)
+
+/* The hosts of items added to the config, null when there are none to add. */
+@Throws(IOException::class)
+private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
+    val theirs = items.find { it.type == Backup.FILE && it.name == CONFIG } ?: return null
+    val read = paths.textOf(paths.config)
+    val mine = SshConfig.parse(read)
+    val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)))
+    if (added.isEmpty()) return null
+    return Merged(read, mine.toString(), added.size, (added + mine.hosts.map { it.name }).distinct())
+}
+
 /* Returns the number of hosts and keys added. */
 @Throws(IOException::class)
 private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>,
-    present: List<String>, seal: Boolean): Pair<Int, Int> {
+    present: List<String>, seal: Boolean, merged: Merged?): Pair<Int, Int> {
     val dir = paths.sshDir
+    val configFile = File(dir, CONFIG)
+    /* What ssh checked was made from it. */
+    if (merged != null && paths.textOf(configFile) != merged.read)
+        throw IOException(getString(R.string.import_config_changed))
     paths.ensureSshDir()
     /* As on the key screen, a lone public key or certificate keeps its name. */
     val keys = items.filter { it.type == Backup.KEY && !Keys.isTaken(dir, it.name, present) }
     /* Checked and read first, not to stop with only part of the file added. */
     if (vault.names().size + keys.count { sealable(items, it, seal) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
-    val configFile = File(dir, CONFIG)
     val knownFile = File(dir, KNOWN_HOSTS)
-    val config = items.find { it.type == Backup.FILE && it.name == CONFIG }?.let {
-        Pair(SshConfig.parse(paths.textOf(configFile)), SshConfig.parse(Paths.utf8(it.data, CONFIG)))
-    }
     val known = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
         Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
     }
-    var hosts = 0
-    val configText = config?.let { (mine, theirs) ->
-        hosts = mine.addMissing(theirs).size
-        if (hosts > 0) mine.toString() else null
-    }
+    val hosts = merged?.hosts ?: 0
+    val configText = merged?.text
     val knownText = known?.let { (text, theirs) ->
         val lines = text.lines().toSet()
         val missing = theirs.lines().filter { line -> line.isNotBlank() && line !in lines }.distinct()
