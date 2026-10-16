@@ -204,12 +204,13 @@ class Session(
     }
 
     /*
-     * Hang up the program and what it started on the terminal. Whatever
-     * still holds the terminal after a while is killed, as it would keep
-     * the reader thread and the terminal open, and so is the program
+     * Hang up the program and what it started on the terminal. What is
+     * still in its process group after a while is killed, as it would
+     * keep the reader thread and the terminal open, and so is the program
      * itself: one ignoring the hangup, off the terminal, would go on
-     * outside any session. The child is reaped only once the terminal is
-     * released, its group id cannot be reused until then.
+     * outside any session. A job in a group of its own, from a shell
+     * with job control, is not reached. The child is reaped only once the
+     * terminal is released, its group id cannot be reused until then.
      */
     fun close() {
         if (isRunning) child.signal(SIGHUP)
