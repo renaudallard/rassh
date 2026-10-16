@@ -474,7 +474,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             if (!isFileError(e)) throw e
             return null
         }
-        if (wholeFile(afd) != Pair(d.length, d.modified)) {
+        /* At its end, a provider may not open it to append as asked, writing from its start. */
+        val end = try {
+            if (wholeFile(afd) == Pair(d.length, d.modified)) Os.lseek(afd.fileDescriptor, 0, OsConstants.SEEK_END) else -1L
+        } catch (_: ErrnoException) {
+            -1L
+        }
+        if (end != d.length) {
             afd.close()
             return null
         }
