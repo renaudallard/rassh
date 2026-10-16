@@ -364,11 +364,14 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
 /*
  * A key goes into the vault, when seal tells there is one, with its public
  * key, which ssh needs to use it from the agent, and if it fits the pipe
- * to ssh-add, see Keys.MAX_SIZE. Otherwise it stays in clear, as on the
- * phone it comes from or as keys do until a fingerprint is enrolled.
+ * to ssh-add, see Keys.MAX_SIZE. Its public key may not be larger either,
+ * it would be taken as missing, see Keys.publicKey(). Otherwise it stays
+ * in clear, as on the phone it comes from or as keys do until a
+ * fingerprint is enrolled.
  */
 private fun sealable(items: List<Backup.Item>, key: Backup.Item, seal: Boolean): Boolean =
-    seal && key.data.size <= Keys.MAX_SIZE && items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" }
+    seal && key.data.size <= Keys.MAX_SIZE &&
+        items.any { it.type == Backup.FILE && it.name == "${key.name}.pub" && it.data.size <= Keys.MAX_SIZE }
 
 /*
  * A key imported: a public key or certificate of its name the file does
