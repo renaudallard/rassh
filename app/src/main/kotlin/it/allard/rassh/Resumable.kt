@@ -21,9 +21,12 @@ sealed class Resumable {
 
     /*
      * remote downloaded into uri, which holds its start. size and mtime
-     * are those of remote then: changed, it is another file.
+     * are those of remote then: changed, it is another file. The file at
+     * uri was length bytes long and last modified at modified, in ns,
+     * when cut, length is -1 when that is not known.
      */
-    class Download(val remote: String, val uri: Uri, val size: Long, val mtime: Long?) : Resumable() {
+    class Download(val remote: String, val uri: Uri, val size: Long, val mtime: Long?,
+        val length: Long = -1, val modified: Long = 0) : Resumable() {
         override val uris: List<Uri>
             get() = listOf(uri)
         override val write: Boolean
@@ -73,7 +76,7 @@ fun Context.resumable(host: String): Resumable? {
         val o = JSONObject(text)
         if (o.has("remote")) {
             Resumable.Download(fromUnits(o.getString("remote")), Uri.parse(o.getString("uri")), o.getLong("size"),
-                if (o.has("mtime")) o.getLong("mtime") else null)
+                if (o.has("mtime")) o.getLong("mtime") else null, o.optLong("length", -1), o.optLong("modified", 0))
         } else {
             val uris = o.getJSONArray("uris")
             val names = o.getJSONArray("names")
@@ -96,6 +99,7 @@ private fun Resumable.json(): String {
         is Resumable.Download -> {
             o.put("remote", units(remote)).put("uri", uri.toString()).put("size", size)
             mtime?.let { o.put("mtime", it) }
+            if (length >= 0) o.put("length", length).put("modified", modified)
         }
         is Resumable.Upload -> {
             o.put("dir", units(dir)).put("uris", JSONArray(uris.map { it.toString() }))

@@ -112,7 +112,8 @@ keys are encrypted and unlocked with it.
   transfer cut short by a lost connection is offered to resume the next
   time the browser connects to that host. A download goes on if the
   file did not change on the server and the one on the phone is a
-  regular file it can append to. An upload goes on if the file on the
+  regular file it can append to that did not change, its size and time
+  checked. An upload goes on if the file on the
   phone is a regular file that did not change, its size, time and the
   SHA-256 of what was sent checked, and the server holds no more than
   was sent, writing again the last 2 MiB the server may have missed, as

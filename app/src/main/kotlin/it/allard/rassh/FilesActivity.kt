@@ -414,7 +414,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 started = Resumable.Download(remote, uri, attrs.size ?: -1, attrs.mtime)
                 /* Changed on the server since, it is another file: downloaded again. */
                 if (resumed != null && attrs.size == resumed.size && attrs.mtime == resumed.mtime)
-                    append = openAppend(uri, resumed.size)
+                    append = openAppend(resumed)
                 c.download(remote, {
                     (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri"))
                         .also { opened = true }
@@ -427,7 +427,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 val cut = host != null && kept && c.isBroken && !stopped()
                 if (cut && opened) {
                     /* Cut with the connection, what came is kept to go on from. */
-                    keepResumable(host, started ?: throw e)
+                    keepResumable(host, withFile(started ?: throw e))
                 } else if (!cut || resumed == null) {
                     /* Not to leave a partial or empty file behind. Cut again before going on, it stays as it was. */
                     if (opened || resumed != null || isEmptyDocument(uri)) deleteDocument(uri)
@@ -446,24 +446,39 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     /*
-     * The file on the phone opened to append to, with its size, when it
-     * is a whole regular file of at most max bytes, the start of the
-     * remote one. What a pipe holds, or a provider that cannot append
-     * would write to, is not known: null then, the download starts again.
+     * d with the size and time of its file on the phone, to tell when it
+     * is resumed whether another app changed the file since.
      */
-    private fun openAppend(uri: Uri, max: Long): Pair<OutputStream, Long>? {
+    private fun withFile(d: Resumable.Download): Resumable.Download {
+        val file = try {
+            contentResolver.openAssetFileDescriptor(d.uri, "r")?.use { wholeFile(it) }
+        } catch (e: Exception) {
+            if (!isFileError(e)) throw e
+            null
+        }
+        return Resumable.Download(d.remote, d.uri, d.size, d.mtime, file?.first ?: -1, file?.second ?: 0)
+    }
+
+    /*
+     * The file on the phone d was cut into opened to append to, with its
+     * size, when it is a whole regular file of at most the size of the
+     * remote one, left as it was when cut. What a pipe holds, or a
+     * provider that cannot append would write to, is not known: null
+     * then, the download starts again.
+     */
+    private fun openAppend(d: Resumable.Download): Pair<OutputStream, Long>? {
+        if (d.length < 1 || d.length > d.size) return null
         val afd = try {
-            contentResolver.openAssetFileDescriptor(uri, "wa") ?: return null
+            contentResolver.openAssetFileDescriptor(d.uri, "wa") ?: return null
         } catch (e: Exception) {
             if (!isFileError(e)) throw e
             return null
         }
-        val size = wholeFile(afd)?.first
-        if (size == null || size < 1 || size > max) {
+        if (wholeFile(afd) != Pair(d.length, d.modified)) {
             afd.close()
             return null
         }
-        return Pair(afd.createOutputStream(), size)
+        return Pair(afd.createOutputStream(), d.length)
     }
 
     /*
