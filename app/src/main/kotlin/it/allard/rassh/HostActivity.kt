@@ -95,10 +95,14 @@ class HostActivity : Activity() {
         identity.isSaveEnabled = false
         identity.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
         identity.setSelection(identities.indexOf(chosen) + 1)
-        /* Without a key of its own, IdentitiesOnly would leave the host with ssh's default files. */
+        /*
+         * Without a key of its own, IdentitiesOnly would leave the host
+         * with ssh's default files: nothing is written then, nor shown.
+         */
         identity.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 only.isEnabled = position > 0
+                if (position == 0) only.isChecked = false
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
