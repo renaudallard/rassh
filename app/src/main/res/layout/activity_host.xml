@@ -36,6 +36,7 @@
                 android:hint="@string/host_name_hint"
                 android:importantForAutofill="no"
                 android:inputType="text|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:singleLine="true" />
 
             <TextView
@@ -52,6 +53,7 @@
                 android:hint="@string/hostname_hint"
                 android:importantForAutofill="no"
                 android:inputType="textUri|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:singleLine="true" />
 
             <TextView
@@ -68,6 +70,7 @@
                 android:layout_height="wrap_content"
                 android:importantForAutofill="no"
                 android:inputType="text|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:singleLine="true" />
 
             <TextView
@@ -84,6 +87,7 @@
                 android:layout_height="wrap_content"
                 android:importantForAutofill="no"
                 android:inputType="number"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:singleLine="true" />
 
             <TextView
@@ -128,6 +132,7 @@
                 android:hint="@string/forwards_hint"
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:minLines="2" />
 
             <TextView
@@ -146,6 +151,7 @@
                 android:hint="@string/forwards_hint"
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:minLines="2" />
 
             <TextView
@@ -164,6 +170,7 @@
                 android:hint="@string/dynamic_hint"
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:minLines="2" />
 
             <TextView
@@ -198,6 +205,7 @@
                 android:hint="@string/other_hint"
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textNoSuggestions"
+                android:imeOptions="flagNoPersonalizedLearning"
                 android:minLines="2" />
         </LinearLayout>
     </ScrollView>

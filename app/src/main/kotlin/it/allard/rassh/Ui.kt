@@ -22,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.inputmethod.EditorInfo
 import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -70,6 +71,8 @@ fun Context.pathField(text: String): EditText {
     field.isSingleLine = true
     field.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI or
         InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+    /* Host names, users and paths are no words for the keyboard to learn. */
+    field.imeOptions = EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
     field.setText(text)
     return field
 }

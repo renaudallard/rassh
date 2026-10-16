@@ -24,7 +24,7 @@
             android:layout_weight="1"
             android:autofillHints="username"
             android:hint="@string/quick_connect_hint"
-            android:imeOptions="actionGo"
+            android:imeOptions="actionGo|flagNoPersonalizedLearning"
             android:inputType="textUri|textNoSuggestions"
             android:singleLine="true" />
 

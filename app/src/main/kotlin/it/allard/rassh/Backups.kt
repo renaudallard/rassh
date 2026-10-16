@@ -7,6 +7,7 @@ import android.net.Uri
 import android.system.ErrnoException
 import android.text.InputType
 import android.text.TextUtils
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import it.allard.rassh.backup.Backup
 import it.allard.rassh.config.SshConfig
@@ -443,6 +444,7 @@ private fun Activity.askPassphrase(title: Int, choose: Boolean, cancelled: () ->
     fun field(hint: Int) = EditText(this).apply {
         isSingleLine = true
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        imeOptions = EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
         setHint(hint)
     }
     val first = field(R.string.passphrase)
