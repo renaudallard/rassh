@@ -50,6 +50,7 @@ class HostActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hideOverlays()
         setContentView(R.layout.activity_host)
         findViewById<View>(R.id.root).padForInsets()
         setActionBar(findViewById(R.id.toolbar))

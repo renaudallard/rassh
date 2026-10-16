@@ -26,6 +26,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        hideOverlays()
         setContentView(R.layout.activity_terminal)
         findViewById<View>(R.id.root).padForInsets()
         setActionBar(findViewById(R.id.toolbar))

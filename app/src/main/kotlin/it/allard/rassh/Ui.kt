@@ -44,6 +44,15 @@ fun View.padForInsets() {
     }
 }
 
+/*
+ * Hide the windows other apps draw over this screen and its dialogs: one
+ * let through to the screen, a prompt drawn faint over a Delete or the
+ * host key removal, could lead the taps meant for it.
+ */
+fun Activity.hideOverlays() {
+    window.setHideOverlayWindows(true)
+}
+
 /** A color of the current theme, light or dark like the phone. */
 fun Context.themeColor(attr: Int): Int {
     val a = obtainStyledAttributes(intArrayOf(attr))
