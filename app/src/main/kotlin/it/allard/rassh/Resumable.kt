@@ -123,7 +123,7 @@ fun Context.keepResumable(host: String, r: Resumable) {
         getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(host, r.json()).apply()
         old
     } ?: return
-    if (old is Resumable.Download && old.uri !in r.uris && !appending) deleteDocument(old.uri)
+    if (old is Resumable.Download && old.uri !in r.uris && !appending) deletePartial(old)
     letGo(old.uris, old.write)
 }
 
@@ -198,8 +198,17 @@ fun isResuming(host: String): Boolean = synchronized(lock) { host in resuming }
  */
 fun Context.dropResumable(host: String, r: Resumable? = null) {
     val old = removeRecord(host, r, true) ?: return
-    if (old is Resumable.Download) deleteDocument(old.uri)
+    if (old is Resumable.Download) deletePartial(old)
     letGo(old.uris, old.write)
+}
+
+/*
+ * Delete the file d was cut into, unless it changed since: the provider
+ * may have given its name to another file meanwhile. One kept by an
+ * earlier version, its size not known, goes as before.
+ */
+fun Context.deletePartial(d: Resumable.Download) {
+    if (d.length < 0 || wholeFile(d.uri) == Pair(d.length, d.modified)) deleteDocument(d.uri)
 }
 
 /* Drop the transfers cut short to every host but those of keep, see dropResumable(). */

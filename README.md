@@ -126,7 +126,8 @@ keys are encrypted and unlocked with it.
   Deleting or editing the host drops what was cut short, as does a
   Replace import. A transfer still running then and cut afterwards is
   offered again if the host kept its name, or dropped when the app
-  starts again
+  starts again. A dropped download removes its partial file only if its
+  size and time did not change since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with

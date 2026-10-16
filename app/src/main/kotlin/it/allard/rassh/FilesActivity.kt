@@ -3,7 +3,6 @@ package it.allard.rassh
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.res.AssetFileDescriptor
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -430,11 +429,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     keepResumable(host, withFile(started ?: throw e))
                 } else if (!cut || resumed == null) {
                     /* Not to leave a partial or empty file behind. Cut again before going on, it stays as it was. */
-                    if (opened || resumed != null || isEmptyDocument(uri)) deleteDocument(uri)
+                    if (opened || resumed == null && isEmptyDocument(uri)) deleteDocument(uri)
+                    else if (resumed != null) deletePartial(resumed)
                     ended(host, resumed)
                 } else if (isOrphaned(host, resumed)) {
                     /* Unless another browser of the host kept its own in its place meanwhile. */
-                    deleteDocument(uri)
+                    deletePartial(resumed)
                 }
                 throw e
             } finally {
@@ -450,12 +450,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * is resumed whether another app changed the file since.
      */
     private fun withFile(d: Resumable.Download): Resumable.Download {
-        val file = try {
-            contentResolver.openAssetFileDescriptor(d.uri, "r")?.use { wholeFile(it) }
-        } catch (e: Exception) {
-            if (!isFileError(e)) throw e
-            null
-        }
+        val file = wholeFile(d.uri)
         return Resumable.Download(d.remote, d.uri, d.size, d.mtime, file?.first ?: -1, file?.second ?: 0)
     }
 
@@ -485,21 +480,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             return null
         }
         return Pair(afd.createOutputStream(), d.length)
-    }
-
-    /*
-     * The size and the time of the last change in ns of the file afd is,
-     * when a whole regular file, null for a pipe or a part of a file.
-     */
-    private fun wholeFile(afd: AssetFileDescriptor): Pair<Long, Long>? {
-        if (afd.startOffset != 0L || afd.declaredLength != AssetFileDescriptor.UNKNOWN_LENGTH) return null
-        return try {
-            val st = Os.fstat(afd.fileDescriptor)
-            if (!OsConstants.S_ISREG(st.st_mode)) null
-            else Pair(st.st_size, st.st_mtim.tv_sec * 1_000_000_000 + st.st_mtim.tv_nsec)
-        } catch (_: ErrnoException) {
-            null
-        }
     }
 
     /*

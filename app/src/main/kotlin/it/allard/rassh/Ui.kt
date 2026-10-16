@@ -7,11 +7,15 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.res.AssetFileDescriptor
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.system.ErrnoException
+import android.system.Os
+import android.system.OsConstants
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -163,6 +167,29 @@ fun Context.isEmptyDocument(uri: Uri): Boolean =
     }
 
 /* Not every provider deletes, the file is then left as it is. */
+/*
+ * The size and the time of the last change in ns of the file afd is,
+ * when a whole regular file, null for a pipe or a part of a file.
+ */
+fun wholeFile(afd: AssetFileDescriptor): Pair<Long, Long>? {
+    if (afd.startOffset != 0L || afd.declaredLength != AssetFileDescriptor.UNKNOWN_LENGTH) return null
+    return try {
+        val st = Os.fstat(afd.fileDescriptor)
+        if (!OsConstants.S_ISREG(st.st_mode)) null
+        else Pair(st.st_size, st.st_mtim.tv_sec * 1_000_000_000 + st.st_mtim.tv_nsec)
+    } catch (_: ErrnoException) {
+        null
+    }
+}
+
+/* The same for the document at uri, null as well when it cannot be opened. */
+fun Context.wholeFile(uri: Uri): Pair<Long, Long>? = try {
+    contentResolver.openAssetFileDescriptor(uri, "r")?.use { wholeFile(it) }
+} catch (e: Exception) {
+    if (!isFileError(e)) throw e
+    null
+}
+
 fun Context.deleteDocument(uri: Uri) {
     try {
         DocumentsContract.deleteDocument(contentResolver, uri)
