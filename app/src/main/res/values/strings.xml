@@ -45,6 +45,7 @@
     <!-- Host keys -->
     <string name="host_key_changed">Host key changed</string>
     <string name="host_key_changed_text">The key %1$s presents is not the one known. Someone may be intercepting the connection, or the server was reinstalled or got new keys: check with its administrator first.\n\nRemove the old key? %2$s</string>
+    <string name="host_key_shared">The old key of %1$s is on a line also naming other hosts, or a pattern, and is left: edit known_hosts in the local shell</string>
     <string name="host_key_then_asked">Connecting again then shows the fingerprint of the new key to confirm.</string>
     <string name="host_key_then_accepted">With StrictHostKeyChecking accept-new, connecting again then takes whatever key the server presents without asking: compare the fingerprint ssh printed above with the administrator first.</string>
     <string name="host_key_then_refused">With StrictHostKeyChecking yes, connecting again is then refused until the new key is in known_hosts.</string>

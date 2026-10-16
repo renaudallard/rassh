@@ -67,6 +67,15 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
+/*
+ * Whether line of known_hosts names host alone: as its only name, in
+ * any case as ssh compares them, or hashed, which names one.
+ */
+private fun namesAlone(line: String, host: String): Boolean {
+    val field = line.trim().split(' ', '\t').first()
+    return field.startsWith("|1|") || field.equals(host, ignoreCase = true)
+}
+
 private val FOUND = Regex("""# Host .* found: line \d+[ \t]*""")
 
 /*
@@ -112,6 +121,9 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             if (isDestroyed) return@runOnUiThread offerAgain()
             /* A jump host's key may be the one refused, never offer to drop another. */
             if (found.first != changed || found.second.isEmpty()) return@runOnUiThread
+            /* A line also naming other hosts, or a pattern, would take their keys with it. */
+            if (found.second.values.flatten().any { !namesAlone(it, found.first) })
+                return@runOnUiThread toast(getString(R.string.host_key_shared, found.first))
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
                 /* What the next connection does once the key is gone: ssh prompts only when asked to. */

@@ -147,10 +147,11 @@ keys are encrypted and unlocked with it.
   confirm, unless `StrictHostKeyChecking` is `accept-new`, which takes
   it without asking, or `yes`, which refuses it: the warning says so.
   The host is resolved from the local configuration with `ssh -G`, so
-  only the lines matching it are removed, whole as with `ssh-keygen -R`:
-  one also naming other hosts, or a pattern, goes too. With a `LogLevel`
-  below `INFO` nothing is offered, as the server could then print ssh's
-  lines itself
+  only the lines matching it are removed. When one also names other
+  hosts, or is a pattern, nothing is, as their keys would go with it,
+  unlike with `ssh-keygen -R`: a message says to edit `known_hosts` by
+  hand. With a `LogLevel` below `INFO` nothing is offered, as the server
+  could then print ssh's lines itself
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
