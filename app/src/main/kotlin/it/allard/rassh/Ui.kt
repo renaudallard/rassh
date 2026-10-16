@@ -166,7 +166,6 @@ fun Context.isEmptyDocument(uri: Uri): Boolean =
         false
     }
 
-/* Not every provider deletes, the file is then left as it is. */
 /*
  * The size and the time of the last change in ns of the file afd is,
  * when a whole regular file, null for a pipe or a part of a file.
@@ -190,6 +189,7 @@ fun Context.wholeFile(uri: Uri): Pair<Long, Long>? = try {
     null
 }
 
+/* Not every provider deletes, the file is then left as it is. */
 fun Context.deleteDocument(uri: Uri) {
     try {
         DocumentsContract.deleteDocument(contentResolver, uri)
