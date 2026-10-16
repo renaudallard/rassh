@@ -147,7 +147,7 @@ keys are encrypted and unlocked with it.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
   `scp`, or with the same quick connect text, asks first. Sessions
   reaching the same server, local shells included, show when they were
-  opened
+  opened, as do file browsers of the same host
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
   wide characters, DEC line drawing, bracketed paste, reverse video,
   scrollback with a swipe, which sends the arrow keys to full screen

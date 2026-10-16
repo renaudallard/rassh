@@ -106,10 +106,13 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         actionBar?.title = session?.let { label(it) }
     }
 
-    /* The title, with the opening time when other sessions reach the same server. */
+    /* The title, with the opening time when other sessions reach the same server or browse the same host. */
     private fun label(s: Session): String {
         val sessions = binding.service?.sessions ?: return s.title
-        if (s.server == null || sessions.count { it.server == s.server } < 2) return s.title
+        /* File browsers have no server, those of the same host share their title. */
+        val same = if (s.server == null) sessions.count { it.server == null && it.title == s.title }
+            else sessions.count { it.server == s.server }
+        if (same < 2) return s.title
         /* The time, and the date when not today: sessions opened the same day differ by their time. */
         val format = if (DateUtils.isToday(s.opened)) DateFormat.getTimeInstance(DateFormat.MEDIUM)
             else DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
