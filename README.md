@@ -60,29 +60,29 @@ keys are encrypted and unlocked with it.
   same name only change with it: renaming the host renames them,
   deleting it deletes them. ssh checks the file before it is saved,
   since one bad line would stop every host, and a file changed during
-  that check is not overwritten. A config or `known_hosts`
-  that is not UTF-8 is never rewritten: saving or deleting a host,
-  renaming a key, removing a changed host key or an Append import then
-  stops with a message. One that is a link is rewritten in the file it
-  names, but a changed host key is only offered for removal from a
-  `known_hosts` in `~/.ssh`. Neither is read when over 1 MiB, which
-  could take all the memory of the app, nor made so large by a save or
-  an import, nor is a vault over 16 MiB. A checkbox attaches to the last tmux session or starts
-  one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under the identity file, makes `ssh` use
-  only that key with `IdentitiesOnly yes`, without trying the other keys
-  of the agent when the server refuses it. Common options, such as
-  `ServerAliveInterval`, `Compression`, `StrictHostKeyChecking` or
-  `LogLevel`, have a list of values each. Left at Default, an option
-  writes no line, and the value shown next to Default is what `ssh -G`
-  gives the saved host without it, from its other options, `Host *`
-  blocks or ssh itself. A long press on a host opens its menu, dragging
-  it then to another row moves its block in the file, but only past the
-  blocks of other saved hosts: ssh takes the first value it finds, past
-  a `Host *` or `Match` block the host would get other options. Nor
-  does it move when its block or one it would pass has an
-  `IgnoreUnknown` or `Include` line, as ssh skips an option it does not
-  know only after an `IgnoreUnknown` line naming it, which an included
-  file may hold
+  that check is not overwritten. A config or `known_hosts` that is not
+  UTF-8 is never rewritten: saving, deleting or moving a host, renaming
+  a key, removing a changed host key or an Append import then stops with
+  a message. One that is a link is rewritten in the file it names, but a
+  changed host key is only offered for removal from a `known_hosts` in
+  `~/.ssh`. Neither is read when over 1 MiB, which could take all the
+  memory of the app, nor made so large by a save or an import, nor is a
+  vault over 16 MiB. A checkbox attaches to the last tmux session or
+  starts one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`.
+  Another, under the identity file, makes `ssh` use only that key with
+  `IdentitiesOnly yes`, without trying the other keys of the agent when
+  the server refuses it. Common options, such as `ServerAliveInterval`,
+  `Compression`, `StrictHostKeyChecking` or `LogLevel`, have a list of
+  values each. Left at Default, an option writes no line, and the value
+  shown next to Default is what `ssh -G` gives the saved host without
+  it, from its other options, `Host *` blocks or ssh itself. A long
+  press on a host opens its menu, dragging it then to another row moves
+  its block in the file, but only past the blocks of other saved hosts:
+  ssh takes the first value it finds, past a `Host *` or `Match` block
+  the host would get other options. Nor does it move when its block or
+  one it would pass has an `IgnoreUnknown` or `Include` line, as ssh
+  skips an option it does not know only after an `IgnoreUnknown` line
+  naming it, which an included file may hold
 - **Quick connect** - plain `ssh` arguments, e.g. `-p 2222 me@example.org`
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
