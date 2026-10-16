@@ -39,10 +39,12 @@ object Choices {
     fun take(lines: List<String>): Pair<Map<Choice, String>, List<String>> {
         val taken = mutableMapOf<Choice, String>()
         val rest = mutableListOf<String>()
+        /* Counted once, a block may hold many lines. */
+        val count = lines.groupingBy { of(it) }.eachCount()
         for (line in lines) {
             val choice = of(line)
             val value = choice?.let { c -> c.values.find { it.equals(SshConfig.keyword(line)?.second, true) } }
-            if (choice != null && value != null && lines.count { of(it) == choice } == 1)
+            if (choice != null && value != null && count[choice] == 1)
                 taken[choice] = value
             else
                 rest.add(line)
