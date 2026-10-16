@@ -17,6 +17,8 @@ import android.system.ErrnoException
 import it.allard.rassh.config.SshConfig
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.LinkOption
 import kotlin.concurrent.thread
 
 /**
@@ -72,8 +74,10 @@ class SessionService : Service() {
          * be slow.
          */
         thread(name = "drop-resume") {
+            /* A link it cannot follow, into shared storage once access is gone for one, is no empty config. */
+            val unread = !paths.config.isFile && Files.exists(paths.config.toPath(), LinkOption.NOFOLLOW_LINKS)
             val hosts = try {
-                SshConfig.parse(paths.textOf(paths.config)).hosts.map { it.name }.toSet()
+                if (unread) null else SshConfig.parse(paths.textOf(paths.config)).hosts.map { it.name }.toSet()
             } catch (_: IOException) {
                 null
             }
