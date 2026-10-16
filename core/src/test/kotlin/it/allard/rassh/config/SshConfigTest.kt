@@ -294,6 +294,20 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsApartFromTheEnd() {
+        val config = SshConfig.parse("Host a\n  User x\n\n# end\n")
+        assertEquals(listOf("b"), config.addMissing(SshConfig.parse("Host b\n  User y\n")))
+        assertEquals("Host a\n  User x\n\nHost b\n  User y\n\n# end\n", config.toString())
+        assertEquals(emptyList(), SshConfig.parse(config.toString()).find("b")!!.other)
+        val bare = SshConfig.parse("Host a\n  User x\n")
+        bare.addMissing(SshConfig.parse("Host b\n  User y\nHost c\n  User z\n"))
+        assertEquals("Host a\n  User x\n\nHost b\n  User y\n\nHost c\n  User z\n", bare.toString())
+        val none = SshConfig.parse("Host a\n  User x\n")
+        assertEquals(emptyList(), none.addMissing(SshConfig.parse("Host a\n  User y\n")))
+        assertEquals("Host a\n  User x\n", none.toString())
+    }
+
+    @Test
     fun namesOfSharedBlocksAreUsed() {
         val config = SshConfig.parse("Host web db\n    User admin\nHost mail # prod\nHost !x *.lan\n")
         assertTrue(config.isUsed("db"))

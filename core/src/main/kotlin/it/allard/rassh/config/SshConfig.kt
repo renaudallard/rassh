@@ -189,8 +189,12 @@ class SshConfig private constructor(
      */
     fun addMissing(other: SshConfig): List<String> {
         val added = other.blocks.filter { b -> b.name?.let { !isUsed(it) } == true }
-        val at = blocks.indexOfFirst { !it.isHost }
-        blocks.addAll(if (at < 0) blocks.size else at, added)
+        if (added.isEmpty()) return emptyList()
+        val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
+        blocks.addAll(at, added)
+        /* Apart from each other and from the blocks around them, as the comments ending the file. */
+        for (k in maxOf(at - 1, 0) until at + added.size)
+            if (k != blocks.lastIndex || footer.isNotEmpty()) apart(k)
         return added.mapNotNull { it.name }.distinct()
     }
 
