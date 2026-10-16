@@ -299,11 +299,15 @@ class KeysActivity : Activity() {
         paths.writePrivate(File(paths.sshDir, n), key)
     }
 
-    /* ssh-keygen -y prints the public key, it may ask the passphrase. Helpers from /system/bin, not ~/bin. */
+    /*
+     * ssh-keygen -y prints the public key, it may ask the passphrase. The
+     * file is only made once it succeeded: a session closed at the prompt
+     * would leave it. Helpers from /system/bin, not ~/bin.
+     */
     private fun derivePublicKey(name: String) {
         val key = File(paths.sshDir, name).path
-        val script = "PATH=/system/bin; \"\$0\" -y -f \"\$1\" > \"\$1.pub.tmp\" && mv \"\$1.pub.tmp\" \"\$1.pub\"; " +
-            "s=\$?; rm -f \"\$1.pub.tmp\"; exit \$s"
+        val script = "PATH=/system/bin; k=\$(\"\$0\" -y -f \"\$1\") && printf '%s\\n' \"\$k\" > \"\$1.pub.tmp\" && " +
+            "mv \"\$1.pub.tmp\" \"\$1.pub\"; s=\$?; rm -f \"\$1.pub.tmp\"; exit \$s"
         run(name, SHELL, listOf("sh", "-c", script, paths.keygen, key))
     }
 
