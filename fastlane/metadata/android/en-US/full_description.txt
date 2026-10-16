@@ -8,13 +8,13 @@ FILE TRANSFERS WITH YOUR PHONE'S STORAGE
 
 TERMINAL
 • xterm compatible terminal with colours and alternate screen, for vim, tmux, htop and the like
-• A row of keys a phone keyboard lacks: Esc, Tab, Ctrl, Alt, arrows, Home, End, Page Up and Down
+• Two rows of keys a phone keyboard lacks: Esc, Tab, Ctrl, Alt, arrows, Home, End, Page Up and Down
 • Several sessions at once, kept open in the background
 • A host option to attach to your last tmux session or start one
 
 HOSTS
 • Saved as Host blocks in ~/.ssh/config: user, port, identity file, local, remote and dynamic forwards, jump hosts, and any other ssh_config option
-• Your own blocks, Host * and Match included, are left as they are, apart from IdentityFile lines kept pointing at your keys, and ssh checks the file before it is saved
+• Your own blocks, Host * and Match included, are left as they are, apart from IdentityFile and CertificateFile lines kept pointing at your keys, and ssh checks the file before it is saved
 • Quick connect with plain ssh arguments, like -p 2222 me@example.org or -J jump host
 
 KEYS
@@ -24,7 +24,7 @@ KEYS
 • A warning when a server's host key changes, with the new fingerprint to confirm
 
 LOCAL SHELL
-• Android's own shell and toolbox, with the OpenSSH programs first in PATH, and access to your files with All files access
+• Android's own shell and toybox, with the OpenSSH programs first in PATH, and access to your files with All files access
 
 MOVING TO ANOTHER PHONE
 • Hosts, keys and settings exported in one file encrypted with a passphrase
