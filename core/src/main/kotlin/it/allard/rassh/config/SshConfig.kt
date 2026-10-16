@@ -138,6 +138,16 @@ class SshConfig private constructor(
 
     fun remove(name: String) {
         blocks.removeAll { it.name == name }
+        if (footer.isNotEmpty() && blocks.isNotEmpty()) apart(blocks.lastIndex)
+    }
+
+    /*
+     * End the block k with a blank line, which keeps it apart from the
+     * next one, or the comments ending the file from it, see parse().
+     */
+    private fun apart(k: Int) {
+        val b = blocks[k]
+        if (b.lines.lastOrNull()?.isBlank() != true) blocks[k] = Block(b.leading, b.keyword, b.value, b.lines + "", b.line)
     }
 
     /**
@@ -162,15 +172,7 @@ class SshConfig private constructor(
         if (ordered(blocks[i]) ||
             between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } || ordered(blocks[k]) })
             return false
-        /*
-         * The last block may end without a blank line, which keeps it
-         * apart from the next one, and the comments ending the file from
-         * it, see parse().
-         */
-        fun apart(k: Int) {
-            val b = blocks[k]
-            if (b.lines.lastOrNull()?.isBlank() != true) blocks[k] = Block(b.leading, b.keyword, b.value, b.lines + "", b.line)
-        }
+        /* The last block may end without a blank line. */
         val last = blocks.last()
         blocks.add(j, blocks.removeAt(i))
         val k = blocks.lastIndexOf(last)

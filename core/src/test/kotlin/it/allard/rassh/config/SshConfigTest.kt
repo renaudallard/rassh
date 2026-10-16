@@ -83,6 +83,16 @@ class SshConfigTest {
     }
 
     @Test
+    fun removesLastHostApartFromTheEnd() {
+        val config = SshConfig.parse("Host a\n  User x\nHost b\n  User y\n\n# end\n")
+        config.remove("b")
+        assertEquals("Host a\n  User x\n\n# end\n", config.toString())
+        assertEquals(emptyList(), SshConfig.parse(config.toString()).find("a")!!.other)
+        config.remove("a")
+        assertEquals("# end\n", config.toString())
+    }
+
+    @Test
     fun emptyFile() {
         val config = SshConfig.parse("")
         assertEquals("", config.toString())
