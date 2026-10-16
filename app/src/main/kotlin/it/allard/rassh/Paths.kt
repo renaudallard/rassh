@@ -148,17 +148,17 @@ class Paths(context: Context) {
         /* The largest other file of ~/.ssh read whole, a vault or a file to export, as an import takes at most. */
         const val MAX_FILE = 16 shl 20
 
-        /*
-         * The bytes of file, refused past max: one made huge in the local
-         * shell would otherwise take all the memory, and end the app each
-         * time it starts.
-         */
         /* Refuse text for a config or known_hosts larger than the app reads back, see bytesOf(). */
         @Throws(IOException::class)
         fun checkText(name: String, text: String) {
             if (text.toByteArray().size > MAX_TEXT) throw IOException("$name is too large")
         }
 
+        /*
+         * The bytes of file, refused past max: one made huge in the local
+         * shell would otherwise take all the memory, and end the app each
+         * time it starts.
+         */
         @Throws(IOException::class)
         fun bytesOf(file: File, max: Int = MAX_TEXT): ByteArray {
             val data = FileInputStream(file).use { it.readNBytes(max + 1) }
