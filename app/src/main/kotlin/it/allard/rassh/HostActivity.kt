@@ -211,8 +211,13 @@ class HostActivity : Activity() {
         }
     }
 
+    /*
+     * Split on line feeds only, as ssh does: a carriage return within a
+     * line, which ssh reads as part of a comment for one, must not make a
+     * new one. trimOption() takes off the one ending a CRLF line.
+     */
     private fun lines(e: EditText): List<String> =
-        e.text.lines().map { SshConfig.trimOption(it) }.filter { it.isNotEmpty() }
+        e.text.split('\n').map { SshConfig.trimOption(it) }.filter { it.isNotEmpty() }
 
     private fun save() {
         if (checking) return
