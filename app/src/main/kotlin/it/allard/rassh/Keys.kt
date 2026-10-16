@@ -1,7 +1,6 @@
 package it.allard.rassh
 
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 
@@ -130,9 +129,7 @@ object Keys {
     fun publicKey(dir: File, name: String): String? {
         val f = File(dir, "$name.pub")
         return try {
-            if (!f.isFile) return null
-            val data = FileInputStream(f).use { it.readNBytes(MAX_SIZE + 1) }
-            if (data.size > MAX_SIZE) null else data.toString(Charsets.UTF_8).trim().ifEmpty { null }
+            if (f.isFile) Paths.bytesOf(f, MAX_SIZE).toString(Charsets.UTF_8).trim().ifEmpty { null } else null
         } catch (_: IOException) {
             null
         }
