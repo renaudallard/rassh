@@ -408,7 +408,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var started: Resumable.Download? = null
             var append: Pair<OutputStream, Long>? = null
             try {
-                forgetDownloadsInto(uri, resumed)
                 /* Changed on the phone since, it may be another file now: left alone, as deletePartial() does. */
                 if (resumed != null && resumed.length >= 0 && wholeFile(uri) != Pair(resumed.length, resumed.modified))
                     throw IOException(getString(R.string.resume_changed))
@@ -418,6 +417,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (resumed != null && attrs.size == resumed.size && attrs.mtime == resumed.mtime)
                     append = openAppend(resumed)
                 c.download(remote, {
+                    /* Only once it writes, a download failing before leaves the file and its record as they were. */
+                    forgetDownloadsInto(uri, resumed)
                     (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri"))
                         .also { opened = true }
                 }, append?.second ?: 0, progress)
