@@ -7,6 +7,7 @@ import android.system.ErrnoException
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.WindowInsets
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
@@ -45,6 +46,8 @@ class HostActivity : Activity() {
     /* One per entry of Choices.ALL, "Default" first, then its values. */
     private val spinners = mutableListOf<Spinner>()
     private val items = mutableListOf<MutableList<String>>()
+    /* The keyboard was up when the screen was recreated, Android 17 no longer shows it again. */
+    private var keyboard = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -140,10 +143,20 @@ class HostActivity : Activity() {
             showChoices(savedInstanceState.getBoolean(STATE_SHOWN))
         }
         if (original != null && host.name == original) showDefaults(config, host)
+        keyboard = savedInstanceState?.getBoolean(STATE_KEYBOARD) == true
+    }
+
+    /* Once it has the focus, the field that had it is the one the keyboard is for. */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus || !keyboard) return
+        keyboard = false
+        window.insetsController?.show(WindowInsets.Type.ime())
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_KEYBOARD, window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true)
         outState.putIntArray(STATE_CHOICES, spinners.map { it.selectedItemPosition }.toIntArray())
         outState.putBoolean(STATE_SHOWN, choices.visibility == View.VISIBLE)
         outState.putString(STATE_IDENTITY, identities.getOrNull(identity.selectedItemPosition - 1).orEmpty())
@@ -376,6 +389,7 @@ class HostActivity : Activity() {
         private const val STATE_CHOICES = "choices"
         private const val STATE_SHOWN = "choices_shown"
         private const val STATE_IDENTITY = "identity"
+        private const val STATE_KEYBOARD = "keyboard"
 
         /*
          * Attach to the last tmux session or start one, with plain
