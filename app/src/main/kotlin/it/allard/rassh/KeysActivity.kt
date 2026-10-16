@@ -257,7 +257,10 @@ class KeysActivity : Activity() {
                     if (!isFileError(e)) throw e
                     e.message
                 }
-                /* Written on the UI thread, as every key: two imports under one name would share a temporary file. */
+                /*
+                 * Written on the UI thread, where the app writes every file of
+                 * ~/.ssh: two imports under one name would share a temporary file.
+                 */
                 runOnUiThread {
                     val error = try {
                         if (failed == null) storeKey(n, key ?: throw IOException("cannot open $uri"))
