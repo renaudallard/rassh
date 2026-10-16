@@ -94,8 +94,13 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
         }.filter { it.isNotEmpty() && it != "none" }.toSet()
     }
 
-/* The host of a ProxyJump hop, [user@]host[:port] or an ssh:// URI, see parse_jump() in readconf.c. */
+/*
+ * The host of a ProxyJump hop, [user@]host[:port] or an ssh:// URI, whose
+ * user ends at the first @ and which may end in a /, see parse_jump() in
+ * readconf.c and parse_uri() in misc.c.
+ */
 private fun jumpHost(hop: String): String {
-    val host = hop.removePrefix("ssh://").substringAfterLast('@')
+    val host = if (hop.startsWith("ssh://")) hop.removePrefix("ssh://").substringAfter('@').removeSuffix("/")
+        else hop.substringAfterLast('@')
     return if (host.startsWith("[")) host.substringAfter('[').substringBefore(']') else host.substringBefore(':')
 }
