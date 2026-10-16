@@ -116,11 +116,11 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         if (inVault.isNotEmpty()) secrets = vault.readAll(key ?: throw IOException("keys locked"), inVault)
         for (name in names) {
             val i = inVault.indexOf(name)
-            val secret = if (i >= 0) secrets[i] else Paths.bytesOf(File(paths.sshDir, name))
+            val secret = if (i >= 0) secrets[i] else Paths.bytesOf(File(paths.sshDir, name), Paths.MAX_FILE)
             items.add(Backup.Item(Backup.KEY, name, secret))
             for (suffix in Keys.suffixes(name, names)) {
                 val file = File(paths.sshDir, name + suffix)
-                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, Paths.bytesOf(file)))
+                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, Paths.bytesOf(file, Paths.MAX_FILE)))
             }
         }
         val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
@@ -204,6 +204,11 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     if (!items.all { valid(it) } || items.map { Pair(it.type, it.name) }.distinct().size != items.size) {
         items.forEach { it.data.fill(0) }
         throw IOException("damaged export")
+    }
+    /* Not one the app could not read back, see Paths.bytesOf(). */
+    items.find { it.type == Backup.FILE && (it.name == CONFIG || it.name == KNOWN_HOSTS) && it.data.size > Paths.MAX_TEXT }?.let { big ->
+        items.forEach { it.data.fill(0) }
+        throw IOException("${big.name} is too large")
     }
     return items
 }

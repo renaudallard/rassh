@@ -127,18 +127,24 @@ class Paths(context: Context) {
     companion object {
         private val PROGRAMS = listOf("ssh", "ssh-keygen", "ssh-agent", "ssh-add", "scp", "sftp")
 
-        /* The largest file of ~/.ssh read whole, as an import takes at most. */
-        private const val MAX_FILE = 16 shl 20
+        /*
+         * The largest config or known_hosts read, its lines each made a
+         * string: 8 MiB of short ones took all the memory of the app.
+         */
+        const val MAX_TEXT = 1 shl 20
+
+        /* The largest other file of ~/.ssh read whole, a vault or a file to export, as an import takes at most. */
+        const val MAX_FILE = 16 shl 20
 
         /*
-         * The bytes of file, refused past MAX_FILE: one made huge in the
-         * local shell would otherwise take all the memory, and end the app
-         * each time it starts.
+         * The bytes of file, refused past max: one made huge in the local
+         * shell would otherwise take all the memory, and end the app each
+         * time it starts.
          */
         @Throws(IOException::class)
-        fun bytesOf(file: File): ByteArray {
-            val data = FileInputStream(file).use { it.readNBytes(MAX_FILE + 1) }
-            if (data.size > MAX_FILE) throw IOException("${file.name} is too large")
+        fun bytesOf(file: File, max: Int = MAX_TEXT): ByteArray {
+            val data = FileInputStream(file).use { it.readNBytes(max + 1) }
+            if (data.size > max) throw IOException("${file.name} is too large")
             return data
         }
 
