@@ -54,7 +54,7 @@ object Keys {
     fun misnamed(dir: File): List<String> =
         dir.listFiles().orEmpty()
             .filter {
-                it.isFile && !it.name.startsWith(".") && !it.name.endsWith(".pub") && !it.name.endsWith(".tmp") &&
+                it.isFile && !it.name.startsWith(".") && !it.name.endsWith(".pub") &&
                     !isValidName(it.name) && isPrivateKey(it)
             }
             .map { it.name }
@@ -108,13 +108,16 @@ object Keys {
     private val PEM = "-----BEGIN ".toByteArray()
 
     /*
-     * Remove the private keys left in temporary files by a write the app
-     * did not finish, see Paths.writePrivate(). Other temporary files
-     * hold nothing secret.
+     * Remove the private keys left in temporary files, .x.tmp for key x,
+     * by a write the app did not finish, see Paths.writePrivate(). Other
+     * temporary files hold nothing secret.
      */
     fun removeLeftovers(dir: File) {
         dir.listFiles().orEmpty()
-            .filter { it.isFile && it.name.endsWith(".tmp") && isValidName(it.name.removeSuffix(".tmp")) && isPrivateKey(it) }
+            .filter {
+                it.isFile && it.name.startsWith(".") && it.name.endsWith(".tmp") &&
+                    isValidName(it.name.removePrefix(".").removeSuffix(".tmp")) && isPrivateKey(it)
+            }
             .forEach { it.delete() }
     }
 

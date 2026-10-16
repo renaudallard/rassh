@@ -103,7 +103,8 @@ class Paths(context: Context) {
     fun writePrivate(file: File, data: ByteArray) {
         /* Through a link, made in the local shell for instance, the file it names is replaced. */
         val target = if (Files.isSymbolicLink(file.toPath())) file.canonicalFile else file
-        val tmp = File(target.path + ".tmp")
+        /* Hidden, a key the user named x.tmp is not taken for one, see Keys.removeLeftovers(). */
+        val tmp = File(target.parentFile, ".${target.name}.tmp")
         try {
             FileOutputStream(tmp).use {
                 it.write(data)
