@@ -40,11 +40,19 @@ data class Host(
          * A User value, without the characters ssh refuses in a user name
          * it expanded, see ssh_valid_ruser() in readconf.c: one taken from
          * the config as written is not checked, and %r hands it to the
-         * shell of a ProxyCommand as it is. Spaces are quoted when saved.
+         * shell of a ProxyCommand as it is. What ${NAME} gives ssh checks
+         * itself. A backslash cannot start a command and stays allowed: a
+         * Windows account such as CORP\jdoe, refused on ssh's command line,
+         * can only be given here. Spaces are quoted when saved.
          */
-        fun isValidUser(value: String): Boolean =
-            !value.startsWith("-") && " -" !in value &&
-                value.none { it.isISOControl() || it in "'`\";&<>|(){}$\\" }
+        fun isValidUser(value: String): Boolean {
+            val literal = value.replace(ENVIRONMENT, "x")
+            return !literal.startsWith("-") && " -" !in literal &&
+                literal.none { it.isISOControl() || it in "'`\";&<>|(){}$" }
+        }
+
+        /* An environment variable as ssh expands it, see dollar_expand() and valid_env_name() in misc.c. */
+        private val ENVIRONMENT = Regex("""\$\{[A-Za-z0-9_]+\}""")
 
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
