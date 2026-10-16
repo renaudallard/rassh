@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
  * terminal with "Connection to host closed.", which tells its own last
  * lines from the same ones printed by the server.
  */
-private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean)
+private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?)
 
 /*
  * Where ssh looks up the key of the host target reaches, taken from the
@@ -45,7 +45,8 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
         .map { File(it).canonicalFile }
         .filter { it.parentFile == dir && it.isFile }
-    return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"))
+    return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"),
+        config["stricthostkeychecking"])
 }
 
 /*
@@ -93,7 +94,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             val known = knownHost(paths, target)
             /* Not offered when the server may have printed what ssh would. */
             if (known.quiet) return@thread
-            known.name to known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() }
+            Triple(known.name, known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() },
+                known.checking)
         } catch (e: IOException) {
             runOnUiThread { toast(getString(R.string.host_key_failed, e.message)) }
             return@thread
@@ -112,7 +114,12 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             if (found.first != changed || found.second.isEmpty()) return@runOnUiThread
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
-                .setMessage(getString(R.string.host_key_changed_text, found.first))
+                /* What the next connection does once the key is gone: ssh prompts only when asked to. */
+                .setMessage(getString(R.string.host_key_changed_text, found.first, getString(when (found.third) {
+                    "accept-new" -> R.string.host_key_then_accepted
+                    "true" -> R.string.host_key_then_refused
+                    else -> R.string.host_key_then_asked
+                })))
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
                         for ((file, lines) in found.second) removeLines(paths, file, lines)
