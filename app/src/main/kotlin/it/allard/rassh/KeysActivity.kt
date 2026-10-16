@@ -2,6 +2,7 @@ package it.allard.rassh
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -327,7 +328,12 @@ class KeysActivity : Activity() {
             actions.add(R.string.show_public_key to { showPublicKey(name, pub) })
             actions.add(R.string.share_public_key to {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pub)
-                startActivity(Intent.createChooser(send, name))
+                /* On later Android versions the share sheet is an app of its own, which may be disabled. */
+                try {
+                    startActivity(Intent.createChooser(send, name))
+                } catch (_: ActivityNotFoundException) {
+                    toast(getString(R.string.no_share))
+                }
             })
         }
         actions.add(R.string.rename to { renameKey(name) })
