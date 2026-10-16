@@ -579,10 +579,19 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
     }
 
-    /* The files after the one cut short may have come to exist since, asked about as for a new upload. */
+    /*
+     * The file cut short may be another one now, which the upload would
+     * start over, and the files after it may have come to exist since:
+     * asked about as for a new upload.
+     */
     private fun resumeUpload(r: Resumable.Upload) {
         val c = client() ?: return
-        run({ r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) } }) { clash ->
+        run({
+            val cut = r.names.getOrNull(r.index)?.let { path(r.dir, it) }
+            val known = if (r.length < 0) -1 else minOf(r.length, r.sent)
+            val other = cut != null && exists(c, cut) && sizeOf(c, cut)?.let { SftpClient.mayHold(it, known) } != true
+            other || r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) }
+        }) { clash ->
             replacing(clash) { uploadAll(r.uris, r.names, r.dir, r) }
         }
     }
@@ -596,6 +605,15 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
+
+    /* The size of the file path leads to, null when there is none or the server tells none. */
+    private fun sizeOf(c: SftpClient, path: String): Long? =
+        try {
+            c.stat(path).size
+        } catch (e: SftpException) {
+            if (e.status != SftpException.NO_SUCH_FILE) throw e
+            null
+        }
 
     private fun exists(c: SftpClient, path: String): Boolean =
         try {

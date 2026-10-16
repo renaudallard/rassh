@@ -171,6 +171,17 @@ class SftpClientTest {
     }
 
     @Test
+    fun mayHold() {
+        val known = 8_000_000L
+        assertTrue(SftpClient.mayHold(known, known))
+        assertTrue(SftpClient.mayHold(known - SftpClient.IN_FLIGHT, known))
+        assertFalse(SftpClient.mayHold(known + 1, known))
+        assertFalse(SftpClient.mayHold(known - SftpClient.IN_FLIGHT - 1, known))
+        assertTrue(SftpClient.mayHold(0, 1_000))
+        assertFalse(SftpClient.mayHold(0, -1))
+    }
+
+    @Test
     fun cancel() {
         File(dir, "big").writeBytes(Random(2).nextBytes(2_000_000))
         assertFailsWith<SftpCancelledException> {

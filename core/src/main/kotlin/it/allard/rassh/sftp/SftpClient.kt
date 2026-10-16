@@ -280,8 +280,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             if (target?.permissions != null && !target.isFile) throw IOException("not a regular file")
             size = target?.size
         }
-        val offset = if (known < 0 || size == null || size > known || size < known - IN_FLIGHT) 0L
-            else maxOf(0L, size - IN_FLIGHT)
+        val offset = size?.takeIf { mayHold(it, known) }?.let { maxOf(0L, it - IN_FLIGHT) } ?: 0L
         /*
          * Stopped before it began, as between the files of an upload, it
          * must not truncate one: seen right before the open.
@@ -547,6 +546,13 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
 
         /** The most bytes in flight, those a transfer cut short may have lost. */
         const val IN_FLIGHT = MAX_REQUESTS.toLong() * CHUNK
+
+        /**
+         * Whether a server file of size may be what an upload cut short
+         * left, known the bytes it may have, -1 for none, see
+         * resumeUpload(): no more, and at most the writes in flight less.
+         */
+        fun mayHold(size: Long, known: Long): Boolean = known >= 0 && size <= known && size >= known - IN_FLIGHT
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
         private const val MAX_ENTRIES = 200_000
