@@ -169,8 +169,7 @@ keys are encrypted and unlocked with it.
   characters other than tab and newline into spaces, more than xterm
   does by default, so that it cannot send ^C or end a bracketed paste.
   The keyboard is asked not to learn what is typed, passwords at ssh or
-  sudo prompts included, nor host names, users, paths and passphrases
-  typed in the app's own fields
+  sudo prompts included, nor what is typed in the app's own fields
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
