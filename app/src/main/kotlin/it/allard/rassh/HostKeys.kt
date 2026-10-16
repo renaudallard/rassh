@@ -49,21 +49,36 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
         config["stricthostkeychecking"])
 }
 
+private val FOUND = Regex("""# Host .* found: line \d+ ?(CA|REVOKED)?[ \t]*""")
+
 /*
- * The lines of file holding a key of name, hashed or not. ssh-keygen
- * lists @cert-authority and @revoked lines with CA or REVOKED after the
- * number, they are kept, as ssh-keygen -R does. Kept as text, the
- * numbers change with any other removal before the user decides. The
- * text is the line ssh-keygen prints under each number, as the file may
- * change in between, compared without the trailing blanks it may lose.
+ * The lines of known_hosts file ssh-keygen finds for name, hashed or
+ * matched by a pattern too, each with what it prints after the number:
+ * CA for a @cert-authority line, REVOKED for a @revoked one, nothing for
+ * a key. A line is the text it prints under the number, without the
+ * trailing blanks it may lose.
  */
 @Throws(IOException::class)
-private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
+fun foundLines(paths: Paths, name: String, file: File): List<Pair<String, String>> {
     val (text, status) = execute(paths.keygen, listOf("ssh-keygen", "-F", name, "-f", file.path), paths.env, paths.home.path)
     /* 1 when nothing was found. */
     if (status != 0 && status != 1) throw IOException(text.trim().ifEmpty { "ssh-keygen -F: exit $status" })
     val out = text.split('\n')
-    val found = out.indices.filter { FOUND.matches(out[it]) }.mapNotNull { out.getOrNull(it + 1)?.trimEnd() }.toSet()
+    return out.indices.mapNotNull { i ->
+        val tag = FOUND.matchEntire(out[i])?.groupValues?.get(1) ?: return@mapNotNull null
+        out.getOrNull(i + 1)?.let { tag to it.trimEnd() }
+    }
+}
+
+/*
+ * The lines of file holding a key of name. @cert-authority and @revoked
+ * lines are kept, as ssh-keygen -R does. Kept as text, the numbers
+ * change with any other removal before the user decides, and as
+ * ssh-keygen printed them, as the file may change in between.
+ */
+@Throws(IOException::class)
+private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
+    val found = foundLines(paths, name, file).filter { it.first.isEmpty() }.map { it.second }.toSet()
     return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
@@ -84,8 +99,6 @@ private fun withoutHost(line: String, host: String): String? {
     if (names.all { it.isEmpty() }) return null
     return line.substring(0, start) + names.joinToString(",") + line.substring(end)
 }
-
-private val FOUND = Regex("""# Host .* found: line \d+[ \t]*""")
 
 /*
  * Replace the lines of file found in edits with their value, remove

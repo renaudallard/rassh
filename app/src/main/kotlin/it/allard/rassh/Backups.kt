@@ -159,6 +159,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
         thread(name = "import") {
             var items: List<Backup.Item>? = null
             var merged: Merged? = null
+            var here: KnownHere? = null
             var refused: Pair<String, String>? = null
             val error = try {
                 val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
@@ -174,6 +175,8 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                             refused = configRefusal(paths, it.text, it.names, it.read, it.added)
                         }
                     }
+                    /* One ssh-keygen for each name. */
+                    if (!replace) here = knownHere(paths, opened)
                 } catch (e: IOException) {
                     opened.forEach { it.data.fill(0) }
                     throw e
@@ -204,7 +207,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                     opened.forEach { it.data.fill(0) }
                     applicationContext.toast(getString(R.string.restore_failed, getString(R.string.import_interrupted)))
                 } else {
-                    store(paths, vault, opened, replace, merged, done)
+                    store(paths, vault, opened, replace, merged, here, done)
                 }
             }
         }
@@ -236,7 +239,7 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
 
 /* Store the items, which are zeroed afterwards, asking for a fingerprint when keys are to be added. */
 private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>, replace: Boolean, merged: Merged?,
-    done: () -> Unit) {
+    here: KnownHere?, done: () -> Unit) {
     fun zero() = items.forEach { it.data.fill(0) }
     val present = try {
         Keys.list(paths.sshDir, vault)
@@ -250,7 +253,7 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
     fun write(key: ByteArray?) {
         try {
             val (hosts, keys) = if (replace) replaceAll(paths, vault, key, items, present, seal)
-                else append(paths, vault, key, items, present, seal, merged)
+                else append(paths, vault, key, items, present, seal, merged, here)
             /* Any host may be another server now, as when edited. The provider may be slow. */
             if (replace) thread(name = "drop-resume") { applicationContext.dropResumables() }
             toast(getString(R.string.imported, hosts, keys))
@@ -345,7 +348,7 @@ private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
 /* Returns the number of hosts and keys added. */
 @Throws(IOException::class)
 private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: List<Backup.Item>,
-    present: List<String>, seal: Boolean, merged: Merged?): Pair<Int, Int> {
+    present: List<String>, seal: Boolean, merged: Merged?, here: KnownHere?): Pair<Int, Int> {
     val dir = paths.sshDir
     val configFile = File(dir, CONFIG)
     /* What ssh checked was made from it. */
@@ -358,28 +361,17 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     if (vault.names().size + keys.count { sealable(items, it, seal) } > Keys.MAX_COUNT)
         throw IOException("at most ${Keys.MAX_COUNT} keys")
     val knownFile = File(dir, KNOWN_HOSTS)
-    val known = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS }?.let {
-        Pair(paths.textOf(knownFile), Paths.utf8(it.data, KNOWN_HOSTS))
-    }
+    /* What ssh-keygen looked in, as for the config. */
+    if (here != null && paths.textOf(knownFile) != here.read)
+        throw IOException(getString(R.string.import_config_changed))
     val hosts = merged?.added?.size ?: 0
     val configText = merged?.text
-    /*
-     * Split on line feeds only, as ssh does: a carriage return within a
-     * line, a comment for one, must not make a new one, which could be an
-     * @cert-authority line. Only the one ending a CRLF line goes.
-     */
-    fun lines(text: String) = text.split('\n').map { it.removeSuffix("\r") }
-    val knownText = known?.let { (text, theirs) ->
-        val lines = lines(text).toSet()
-        /*
-         * Not for a host known here already: ssh takes a key any of its
-         * lines holds, an old one, removed here once changed, would be
-         * trusted again.
-         */
-        val names = lines.mapNotNull { knownNames(it) }.flatMap { (kind, hosts) -> hosts.map { kind to it } }.toSet()
-        val missing = lines(theirs).filter { line ->
+    val knownText = here?.let { known ->
+        val text = known.read
+        val lines = knownLines(text).toSet()
+        val missing = knownLines(known.theirs).filter { line ->
             val k = knownNames(line)
-            line.isNotBlank() && line !in lines && (k == null || k.second.none { (k.first to it) in names })
+            line.isNotBlank() && line !in lines && (k == null || k.second.none { (tag(k.first) to it) in known.found })
         }.distinct()
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
@@ -411,6 +403,44 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         if (!prefs.contains(item.name)) putSetting(item)
     useKeyNames(paths, keys.filter { sealable(items, it, seal) }.map { it.name })
     return Pair(hosts, keys.size)
+}
+
+/*
+ * Split on line feeds only, as ssh does: a carriage return within a
+ * line, a comment for one, must not make a new one, which could be an
+ * @cert-authority line. Only the one ending a CRLF line goes.
+ */
+private fun knownLines(text: String) = text.split('\n').map { it.removeSuffix("\r") }
+
+/*
+ * The known_hosts of an export, the one here as read and the names of
+ * the export's lines ssh-keygen finds a line for here, with what it
+ * tells of that line, see foundLines(). A name is known here, its key
+ * not added, also through a hashed line or a pattern: ssh takes a key
+ * any of a host's lines holds, an old one, removed here once changed,
+ * would be trusted again.
+ */
+private class KnownHere(val read: String, val theirs: String, val found: Set<Pair<String, String>>)
+
+/* Null when items hold no known_hosts. */
+@Throws(IOException::class)
+private fun knownHere(paths: Paths, items: List<Backup.Item>): KnownHere? {
+    val item = items.find { it.type == Backup.FILE && it.name == KNOWN_HOSTS } ?: return null
+    val file = File(paths.sshDir, KNOWN_HOSTS)
+    val read = paths.textOf(file)
+    val theirs = Paths.utf8(item.data, KNOWN_HOSTS)
+    val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.flatten().toSet()
+    val found = if (read.isEmpty()) emptySet() else names.flatMap { name ->
+        foundLines(paths, name, file).map { it.first to name }
+    }.toSet()
+    return KnownHere(read, theirs, found)
+}
+
+/* What ssh-keygen -F tells of a line with marker, null for one it does not. */
+private fun tag(marker: String): String? = when (marker) {
+    "" -> ""
+    "@cert-authority" -> "CA"
+    else -> null
 }
 
 /*
