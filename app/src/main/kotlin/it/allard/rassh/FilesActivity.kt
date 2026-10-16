@@ -49,6 +49,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private val adapter by lazy { TwoLineAdapter(this) }
     private val worker = Executors.newSingleThreadExecutor()
     private var session: Session? = null
+    /* The screen is going away, read by transfers, see transfer(). */
+    @Volatile
+    private var leaving = false
     private var entries: List<SftpEntry> = emptyList()
     /* Whether a folder was listed, the status says connecting until then. */
     private var listed = false
@@ -119,6 +122,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     override fun onDestroy() {
         progressDialog?.dismiss()
+        /* Not when the session was closed first, from the terminal screen, which ends this one. */
+        if (session?.isClosed != true) leaving = true
         session?.let {
             if (it.listener === this) it.listener = null
             if (isFinishing) binding.service?.remove(it)
@@ -764,7 +769,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val count = TextView(this)
         /* Its own, a transfer slow to see it must not take the next one's. */
         val cancelled = AtomicBoolean()
-        /* Hung up from the terminal screen, Close session there, it is stopped too. */
+        /*
+         * Hung up from the terminal screen, Close session there, it is
+         * stopped too, but not by this screen going away, swiped from the
+         * recent apps for one: cut then, it may be resumed.
+         */
         val s = session
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
@@ -800,7 +809,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     runOnUiThread { count.text = Formatter.formatShortFileSize(this, bytes) }
                 }
                 !cancelled.get()
-            }, { cancelled.get() || s?.isClosed == true })
+            }, { cancelled.get() || s?.isClosed == true && !leaving })
         }) {
             dialog.dismiss()
             done()

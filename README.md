@@ -111,7 +111,8 @@ keys are encrypted and unlocked with it.
   upload, rename, delete files and empty folders and create folders over
   SFTP, through `ssh`, so the host's options, jump hosts and keys apply,
   but not its port forwards nor its `LocalCommand`, as with `sftp`. A
-  transfer cut short by a lost connection is offered to resume the next
+  transfer cut short by a lost connection, or by the browser going away,
+  swiped from the recent apps for one, is offered to resume the next
   time the browser connects to that host. A download goes on if the file
   did not change on the server and the one on the phone is a regular
   file it can append to that did not change, its size and time checked.
