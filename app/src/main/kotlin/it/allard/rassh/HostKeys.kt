@@ -68,23 +68,33 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
 }
 
 /*
- * Whether line of known_hosts names host alone: as its only name, in
- * any case as ssh compares them, or hashed, which names one.
+ * What becomes of line of known_hosts once the key of host goes: null
+ * when it names host alone, in any case as ssh compares them, or hashed,
+ * which names one, the line without host when it names other hosts too,
+ * and line itself for a pattern, which other hosts may match.
  */
-private fun namesAlone(line: String, host: String): Boolean {
-    val field = line.trim().split(' ', '\t').first()
-    return field.startsWith("|1|") || field.equals(host, ignoreCase = true)
+private fun withoutHost(line: String, host: String): String? {
+    val start = line.indexOfFirst { it != ' ' && it != '\t' }
+    if (start < 0) return line
+    val end = line.indexOfAny(charArrayOf(' ', '\t'), start).let { if (it < 0) line.length else it }
+    val field = line.substring(start, end)
+    if (field.startsWith("|1|")) return null
+    if (field.any { it in "*?!" }) return line
+    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) }
+    if (names.all { it.isEmpty() }) return null
+    return line.substring(0, start) + names.joinToString(",") + line.substring(end)
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+[ \t]*""")
 
 /*
- * Remove the lines of file found in gone. ssh-keygen -R cannot, it keeps
- * a backup with link(), which Android refuses to apps.
+ * Replace the lines of file found in edits with their value, remove
+ * them when null. ssh-keygen -R cannot, it keeps a backup with link(),
+ * which Android refuses to apps, and it would remove whole lines.
  */
 @Throws(IOException::class)
-private fun removeLines(paths: Paths, file: File, gone: Set<String>) {
-    val kept = paths.textOf(file).split('\n').filter { it !in gone }
+private fun editLines(paths: Paths, file: File, edits: Map<String, String?>) {
+    val kept = paths.textOf(file).split('\n').mapNotNull { if (it in edits) edits[it] else it }
     paths.writeText(file, kept.joinToString("\n"))
 }
 
@@ -122,9 +132,12 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             if (isDestroyed) return@runOnUiThread offerAgain()
             /* A jump host's key may be the one refused, never offer to drop another. */
             if (found.first != changed || found.second.isEmpty()) return@runOnUiThread
-            /* A line also naming other hosts, or a pattern, would take their keys with it. */
-            if (found.second.values.flatten().any { !namesAlone(it, found.first) })
-                return@runOnUiThread toast(getString(R.string.host_key_shared, found.first))
+            /* A pattern is left, it would take the keys of other hosts with it. */
+            val edits = found.second.mapValues { (_, lines) ->
+                lines.associateWith { withoutHost(it, found.first) }.filter { (line, edit) -> edit != line }
+            }.filterValues { it.isNotEmpty() }
+            val left = found.second.values.flatten().any { withoutHost(it, found.first) == it }
+            if (edits.isEmpty()) return@runOnUiThread toast(getString(R.string.host_key_shared, found.first))
             /* What the next connection does once the key is gone: ssh prompts only when asked to. */
             val (then, removed) = when (found.third) {
                 "accept-new", "false" -> R.string.host_key_then_accepted to R.string.host_key_removed_accepted
@@ -136,12 +149,12 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                 .setMessage(getString(R.string.host_key_changed_text, found.first, getString(then)))
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
-                        for ((file, lines) in found.second) removeLines(paths, file, lines)
+                        for ((file, lines) in edits) editLines(paths, file, lines)
                     } catch (e: IOException) {
                         toast(getString(R.string.host_key_remove_failed, e.message))
                         return@setPositiveButton
                     }
-                    toast(getString(removed))
+                    toast(if (left) getString(R.string.host_key_removed_shared, found.first) else getString(removed))
                 }
                 .setNegativeButton(R.string.host_key_keep, null)
                 .show()
