@@ -155,6 +155,14 @@ class SftpClientTest {
         sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), sent, "$dir/dst", { if (first < 0) first = it; true })
         assertContentEquals(data, remote.readBytes())
         assertEquals(0, first)
+        /* Shorter than the writes before those in flight, another file: written from the start. */
+        val big = Random(7).nextBytes(9_000_001)
+        val bigSent = 8_000_000L
+        remote.writeBytes(Random(8).nextBytes(5_000_000))
+        first = -1
+        sftp.resumeUpload(ByteArrayInputStream(big), big.size.toLong(), bigSent, "$dir/dst", { if (first < 0) first = it; true })
+        assertContentEquals(big, remote.readBytes())
+        assertEquals(0, first)
         /* Gone, it is made again. */
         remote.delete()
         sftp.resumeUpload(ByteArrayInputStream(data), data.size.toLong(), sent, "$dir/dst")

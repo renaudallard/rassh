@@ -250,8 +250,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
      * with its connection once sent bytes of input were read. What the
      * server has is kept, but for its last IN_FLIGHT bytes: the writes in
      * flight then may have landed in any order, a hole may be left among
-     * them. Uploaded from the start when the file is gone, or holds more
-     * than was sent, which the upload did not write.
+     * them. Uploaded from the start when the file is gone, holds more than
+     * was sent, which the upload did not write, or less than the writes
+     * before those in flight, which it had: another file took its place.
      */
     @Synchronized
     @Throws(IOException::class)
@@ -279,7 +280,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             if (target?.permissions != null && !target.isFile) throw IOException("not a regular file")
             size = target?.size
         }
-        val offset = if (known < 0 || size == null || size > known) 0L else maxOf(0L, size - IN_FLIGHT)
+        val offset = if (known < 0 || size == null || size > known || size < known - IN_FLIGHT) 0L
+            else maxOf(0L, size - IN_FLIGHT)
         /*
          * Stopped before it began, as between the files of an upload, it
          * must not truncate one: seen right before the open.
