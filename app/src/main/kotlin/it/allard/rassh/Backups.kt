@@ -358,9 +358,15 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     }
     val hosts = merged?.added?.size ?: 0
     val configText = merged?.text
+    /*
+     * Split on line feeds only, as ssh does: a carriage return within a
+     * line, a comment for one, must not make a new one, which could be an
+     * @cert-authority line. Only the one ending a CRLF line goes.
+     */
+    fun lines(text: String) = text.split('\n').map { it.removeSuffix("\r") }
     val knownText = known?.let { (text, theirs) ->
-        val lines = text.lines().toSet()
-        val missing = theirs.lines().filter { line -> line.isNotBlank() && line !in lines }.distinct()
+        val lines = lines(text).toSet()
+        val missing = lines(theirs).filter { line -> line.isNotBlank() && line !in lines }.distinct()
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
     }
