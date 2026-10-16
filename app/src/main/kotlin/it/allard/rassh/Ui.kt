@@ -45,9 +45,10 @@ fun View.padForInsets() {
 }
 
 /*
- * Hide the windows other apps draw over this screen and its dialogs: one
- * let through to the screen, a prompt drawn faint over a Delete or the
- * host key removal, could lead the taps meant for it.
+ * Hide the windows of apps allowed to display over other apps while this
+ * screen shows, under its dialogs as well: one letting touches through,
+ * a prompt drawn faint over a Delete or the host key removal, could lead
+ * the taps meant for it. Accessibility overlays are not hidden.
  */
 fun Activity.hideOverlays() {
     window.setHideOverlayWindows(true)

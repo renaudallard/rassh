@@ -42,7 +42,8 @@ you choose, and is saved only where you put it.
 - Internet and local network: connecting to your servers
 - Notifications and foreground service: keeping sessions open
 - Biometric: unlocking your keys
-- Hide overlays: hiding what other apps draw over rassh's screens
+- Hide overlays: hiding the windows of apps allowed to display over
+  other apps while rassh shows
 - All files access: file transfers and the local shell, as above
 
 ## Removing your data
