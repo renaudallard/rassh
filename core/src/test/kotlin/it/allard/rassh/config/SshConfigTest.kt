@@ -159,6 +159,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun movesLastHostApartFromTheEnd() {
+        val config = SshConfig.parse("Host a\n  User x\nHost b\n  User y\n\n# end\n")
+        assertTrue(config.move("a", 1))
+        assertEquals("Host b\n  User y\n\nHost a\n  User x\n\n# end\n", config.toString())
+        assertEquals(emptyList(), SshConfig.parse(config.toString()).find("a")!!.other)
+    }
+
+    @Test
     fun movesOnlyPastOtherHosts() {
         for (text in listOf(
             "Host a\n    User x\n\nHost *\n    User y\n\nHost b\n",

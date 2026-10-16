@@ -162,12 +162,20 @@ class SshConfig private constructor(
         if (ordered(blocks[i]) ||
             between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } || ordered(blocks[k]) })
             return false
-        /* The last block may end without a blank line, which keeps it apart from the next one. */
+        /*
+         * The last block may end without a blank line, which keeps it
+         * apart from the next one, and the comments ending the file from
+         * it, see parse().
+         */
+        fun apart(k: Int) {
+            val b = blocks[k]
+            if (b.lines.lastOrNull()?.isBlank() != true) blocks[k] = Block(b.leading, b.keyword, b.value, b.lines + "", b.line)
+        }
         val last = blocks.last()
         blocks.add(j, blocks.removeAt(i))
         val k = blocks.lastIndexOf(last)
-        if (k != blocks.lastIndex && last.lines.lastOrNull()?.isBlank() != true)
-            blocks[k] = Block(last.leading, last.keyword, last.value, last.lines + "", last.line)
+        if (k != blocks.lastIndex) apart(k)
+        if (footer.isNotEmpty()) apart(blocks.lastIndex)
         return true
     }
 
