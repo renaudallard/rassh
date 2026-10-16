@@ -121,14 +121,15 @@ keys are encrypted and unlocked with it.
   what was sent checked, and the server holds no more than was sent,
   writing again the last 2 MiB the server may have missed, as 64
   requests of 32 KiB are in flight. Otherwise the file starts again. A
-  transfer stopped or refused by the server is not offered: a download
-  removes its partial file, an upload the file it created if the
-  connection still works, but not one a resumed upload found there.
-  Deleting or editing the host drops what was cut short, as does a
-  Replace import. A transfer still running then and cut afterwards is
-  offered again if the host kept its name, or dropped when the app
-  starts again. A dropped download removes its partial file only if its
-  size and time, when known, did not change since it was cut
+  transfer stopped, also by closing its session from the terminal
+  screen, or refused by the server is not offered: a download removes
+  its partial file, an upload the file it created if the connection
+  still works, but not one a resumed upload found there. Deleting or
+  editing the host drops what was cut short, as does a Replace import. A
+  transfer still running then and cut afterwards is offered again if the
+  host kept its name, or dropped when the app starts again. A dropped
+  download removes its partial file only if its size and time, when
+  known, did not change since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
 - **Export and import** - hosts, keys and settings in one file sealed with

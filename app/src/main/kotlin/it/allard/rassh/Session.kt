@@ -60,6 +60,11 @@ class Session(
     var isRunning = true
         private set
 
+    /** Whether the app hung it up, at the user's request: a transfer cut then was stopped. */
+    @Volatile
+    var isClosed = false
+        private set
+
     private val child: Child
     private val pty: ParcelFileDescriptor
     private val output: FileOutputStream
@@ -213,6 +218,7 @@ class Session(
      * terminal is released, its group id cannot be reused until then.
      */
     fun close() {
+        isClosed = true
         if (isRunning) child.signal(SIGHUP)
         if (readerDone.count > 0L) child.signalGroup(SIGHUP)
         handler.postDelayed({

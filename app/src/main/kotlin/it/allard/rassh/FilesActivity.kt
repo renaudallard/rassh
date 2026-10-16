@@ -764,6 +764,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val count = TextView(this)
         /* Its own, a transfer slow to see it must not take the next one's. */
         val cancelled = AtomicBoolean()
+        /* Hung up from the terminal screen, Close session there, it is stopped too. */
+        val s = session
         val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogLayout(bar, count))
@@ -798,7 +800,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     runOnUiThread { count.text = Formatter.formatShortFileSize(this, bytes) }
                 }
                 !cancelled.get()
-            }, { cancelled.get() })
+            }, { cancelled.get() || s?.isClosed == true })
         }) {
             dialog.dismiss()
             done()
