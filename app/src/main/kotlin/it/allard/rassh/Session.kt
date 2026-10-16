@@ -183,7 +183,7 @@ class Session(
             pending.addAndGet(-data.size)
             return false
         }
-        submit {
+        val queued = submit {
             try {
                 if (!closed) output.write(data)
             } catch (_: IOException) {
@@ -191,6 +191,8 @@ class Session(
                 pending.addAndGet(-data.size)
             }
         }
+        /* Refused once the reader has ended, the task then never runs. */
+        if (!queued) pending.addAndGet(-data.size)
         return true
     }
 
@@ -265,12 +267,14 @@ class Session(
         writer.shutdown()
     }
 
-    private fun submit(task: Runnable) {
+    /* False when the writer is shut down. */
+    private fun submit(task: Runnable): Boolean =
         try {
             writer.execute(task)
+            true
         } catch (_: RejectedExecutionException) {
+            false
         }
-    }
 
     private fun update() {
         if (updatePending.compareAndSet(false, true)) {
