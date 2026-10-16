@@ -9,9 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.res.AssetFileDescriptor
+import android.database.SQLException
 import android.net.Uri
+import android.os.BadParcelableException
 import android.os.Bundle
 import android.os.IBinder
+import android.os.NetworkOnMainThreadException
+import android.os.OperationCanceledException
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.system.ErrnoException
@@ -167,14 +171,19 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
 /*
  * Whether e is a failure of a file or a content provider. A provider in
  * another app may also refuse with exceptions Android passes back from
- * it, for a revoked permission or a mode it does not support. Uncaught
- * in a thread, those would end the app and its sessions. Android passes
- * back NullPointerException too, left out as it would hide bugs of the
- * app.
+ * it, see readExceptionFromParcel() in DatabaseUtils and
+ * createExceptionOrNull() in Parcel, for a revoked permission, a mode it
+ * does not support or its own database failing, and a cursor it fills
+ * with a blob for a name makes getString() fail as well. Uncaught in a
+ * thread, those would end the app and its sessions. Android passes back
+ * NullPointerException too, ServiceSpecificException, hidden from apps,
+ * and a plain RuntimeException from a provider writing its replies
+ * itself: left out, they would hide bugs of the app.
  */
 fun isFileError(e: Exception): Boolean =
     e is IOException || e is SecurityException || e is IllegalArgumentException ||
-        e is IllegalStateException || e is UnsupportedOperationException
+        e is IllegalStateException || e is UnsupportedOperationException || e is SQLException ||
+        e is OperationCanceledException || e is BadParcelableException || e is NetworkOnMainThreadException
 
 /*
  * A document the picker made to save into is empty, an existing one
