@@ -622,11 +622,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var hashing: Hashing? = null
             /* Whether the file at index is the one resumed, checked. */
             var verified = false
+            /* Where it started, -1 before the server opens it. */
+            var start = -1L
             try {
                 while (index < uris.size) {
                     val path = path(dir, names[index])
                     length = -1
                     verified = false
+                    start = -1
                     val afd = contentResolver.openAssetFileDescriptor(uris[index], "r")
                         ?: throw IOException("cannot open ${uris[index]}")
                     /* The stream closes afd, whatever fails. */
@@ -640,7 +643,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         /* Called first before the server opens the file, then after each write. */
                         var calls = 0
                         val counted = { bytes: Long ->
-                            if (++calls == 2 && file != null) {
+                            if (++calls == 1) start = bytes
+                            if (calls == 2 && file != null) {
                                 length = file.first
                                 modified = file.second
                             }
@@ -662,9 +666,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                      * Cut again before reading past what was checked, as
                      * it starts below what the server has: the record it
                      * resumed still stands, the server holds no more.
+                     * Not once started over, the server then holds what
+                     * was sent since.
                      */
                     val h = hashing
-                    if (resumed != null && verified && h != null && h.count < resumed.sent)
+                    if (resumed != null && verified && start != 0L && h != null && h.count < resumed.sent)
                         keepResumable(host, resumed)
                     else
                         keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified,
