@@ -223,7 +223,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setPositiveButton(R.string.resume) { _, _ ->
                 when (r) {
                     is Resumable.Download -> saveTo(r.remote, r.uri, r)
-                    is Resumable.Upload -> uploadAll(r.uris, r.names, r.dir, r)
+                    is Resumable.Upload -> resumeUpload(r)
                 }
             }
             .setNegativeButton(R.string.discard) { _, _ ->
@@ -575,16 +575,26 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             if (names.toSet().size != names.size) null else Pair(names, names.any { exists(c, path(dir, it)) })
         }) { found ->
             val (names, clash) = found ?: return@run toast(getString(R.string.upload_same_name))
-            if (!clash) {
-                uploadAll(uris, names, dir)
-                return@run
-            }
-            AlertDialog.Builder(this)
-                .setMessage(R.string.replace_files)
-                .setPositiveButton(R.string.replace) { _, _ -> uploadAll(uris, names, dir) }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
+            replacing(clash) { uploadAll(uris, names, dir) }
         }
+    }
+
+    /* The files after the one cut short may have come to exist since, asked about as for a new upload. */
+    private fun resumeUpload(r: Resumable.Upload) {
+        val c = client() ?: return
+        run({ r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) } }) { clash ->
+            replacing(clash) { uploadAll(r.uris, r.names, r.dir, r) }
+        }
+    }
+
+    /* Call go, once the user agreed to replace the files when some exist. */
+    private fun replacing(clash: Boolean, go: () -> Unit) {
+        if (!clash) return go()
+        AlertDialog.Builder(this)
+            .setMessage(R.string.replace_files)
+            .setPositiveButton(R.string.replace) { _, _ -> go() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun exists(c: SftpClient, path: String): Boolean =
