@@ -336,7 +336,6 @@ class KeysActivity : Activity() {
             .setPositiveButton(R.string.copy) { _, _ ->
                 getSystemService(ClipboardManager::class.java)
                     .setPrimaryClip(ClipData.newPlainText(name, pub))
-                toast(getString(R.string.public_key_copied))
             }
             .setNegativeButton(android.R.string.ok, null)
             .show()

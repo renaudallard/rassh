@@ -126,7 +126,6 @@
     <string name="copy">Copy</string>
     <string name="show_public_key">Show public key</string>
     <string name="share_public_key">Share public key</string>
-    <string name="public_key_copied">Public key copied</string>
     <string name="public_key_missing">No public key</string>
     <string name="key_name_not_allowed">Name not allowed, rename it to move it into the vault and export it</string>
     <string name="key_name_not_allowed_sealed">Name not allowed, rename it to export it</string>
