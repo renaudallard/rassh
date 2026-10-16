@@ -231,7 +231,7 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun readConfig(): SshConfig =
-        SshConfig.parse(if (paths.config.isFile) paths.config.readText() else "")
+        SshConfig.parse(if (paths.config.isFile) Paths.bytesOf(paths.config).toString(Charsets.UTF_8) else "")
 
     private fun loadHosts() {
         hosts = try {

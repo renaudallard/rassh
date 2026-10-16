@@ -62,7 +62,7 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     if (status != 0 && status != 1) throw IOException(text.trim().ifEmpty { "ssh-keygen -F: exit $status" })
     val out = text.split('\n')
     val found = out.indices.filter { FOUND.matches(out[it]) }.mapNotNull { out.getOrNull(it + 1)?.trimEnd() }.toSet()
-    return file.readText().split('\n').filter { it.trimEnd() in found }.toSet()
+    return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+[ \t]*""")

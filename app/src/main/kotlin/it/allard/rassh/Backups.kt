@@ -107,7 +107,7 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
     try {
         for (name in listOf(CONFIG, KNOWN_HOSTS)) {
             val f = File(paths.sshDir, name)
-            if (f.isFile) items.add(Backup.Item(Backup.FILE, name, f.readBytes()))
+            if (f.isFile) items.add(Backup.Item(Backup.FILE, name, Paths.bytesOf(f)))
         }
         val sealed = vault.names()
         val names = Keys.list(paths.sshDir, vault)
@@ -116,11 +116,11 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
         if (inVault.isNotEmpty()) secrets = vault.readAll(key ?: throw IOException("keys locked"), inVault)
         for (name in names) {
             val i = inVault.indexOf(name)
-            val secret = if (i >= 0) secrets[i] else File(paths.sshDir, name).readBytes()
+            val secret = if (i >= 0) secrets[i] else Paths.bytesOf(File(paths.sshDir, name))
             items.add(Backup.Item(Backup.KEY, name, secret))
             for (suffix in Keys.suffixes(name, names)) {
                 val file = File(paths.sshDir, name + suffix)
-                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, file.readBytes()))
+                if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, Paths.bytesOf(file)))
             }
         }
         val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
@@ -383,7 +383,7 @@ private fun Context.putSetting(item: Backup.Item) {
 
 @Throws(IOException::class)
 private fun hostCount(paths: Paths): Int =
-    if (paths.config.isFile) SshConfig.parse(paths.config.readText()).hosts.size else 0
+    if (paths.config.isFile) SshConfig.parse(Paths.bytesOf(paths.config).toString(Charsets.UTF_8)).hosts.size else 0
 
 /*
  * Ask a passphrase, twice when choosing one, and pass it to use, which

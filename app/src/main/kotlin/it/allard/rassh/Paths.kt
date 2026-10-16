@@ -5,6 +5,7 @@ import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -72,7 +73,7 @@ class Paths(context: Context) {
      * writes back whole, see utf8().
      */
     @Throws(IOException::class)
-    fun textOf(file: File): String = if (file.isFile) utf8(file.readBytes(), file.name) else ""
+    fun textOf(file: File): String = if (file.isFile) utf8(bytesOf(file), file.name) else ""
 
     /*
      * Replace file with text, readable by the owner only. The data and
@@ -125,6 +126,21 @@ class Paths(context: Context) {
 
     companion object {
         private val PROGRAMS = listOf("ssh", "ssh-keygen", "ssh-agent", "ssh-add", "scp", "sftp")
+
+        /* The largest file of ~/.ssh read whole, as an import takes at most. */
+        private const val MAX_FILE = 16 shl 20
+
+        /*
+         * The bytes of file, refused past MAX_FILE: one made huge in the
+         * local shell would otherwise take all the memory, and end the app
+         * each time it starts.
+         */
+        @Throws(IOException::class)
+        fun bytesOf(file: File): ByteArray {
+            val data = FileInputStream(file).use { it.readNBytes(MAX_FILE + 1) }
+            if (data.size > MAX_FILE) throw IOException("${file.name} is too large")
+            return data
+        }
 
         /*
          * data as text, refused when it is not UTF-8: decoded leniently and

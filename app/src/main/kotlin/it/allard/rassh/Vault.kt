@@ -216,7 +216,7 @@ class Vault(private val paths: Paths) {
     private fun load(): Pair<Pair<ByteArray, ByteArray>, List<Entry>>? {
         if (!file.isFile) return null
         try {
-            val o = JSONObject(file.readText())
+            val o = JSONObject(Paths.bytesOf(file).toString(Charsets.UTF_8))
             if (o.getInt("version") != VERSION) throw IOException("unknown vault version")
             val entries = mutableListOf<Entry>()
             val a = o.getJSONArray("entries")
