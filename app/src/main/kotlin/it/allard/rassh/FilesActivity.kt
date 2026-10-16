@@ -550,7 +550,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null
         }
-        val safe = name?.replace('/', '_')?.trim()
+        /* A NUL as well, sftp-server ends the connection on a name holding one. */
+        val safe = name?.replace('/', '_')?.replace('\u0000', '_')?.trim()
         return if (safe.isNullOrEmpty() || safe == "." || safe == "..") "upload" else safe
     }
 
