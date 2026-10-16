@@ -324,6 +324,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsNoBlockOfAReachedName() {
+        val config = SshConfig.parse("Host web\n    HostName real.example.org\n")
+        val other = SshConfig.parse("Host Real.example.org\n    HostKeyAlias evil\nHost pi\n")
+        assertEquals(listOf("pi"), config.addMissing(other, listOf("real.example.org")))
+        assertFalse(config.toString().contains("evil"))
+    }
+
+    @Test
     fun addsApartFromTheEnd() {
         val config = SshConfig.parse("Host a\n  User x\n\n# end\n")
         assertEquals(listOf("b"), config.addMissing(SshConfig.parse("Host b\n  User y\n")))

@@ -167,10 +167,12 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 val opened = checked(Backup.open(sealed, pass))
                 try {
                     /* ssh may run Match exec, not on the UI thread. */
-                    if (!replace) merged = merge(paths, opened)?.also {
+                    if (!replace && opened.any { it.type == Backup.FILE && it.name == CONFIG }) {
                         /* One ssh -G for each host, a long config takes a while. */
                         runOnUiThread { toast(getString(R.string.config_checking)) }
-                        refused = configRefusal(paths, it.text, it.names, it.read, it.added)
+                        merged = merge(paths, opened)?.also {
+                            refused = configRefusal(paths, it.text, it.names, it.read, it.added)
+                        }
                     }
                 } catch (e: IOException) {
                     opened.forEach { it.data.fill(0) }
@@ -335,7 +337,7 @@ private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
     val theirs = items.find { it.type == Backup.FILE && it.name == CONFIG } ?: return null
     val read = paths.textOf(paths.config)
     val mine = SshConfig.parse(read)
-    val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)))
+    val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)), reachedNames(paths, read, mine.names))
     if (added.isEmpty()) return null
     return Merged(read, mine.toString(), added, checkedNames(mine, added))
 }

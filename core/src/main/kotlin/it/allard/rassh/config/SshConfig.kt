@@ -215,11 +215,14 @@ class SshConfig private constructor(
     /**
      * Add the Host blocks of other whose names are not used here, as they
      * are written, like put() does. Its other lines and blocks are left
-     * out, they could change the hosts already here. Returns the names
-     * added.
+     * out, they could change the hosts already here, and so are the
+     * blocks named in reached, the names ssh reaches these hosts by, in
+     * any case as ssh lowercases them. Returns the names added.
      */
-    fun addMissing(other: SshConfig): List<String> {
-        val added = other.blocks.filter { b -> b.name?.let { !isUsed(it) } == true }
+    fun addMissing(other: SshConfig, reached: Collection<String> = emptyList()): List<String> {
+        val added = other.blocks.filter { b ->
+            b.name?.let { name -> !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) } } == true
+        }
         if (added.isEmpty()) return emptyList()
         val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
         headerApart(at)

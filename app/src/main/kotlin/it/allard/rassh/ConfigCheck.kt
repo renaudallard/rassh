@@ -69,3 +69,32 @@ fun configRefusal(paths: Paths, text: String, names: List<String>, before: Strin
             if (refused) Pair(name, out) else null
         }
     }
+
+/*
+ * The names ssh reaches the hosts of names by with text as its config:
+ * their HostName, by which it reads the file again after a Match final
+ * or canonicalization, and their ProxyJump hosts, whose own ssh reads
+ * it for them. A block of one of those would change these hosts.
+ */
+@Throws(IOException::class)
+fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
+    withConfigFile(paths, text) { file ->
+        names.flatMap { name ->
+            /* Lines end in line feeds only, see HostKeys.knownHost(). */
+            dump(paths, file, name).first.split('\n').flatMap { line ->
+                val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 }
+                    ?: return@flatMap emptyList()
+                when (key) {
+                    "hostname" -> listOf(value)
+                    "proxyjump" -> value.split(',').map { jumpHost(it) }
+                    else -> emptyList()
+                }
+            }
+        }.filter { it.isNotEmpty() && it != "none" }.toSet()
+    }
+
+/* The host of a ProxyJump hop, [user@]host[:port] or an ssh:// URI, see parse_jump() in readconf.c. */
+private fun jumpHost(hop: String): String {
+    val host = hop.removePrefix("ssh://").substringAfterLast('@')
+    return if (host.startsWith("[")) host.substringAfter('[').substringBefore(']') else host.substringBefore(':')
+}
