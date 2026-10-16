@@ -205,8 +205,9 @@ class MainActivity : Activity(), SessionService.Listener {
             toldConfig = true
         }
         if (!vault.isSetUp) {
-            /* Keys refused by a vault that is gone are offered to the next one. */
+            /* Keys refused by a vault that is gone, or whose prompt was closed, are offered to the next one. */
             declined = emptySet()
+            protectClosed = false
             setUp()
             return
         }
