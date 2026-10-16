@@ -108,6 +108,12 @@ class SshConfig private constructor(
         get() = blocks.filter { it.keyword.equals("Host", ignoreCase = true) }
             .flatMap { arguments(it.value).orEmpty() }.filter { Host.isValidName(it) }.distinct()
 
+    /** Every pattern the Host lines list, negations left out: ssh -G takes one as a name the blocks of it match. */
+    val patterns: List<String>
+        get() = blocks.filter { it.keyword.equals("Host", ignoreCase = true) }
+            .flatMap { arguments(it.value).orEmpty() }
+            .filter { !it.startsWith("!") && (it.contains('*') || it.contains('?')) }.distinct()
+
     fun find(name: String): Host? =
         blocks.find { it.name == name }?.let { toHost(it) }
 

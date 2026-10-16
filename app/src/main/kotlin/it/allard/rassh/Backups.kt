@@ -340,7 +340,9 @@ private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
     val theirs = items.find { it.type == Backup.FILE && it.name == CONFIG } ?: return null
     val read = paths.textOf(paths.config)
     val mine = SshConfig.parse(read)
-    val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)), reachedNames(paths, read, mine.names))
+    /* Of patterns too, an export's host may be the jump host of the hosts one matches. */
+    val reached = reachedNames(paths, read, checkedNames(mine, mine.patterns))
+    val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)), reached)
     if (added.isEmpty()) return null
     return Merged(read, mine.toString(), added, checkedNames(mine, added))
 }

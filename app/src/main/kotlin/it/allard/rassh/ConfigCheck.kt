@@ -71,10 +71,11 @@ fun configRefusal(paths: Paths, text: String, names: List<String>, before: Strin
     }
 
 /*
- * The names ssh reaches the hosts of names by with text as its config:
- * their HostName, by which it reads the file again after a Match final
- * or canonicalization, and their ProxyJump hosts, whose own ssh reads
- * it for them. A block of one of those would change these hosts.
+ * The names ssh reaches the hosts of names, patterns too, by with text
+ * as its config: their HostName, by which it reads the file again after
+ * a Match final or canonicalization, and their ProxyJump hosts, whose
+ * own ssh reads it for them. A block of one of those would change these
+ * hosts.
  */
 @Throws(IOException::class)
 fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =

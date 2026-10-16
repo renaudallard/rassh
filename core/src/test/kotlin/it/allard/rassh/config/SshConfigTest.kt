@@ -363,6 +363,8 @@ class SshConfigTest {
     fun namesListsEveryPlainName() {
         val config = SshConfig.parse("Host web db\nHost mail # prod\nHost !x *.lan\nMatch host y\nHost web\n")
         assertEquals(listOf("web", "db", "mail"), config.names)
+        assertEquals(listOf("*.lan"), config.patterns)
+        assertEquals(listOf("*", "db?"), SshConfig.parse("Host *\nHost db? !db1 *\n").patterns)
     }
 
     @Test
