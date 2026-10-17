@@ -267,8 +267,10 @@ class SshConfig private constructor(
      * HostKeyAlias or ProxyJump it sets: what the host editor takes, and
      * no blank, # or glob, which would change the command or the files it
      * names, nor a slash, which would reach another file. A ProxyJump hop
-     * keeps those of an ssh:// URI. ssh takes the rest of a ProxyJump line
-     * as it is, up to a #, not its first word, see parse_jump(). It puts
+     * keeps those of an ssh:// URI, and its user and host start with no
+     * dash, the host of the last being %j. ssh takes the rest of a
+     * ProxyJump line past blanks and = as it is, up to a #, not its first
+     * word, see parse_jump(). It puts
      * a User there as written: the shell then expands a $ in it and takes
      * a \ off, one starting it may make an option, one ending it joins the
      * word after.
@@ -282,8 +284,12 @@ class SshConfig private constructor(
             equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word) && '$' !in word &&
                 !word.startsWith("\\") && !word.endsWith("\\")
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
-            equalsAscii(key, "ProxyJump") -> value.substringBefore('#').trim().let { raw ->
-                Host.isValidJump(raw) && raw.split(',').all { plain(it.removePrefix("ssh://").removeSuffix("/")) }
+            equalsAscii(key, "ProxyJump") -> {
+                val raw = value.substringBefore('#').trimStart { it in WHITESPACE || it == '=' }.trim()
+                Host.isValidJump(raw) && raw.split(',').all { hop ->
+                    val s = if (hop.startsWith("ssh://")) hop.removePrefix("ssh://").removeSuffix("/") else hop
+                    plain(s) && !OPTION.containsMatchIn(s)
+                }
             }
             else -> true
         }
@@ -494,6 +500,9 @@ class SshConfig private constructor(
             s.substring(from).trimStart { it in WHITESPACE }
 
         private const val WHITESPACE = " \t\r\n"
+
+        /* A user, host or port of a jump hop starting with a dash, see parse_user_host_port() in misc.c. */
+        private val OPTION = Regex("""(^|[@\[:])-""")
 
         /**
          * The arguments of a line after its keyword, as argv_split() in
