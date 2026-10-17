@@ -240,6 +240,10 @@ class SshConfigTest {
             SshConfig.replaceIdentities("    IdentityFile \"~/.ssh/old\" # work key\n", mapOf("~/.ssh/old" to "~/.ssh/new")))
         assertEquals("CertificateFile ~/.ssh/new-cert.pub\n",
             SshConfig.replaceIdentities("CertificateFile ~/.ssh/old-cert.pub\n", mapOf("~/.ssh/old-cert.pub" to "~/.ssh/new-cert.pub")))
+        /* The obsolete name ssh still reads as IdentityFile. */
+        assertEquals("IdentityFile2 ~/.ssh/new\n",
+            SshConfig.replaceIdentities("IdentityFile2 ~/.ssh/old\n", mapOf("~/.ssh/old" to "~/.ssh/new")))
+        assertEquals("~/.ssh/x", SshConfig.parse("Host a\n  IdentityFile2 ~/.ssh/x\n").find("a")?.identityFile)
     }
 
     @Test

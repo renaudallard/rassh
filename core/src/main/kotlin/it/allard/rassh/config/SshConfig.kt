@@ -6,6 +6,9 @@ fun lowerAscii(s: String): String = s.map { if (it in 'A'..'Z') it.lowercaseChar
 /** Whether ssh takes a for b, comparing as strcasecmp() does in the C locale: A to Z only. */
 fun equalsAscii(a: String?, b: String): Boolean = a != null && lowerAscii(a) == lowerAscii(b)
 
+/* IdentityFile2 is an obsolete name ssh still reads as IdentityFile. */
+private fun isIdentityFile(key: String?): Boolean = equalsAscii(key, "IdentityFile") || equalsAscii(key, "IdentityFile2")
+
 /** A saved connection, stored as a Host block of ssh_config(5). */
 data class Host(
     val name: String,
@@ -272,7 +275,7 @@ class SshConfig private constructor(
                 equalsAscii(key, "HostName") && hostName == null -> hostName = first(value)
                 equalsAscii(key, "User") && user == null -> user = first(value)
                 equalsAscii(key, "Port") && port == null -> port = first(value)
-                equalsAscii(key, "IdentityFile") && identity == null -> identity = first(value)
+                isIdentityFile(key) && identity == null -> identity = first(value)
                 equalsAscii(key, "LocalForward") -> local.add(value)
                 equalsAscii(key, "RemoteForward") -> remote.add(value)
                 equalsAscii(key, "DynamicForward") -> dynamic.add(value)
@@ -387,7 +390,7 @@ class SshConfig private constructor(
             val lines = text.removeSuffix("\n").split('\n').map { line ->
                 val kv = keyword(line)
                 val to = kv?.let { paths[first(it.second)] }
-                if (kv == null || to == null || !equalsAscii(kv.first, "IdentityFile") &&
+                if (kv == null || to == null || !isIdentityFile(kv.first) &&
                     !(certificates && equalsAscii(kv.first, "CertificateFile"))) {
                     line
                 } else {
