@@ -336,6 +336,15 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsNoBlockWithAnInclude() {
+        /* ssh reads an Include of any block for every host, Match exec lines in it run. */
+        val config = SshConfig.parse("Host web\n    HostName real.example.org\n")
+        val other = SshConfig.parse("Host evil\n    HostName x\n    include evil.pub\nHost pi\n")
+        assertEquals(listOf("pi"), config.addMissing(other))
+        assertFalse(config.toString().contains("evil"))
+    }
+
+    @Test
     fun addsApartFromTheEnd() {
         val config = SshConfig.parse("Host a\n  User x\n\n# end\n")
         assertEquals(listOf("b"), config.addMissing(SshConfig.parse("Host b\n  User y\n")))

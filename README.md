@@ -351,10 +351,11 @@ the config names for one, as the key screen does with a key file:
   or `@cert-authority` line with a wildcard in a name not negated, which
   could match a host known here, and the font size if not set yet. Only
   `Host` blocks naming a single host are taken: global options, `Match`
-  blocks and `Host` blocks with wildcards or several names are left out,
-  as they could change the hosts already there, and so is a block named
-  as the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
-  there, as ssh reads the block of a jump host for it, and that of its
+  blocks and `Host` blocks with wildcards or several names or holding an
+  `Include`, whose file ssh reads for every host, are left out, as they
+  could change the hosts already there, and so is a block named as the
+  `HostName` or a `ProxyJump` host of a host or a `Host` pattern there,
+  as ssh reads the block of a jump host for it, and that of its
   `HostName` after a `Match final` or canonicalization. Every word of a
   `ProxyJump` value counts, a user or a port too, as a shell splits it
   for ssh, and no `Host` block comes in when such a value holds `$`, a

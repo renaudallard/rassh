@@ -232,11 +232,14 @@ class SshConfig private constructor(
      * are written, like put() does. Its other lines and blocks are left
      * out, they could change the hosts already here, and so are the
      * blocks named in reached, the names ssh reaches these hosts by, in
-     * any case as ssh lowercases them. Returns the names added.
+     * any case as ssh lowercases them, and those holding an Include: ssh
+     * reads the file it names for every host, its Match exec lines run.
+     * Returns the names added.
      */
     fun addMissing(other: SshConfig, reached: Collection<String> = emptyList()): List<String> {
         val added = other.blocks.filter { b ->
-            b.name?.let { name -> !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) } } == true
+            b.name?.let { name -> !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) } } == true &&
+                b.lines.none { equalsAscii(keyword(it)?.first, "Include") }
         }
         if (added.isEmpty()) return emptyList()
         val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
