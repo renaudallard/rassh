@@ -329,16 +329,16 @@ whether to append or replace:
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`
   or `known_hosts2`, the files ssh reads by default, also through a
   hashed line, a pattern or a line of the other kind, key or
-  `@cert-authority`, as ssh would trust again an old key of one, removed
-  here once changed, or a certificate a new authority signed, hashed and
-  `@revoked` lines as they are, but no key or `@cert-authority` line
-  with a wildcard in a name not negated, which could match a host known
-  here, and the font size if not set yet. Only `Host` blocks naming a
-  single host are taken: global options, `Match` blocks and `Host`
-  blocks with wildcards or several names are left out, as they could
-  change the hosts already there, and so is a block named as the
-  `HostName` or a `ProxyJump` host of a host or a `Host` pattern there,
-  as ssh reads the block of a jump host for it, and that of its
+  `@cert-authority`, but not a `@revoked` line, as ssh would trust again
+  an old key of one, removed here once changed, or a certificate a new
+  authority signed, hashed and `@revoked` lines as they are, but no key
+  or `@cert-authority` line with a wildcard in a name not negated, which
+  could match a host known here, and the font size if not set yet. Only
+  `Host` blocks naming a single host are taken: global options, `Match`
+  blocks and `Host` blocks with wildcards or several names are left out,
+  as they could change the hosts already there, and so is a block named
+  as the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
+  there, as ssh reads the block of a jump host for it, and that of its
   `HostName` after a `Match final` or canonicalization. Every word of a
   `ProxyJump` value counts, a user or a port too, as a shell splits it
   for ssh, and no `Host` block comes in when such a value holds `$`, a

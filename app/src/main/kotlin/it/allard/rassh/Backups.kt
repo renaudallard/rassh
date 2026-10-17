@@ -426,13 +426,14 @@ private fun knownLines(text: String) = text.split('\n').map { it.removeSuffix("\
 
 /*
  * The known_hosts of an export, the one here as read and the names of
- * the export's lines ssh-keygen finds a line for here, in known_hosts or
- * known_hosts2, see foundLines(). A name is known here, its keys and
- * authorities not added, also through a hashed line, a pattern or a line
- * of another kind: ssh takes a key any of a host's lines holds, an old
- * one, removed here once changed, would be trusted again, and a
- * certificate a new authority signed passes for a host known by its key,
- * as a key does for one known by its authority.
+ * the export's lines ssh-keygen finds a key or authority line for here,
+ * in known_hosts or known_hosts2, see foundLines(). A name is known
+ * here, its keys and authorities not added, also through a hashed line,
+ * a pattern or a key or authority line of the other kind: ssh takes a
+ * key any of a host's lines holds, an old one, removed here once
+ * changed, would be trusted again, and a certificate a new authority
+ * signed passes for a host known by its key, as a key does for one known
+ * by its authority.
  */
 private class KnownHere(val read: String, val theirs: String, val found: Set<String>)
 
@@ -445,7 +446,10 @@ private fun knownHere(paths: Paths, items: List<Backup.Item>): KnownHere? {
     val theirs = Paths.utf8(item.data, KNOWN_HOSTS)
     val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.filter { !hasPattern(it) }.flatten().toSet()
     val files = listOfNotNull(file.takeIf { read.isNotEmpty() }, File(paths.sshDir, KNOWN_HOSTS2).takeIf { it.isFile })
-    val found = names.filter { name -> files.any { foundLines(paths, name, it).isNotEmpty() } }.toSet()
+    /* A @revoked line only takes trust away, ssh still takes the host for a new one. */
+    val found = names.filter { name ->
+        files.any { f -> foundLines(paths, name, f).any { it.first != "REVOKED" } }
+    }.toSet()
     return KnownHere(read, theirs, found)
 }
 
