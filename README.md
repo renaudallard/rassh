@@ -180,15 +180,19 @@ keys are encrypted and unlocked with it.
   `scp`, or with the same quick connect text, asks first. Sessions
   reaching the same server, local shells included, show when they were
   opened, as do file browsers of the same host
-- **Terminal** - 256 and 24 bit colors, alternate screen, scroll regions,
-  wide characters, DEC line drawing, bracketed paste, reverse video,
-  scrollback with a swipe, which sends the arrow keys to full screen
-  programs like vim or less, pinch to zoom, long press to select and
-  copy. A paste, also one from the keyboard's clipboard, turns control
-  characters other than tab and newline into spaces, more than xterm
-  does by default, so that it cannot send ^C or end a bracketed paste.
-  The keyboard is asked not to learn what is typed, passwords at ssh or
-  sudo prompts included, nor what is typed in the app's own fields
+- **Terminal** - 256 and 24 bit colors, alternate screen, scroll
+  regions, wide characters, DEC line drawing, bracketed paste, reverse
+  video, scrollback with a swipe, which sends the arrow keys to full
+  screen programs like vim or less, pinch to zoom, long press to select
+  and copy. A paste, also one from the keyboard's clipboard, turns
+  control characters other than tab and newline into spaces, more than
+  xterm does by default, so that it cannot send ^C or end a bracketed
+  paste. The keyboard is asked not to learn what is typed, passwords at
+  ssh or sudo prompts included, nor what is typed in the app's own
+  fields. A session ending inside a full screen program, a connection
+  lost in tmux for one, goes back to the main screen and its history,
+  followed by what the program's screen showed last, where ssh says why
+  it ended
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. Dark is true black, which turns OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the

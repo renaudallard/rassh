@@ -136,13 +136,33 @@ class Terminal(
      * Back to the main screen once the program ended, with its history:
      * nothing could leave the alternate one any more. The cursor goes
      * where 1049 saved it, else it stays: a cursor saved on the main
-     * screen by an earlier DECSC is from another time.
+     * screen by an earlier DECSC is from another time. The rows of the
+     * alternate screen holding text follow, from the first to the last:
+     * ssh writes there why a connection was lost inside vim or tmux.
      */
     fun leaveAltScreen() {
         if (screen !== alt) return
         val restore = altBy1049
+        val shown = (0 until rows).filter { y -> alt.row(y).text.any { it != 0 } }
         useAltScreen(false)
         if (restore) restoreCursor()
+        if (shown.isEmpty()) return
+        if (cursorX > 0) nextRow()
+        cursorX = 0
+        for (y in shown.first()..shown.last()) {
+            if (y > shown.first()) nextRow()
+            val from = alt.row(y)
+            val to = main.row(cursorY)
+            val n = minOf(from.columns, to.columns)
+            from.text.copyInto(to.text, 0, 0, n)
+            from.style.copyInto(to.style, 0, 0, n)
+            to.wrapped = from.wrapped
+        }
+    }
+
+    /* Down a row of the main screen, all of it scrolling into the history at the bottom. */
+    private fun nextRow() {
+        if (cursorY == rows - 1) main.scrollUp(0, rows, 1, TextStyle.NORMAL, true) else cursorY++
     }
 
     private fun moveSaved(buffer: ScreenBuffer, y: Int, columns: Int, rows: Int) {

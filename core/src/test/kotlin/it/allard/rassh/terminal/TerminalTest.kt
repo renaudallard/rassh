@@ -584,11 +584,29 @@ class TerminalTest {
         assertEquals(0, t.cursorX)
         t.leaveAltScreen()
         assertFalse(t.isAltScreen)
+        assertEquals("vim", t.line(1))
         /* An old DECSC is not where 1047 left the main screen. */
         val old = term(columns = 10, rows = 6)
         old.put("\u001b7l1\r\nl2\r\nl3\r\n\u001b[?1047hALT")
         old.leaveAltScreen()
-        assertEquals(3, old.cursorY)
+        assertEquals("l3", old.line(2))
+        assertEquals("ALT", old.line(4))
+        assertEquals(4, old.cursorY)
+    }
+
+    @Test
+    fun keepsWhatTheAltScreenShowedLast() {
+        val t = term(columns = 30, rows = 6)
+        t.put("one\r\ntwo\r\n\u001b[?1049h\u001b[2J\u001b[H\u001b[31mtmux\u001b[m\u001b[4;1Hbar")
+        /* What ssh writes once the connection is lost, at the cursor. */
+        t.put("\r\nConnection closed.\r\n")
+        t.leaveAltScreen()
+        assertFalse(t.isAltScreen)
+        val all = (-t.historySize until 6).map { t.line(it) }
+        assertEquals(listOf("one", "two", "tmux", "", "", "bar", "Connection closed."), all)
+        /* With its colors, the history scrolled. */
+        assertEquals(1, TextStyle.fg(t.row(1).style[0]))
+        assertEquals(5, t.cursorY)
     }
 
     @Test
