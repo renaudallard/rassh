@@ -606,6 +606,19 @@ class TerminalTest {
     }
 
     @Test
+    fun resizeOn47KeepsTheRowItWasEnteredOn() {
+        /* As rxvt's smcup and rmcup do: DECSC, 47, then 47 off and DECRC. */
+        val t = term(columns = 20, rows = 10)
+        t.put("a\r\nb\r\nc\r\n$ less\u001b7\u001b[?47hpage")
+        t.resize(20, 6)
+        t.put("\u001b[?47l\u001b8X")
+        assertEquals("$ lessX", t.line(3))
+        assertEquals(0, t.historySize)
+        t.resize(20, 10)
+        assertEquals("$ lessX", t.line(3))
+    }
+
+    @Test
     fun keepsWhatTheAltScreenShowedLast() {
         val t = term(columns = 30, rows = 6)
         t.put("one\r\ntwo\r\n\u001b[?1049h\u001b[2J\u001b[H\u001b[31mtmux\u001b[m\u001b[4;1Hbar")

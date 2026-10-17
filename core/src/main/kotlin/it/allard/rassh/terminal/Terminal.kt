@@ -30,6 +30,8 @@ class Terminal(
     private var screen = main
     /* On the alternate screen through 1049, which saved the cursor of the main one. */
     private var altBy1049 = false
+    /* The row of the main screen's cursor when the alternate one was entered, its anchor on a resize. */
+    private var mainY = 0
 
     var title = ""
         private set
@@ -180,15 +182,23 @@ class Terminal(
         cursorY = screen.resize(columns, rows, cursorY)
         /* The saved cursor stays on its line, which moved with the cursor's. */
         screen.saved?.let { moveSaved(screen, it.y + cursorY - oldY, columns, rows) }
-        /*
-         * Without a saved cursor, as after 47 or 1047, the bottom rows are
-         * kept: the top goes to the history, or is dropped on the alternate
-         * screen, which has none. A cursor the main screen saved before 47
-         * or 1047 is from another time, see leaveAltScreen().
-         */
-        val saved = other.saved?.takeIf { other !== main || altBy1049 }
-        val y = other.resize(columns, rows, saved?.y ?: (this.rows - 1))
-        if (other.saved != null) moveSaved(other, y, columns, rows)
+        if (other === main) {
+            /*
+             * The main screen keeps the row its cursor was on when the
+             * alternate one was entered, and its saved cursor stays on its
+             * own line, which may be from another time, see leaveAltScreen().
+             */
+            val y = main.resize(columns, rows, mainY)
+            main.saved?.let { moveSaved(main, it.y - (mainY - y), columns, rows) }
+            mainY = y
+        } else {
+            /*
+             * Without a saved cursor, as after 47 or 1047, the bottom rows of
+             * the alternate screen are kept, the top dropped: it has no history.
+             */
+            val y = alt.resize(columns, rows, alt.saved?.y ?: (this.rows - 1))
+            if (alt.saved != null) moveSaved(alt, y, columns, rows)
+        }
         /* The stops of the columns a narrower screen loses come back with them. */
         if (columns > tabStops.size) tabStops = defaultTabs(columns).also { tabStops.copyInto(it) }
         this.columns = columns
@@ -602,6 +612,7 @@ class Terminal(
     }
 
     private fun useAltScreen(on: Boolean) {
+        if (on && screen === main) mainY = cursorY
         screen = if (on) alt else main
         if (!on) altBy1049 = false
         wrapPending = false
