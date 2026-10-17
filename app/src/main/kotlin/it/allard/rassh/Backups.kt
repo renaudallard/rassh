@@ -334,14 +334,17 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
  */
 private class Merged(val read: String, val text: String, val added: List<String>, val names: List<String>)
 
-/* The hosts of items added to the config, null when there are none to add. */
+/*
+ * The hosts of items added to the config, null when there are none to
+ * add or when any may be a jump host here, see reachedNames().
+ */
 @Throws(IOException::class)
 private fun merge(paths: Paths, items: List<Backup.Item>): Merged? {
     val theirs = items.find { it.type == Backup.FILE && it.name == CONFIG } ?: return null
     val read = paths.textOf(paths.config)
     val mine = SshConfig.parse(read)
     /* Of patterns too, an export's host may be the jump host of the hosts one matches. */
-    val reached = reachedNames(paths, read, checkedNames(mine, mine.patterns))
+    val reached = reachedNames(paths, read, checkedNames(mine, mine.patterns)) ?: return null
     val added = mine.addMissing(SshConfig.parse(Paths.utf8(theirs.data, CONFIG)), reached)
     if (added.isEmpty()) return null
     return Merged(read, mine.toString(), added, checkedNames(mine, added))

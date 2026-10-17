@@ -334,12 +334,15 @@ replace:
   or a `Host` pattern there, as ssh reads the block of a jump host for
   it, and that of its `HostName` after a `Match final` or
   canonicalization. Every word of a `ProxyJump` value counts, a user or
-  a port too, as a shell splits it for ssh. A jump host named with `%`
-  tokens or escapes, or reached through `ProxyCommand`, is not seen. ssh
-  checks the result first, as when saving one, and nothing is imported
-  if it refuses it: a host relying on a global `IgnoreUnknown` line left
-  out would make it refuse them all. A host added whose key has the name
-  of one already there uses that one, not the key of the file.
+  a port too, as a shell splits it for ssh, and no `Host` block comes in
+  when such a value holds `$`, a backquote, `~`, `*`, `?`, `{` or `}`,
+  which the shell would expand, or a word starting with `-`, which ssh
+  would take as an option. A jump host named with `%` tokens or escapes,
+  or reached through `ProxyCommand`, is not seen. ssh checks the result
+  first, as when saving one, and nothing is imported if it refuses it: a
+  host relying on a global `IgnoreUnknown` line left out would make it
+  refuse them all. A host added whose key has the name of one already
+  there uses that one, not the key of the file.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed, but for keys named in a

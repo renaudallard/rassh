@@ -75,10 +75,10 @@ fun configRefusal(paths: Paths, text: String, names: List<String>, before: Strin
  * as its config: their HostName, by which it reads the file again after
  * a Match final or canonicalization, and their ProxyJump hosts, whose
  * own ssh reads it for them. A block of one of those would change these
- * hosts.
+ * hosts. Null when a ProxyJump value may reach any name, see jumpNames().
  */
 @Throws(IOException::class)
-fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
+fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String>? =
     withConfigFile(paths, text) { file ->
         names.flatMap { name ->
             /* Lines end in line feeds only, see HostKeys.knownHost(). */
@@ -87,7 +87,7 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
                     ?: return@flatMap emptyList()
                 when (key) {
                     "hostname" -> listOf(value)
-                    "proxyjump" -> jumpNames(value)
+                    "proxyjump" -> jumpNames(value) ?: return@withConfigFile null
                     else -> emptyList()
                 }
             }
@@ -96,6 +96,7 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
 
 private val JUMP_SEPARATORS = Regex("""[\s,;&|<>()`$@:/\[\]]+""")
 private val BRACKETED = Regex("""\[([^\]]*)]""")
+private const val EXPANDED = "$`~*?{}"
 
 /*
  * The names a ProxyJump value may reach. ssh puts the hops in the
@@ -105,10 +106,13 @@ private val BRACKETED = Regex("""\[([^\]]*)]""")
  * a port or a scheme, and what is in brackets, an IPv6 address for one,
  * with and without a trailing dot: a block may be skipped for nothing,
  * none taken that ssh reads for a jump host but through % escapes or
- * tokens.
+ * tokens. Null when the shell would expand a word, brackets aside as
+ * they hold IPv6 addresses, or ssh take one for an option: any name may
+ * then be reached.
  */
-private fun jumpNames(value: String): List<String> {
+private fun jumpNames(value: String): List<String>? {
     val words = value.filter { it !in "\"'\\" }
-    return (words.split(JUMP_SEPARATORS) + BRACKETED.findAll(words).map { it.groupValues[1] })
-        .flatMap { listOf(it, it.removeSuffix(".")) }
+    val split = words.split(JUMP_SEPARATORS)
+    if (words.any { it in EXPANDED } || split.any { it.startsWith("-") }) return null
+    return (split + BRACKETED.findAll(words).map { it.groupValues[1] }).flatMap { listOf(it, it.removeSuffix(".")) }
 }
