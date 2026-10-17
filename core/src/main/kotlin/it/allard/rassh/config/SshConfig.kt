@@ -45,6 +45,10 @@ data class Host(
             !value.startsWith("-") &&
                 value.none { it.isWhitespace() || it.isISOControl() || it in "'`\"$\\;&<>|(){},#" }
 
+        /** A ProxyJump value: hosts, users, ports and URIs, without what a shell or ssh -J reads otherwise. */
+        fun isValidJump(value: String): Boolean =
+            !value.startsWith("-") && value.none { it.isWhitespace() || it.isISOControl() || it in "'`\"$\\;&<>|(){}#*?~" }
+
         /*
          * A User value, without the characters ssh refuses in a user name
          * it expanded, see ssh_valid_ruser() in readconf.c: one taken from
@@ -54,10 +58,6 @@ data class Host(
          * Windows account such as CORP\jdoe, refused on ssh's command line,
          * can only be given here. Spaces are quoted when saved.
          */
-        /** A ProxyJump value: hosts, users, ports and URIs, without what a shell or ssh -J reads otherwise. */
-        fun isValidJump(value: String): Boolean =
-            !value.startsWith("-") && value.none { it.isWhitespace() || it.isISOControl() || it in "'`\"$\\;&<>|(){}#*?~" }
-
         fun isValidUser(value: String): Boolean {
             val literal = value.replace(ENVIRONMENT, "x")
             return !literal.startsWith("-") && " -" !in literal &&
@@ -259,18 +259,22 @@ class SshConfig private constructor(
 
     /*
      * Whether a line of an imported block may go into a %h, %r, %k or %j
-     * of a Match exec here, as the HostName, User, HostKeyAlias or
-     * ProxyJump it sets: what the host editor takes, a HostName without a
-     * slash, an Include of %h here could reach another file.
+     * of a Match exec or an Include here, as the HostName, User,
+     * HostKeyAlias or ProxyJump it sets: what the host editor takes, and
+     * no blank, # or glob, which would change the command or the files it
+     * names, nor a slash, which would reach another file. A ProxyJump hop
+     * keeps those of an ssh:// URI.
      */
     private fun expandable(line: String): Boolean {
         val (key, value) = keyword(line) ?: return true
         val word = first(value)
+        fun plain(s: String) = s.none { it.isWhitespace() || it in "/#*?~" }
         return when {
-            equalsAscii(key, "HostName") -> Host.isValidWord(word) && '/' !in word
-            equalsAscii(key, "User") -> Host.isValidUser(word)
-            equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word)
-            equalsAscii(key, "ProxyJump") -> Host.isValidJump(word)
+            equalsAscii(key, "HostName") -> Host.isValidWord(word) && plain(word)
+            equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word)
+            equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
+            equalsAscii(key, "ProxyJump") ->
+                Host.isValidJump(word) && word.split(',').all { plain(it.removePrefix("ssh://").removeSuffix("/")) }
             else -> true
         }
     }

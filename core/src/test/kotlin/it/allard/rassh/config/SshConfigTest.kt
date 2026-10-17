@@ -350,7 +350,10 @@ class SshConfigTest {
         val config = SshConfig.parse("Host web\n")
         val other = SshConfig.parse(
             "Host a\n  HostName \"x;touch y\"\nHost b\n  User \"u;id\"\nHost c\n  HostKeyAlias k`id`\n" +
-                "Host d\n  ProxyJump j;id\nHost e\n  HostName ../x.pub\nHost pi\n  HostName 10.0.0.2\n  ProxyJump u@gw:22,ssh://v@h\n")
+                "Host d\n  ProxyJump j;id\nHost e\n  HostName ../x.pub\nHost f\n  HostKeyAlias ../x.pub\n" +
+                "Host g\n  User ../x.pub\nHost h\n  ProxyJump [../x.pub]:22\nHost i\n  User \"x /victim\"\n" +
+                "Host j\n  HostName *\nHost k\n  User \"x #\"\n" +
+                "Host pi\n  HostName 10.0.0.2\n  User CORP\\jdoe\n  HostKeyAlias [h]:2222\n  ProxyJump u@gw:22,ssh://v@h:22/\n")
         assertEquals(listOf("pi"), config.addMissing(other))
     }
 

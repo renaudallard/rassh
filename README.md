@@ -357,22 +357,23 @@ the config names for one, as the key screen does with a key file:
   blocks and `Host` blocks with wildcards or several names or holding an
   `Include`, whose file ssh reads for every host, are left out, and so
   are blocks whose `HostName`, `User`, `HostKeyAlias` or `ProxyJump`
-  holds what the host editor refuses, a shell character for one, as ssh
-  checks the result with the `Match exec` lines here, which take these
-  values, as they could change the hosts already there, and so is a
-  block named as the `HostName` or a `ProxyJump` host of a host or a
-  `Host` pattern there, as ssh reads the block of a jump host for it,
-  and that of its `HostName` after a `Match final` or canonicalization.
-  Every word of a `ProxyJump` value counts, a user or a port too, as a
-  shell splits it for ssh, and no `Host` block comes in when such a
-  value holds `$`, a backquote, `~`, `*`, `?`, `{` or `}`, which the
-  shell would expand, or a word starting with `-`, which ssh would take
-  as an option. A jump host named with `%` tokens or escapes, or reached
-  through `ProxyCommand`, is not seen. ssh checks the result first, as
-  when saving one, and nothing is imported if it refuses it: a host
-  relying on a global `IgnoreUnknown` line left out would make it refuse
-  them all. A host added whose key has the name of one already there
-  uses that one, not the key of the file.
+  holds what the host editor refuses, a shell character for one, or a
+  blank, `#`, `/`, `*`, `?` or `~`, as ssh checks the result with the
+  `Match exec` and `Include` lines here, which may take these values, as
+  they could change the hosts already there, and so is a block named as
+  the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
+  there, as ssh reads the block of a jump host for it, and that of its
+  `HostName` after a `Match final` or canonicalization. Every word of a
+  `ProxyJump` value counts, a user or a port too, as a shell splits it
+  for ssh, and no `Host` block comes in when such a value holds `$`, a
+  backquote, `~`, `*`, `?`, `{` or `}`, which the shell would expand, or
+  a word starting with `-`, which ssh would take as an option. A jump
+  host named with `%` tokens or escapes, or reached through
+  `ProxyCommand`, is not seen. ssh checks the result first, as when
+  saving one, and nothing is imported if it refuses it: a host relying
+  on a global `IgnoreUnknown` line left out would make it refuse them
+  all. A host added whose key has the name of one already there uses
+  that one, not the key of the file.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed, but for keys named in a
