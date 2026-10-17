@@ -29,6 +29,8 @@ class HostActivity : Activity() {
     /* A save waiting for ssh to check the file. */
     private var checking = false
     private var original: String? = null
+    /* The host as the editor read it, to tell a change made elsewhere since, a deletion for one. */
+    private var loaded: String? = null
     private var identities: List<String> = emptyList()
 
     private lateinit var name: EditText
@@ -84,6 +86,7 @@ class HostActivity : Activity() {
         }
         original = intent.getStringExtra(EXTRA_HOST)
         val host = original?.let { config.find(it) } ?: Host("")
+        loaded = savedInstanceState?.getString(STATE_LOADED) ?: original?.let { config.find(it)?.toString() }
         actionBar?.setTitle(if (original == null) R.string.new_host else R.string.edit_host)
 
         /* A key both in clear and in the vault, from a move cut short, is listed once. */
@@ -162,6 +165,7 @@ class HostActivity : Activity() {
         outState.putIntArray(STATE_CHOICES, spinners.map { it.selectedItemPosition }.toIntArray())
         outState.putBoolean(STATE_SHOWN, choices.visibility == View.VISIBLE)
         outState.putString(STATE_IDENTITY, identities.getOrNull(identity.selectedItemPosition - 1).orEmpty())
+        outState.putString(STATE_LOADED, loaded)
     }
 
     private fun addChoices() {
@@ -235,6 +239,14 @@ class HostActivity : Activity() {
             return
         }
         val config = SshConfig.parse(read)
+        /*
+         * Its fields would undo what another screen or the local shell did
+         * since: bring back a host deleted, or the old name of a key renamed.
+         */
+        if (original != null && original?.let { config.find(it)?.toString() } != loaded) {
+            toast(getString(R.string.host_changed, original))
+            return
+        }
         var ok = true
         if (!Host.isValidName(n)) {
             name.error = getString(R.string.error_name)
@@ -380,6 +392,7 @@ class HostActivity : Activity() {
         private const val STATE_SHOWN = "choices_shown"
         private const val STATE_IDENTITY = "identity"
         private const val STATE_KEYBOARD = "keyboard"
+        private const val STATE_LOADED = "loaded"
 
         /*
          * Attach to the last tmux session or start one, with plain

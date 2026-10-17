@@ -63,7 +63,8 @@ keys are encrypted and unlocked with it.
   of quick connect, since one bad line would stop them all: ssh reads
   every block, and an option a host's own `IgnoreUnknown` lets pass
   stops the others. Another host ssh refused already does not stop the
-  change. A file changed during that check is not overwritten. A config
+  change. A file changed during that check is not overwritten, nor a
+  host changed or deleted elsewhere since its editor opened it. A config
   or `known_hosts` that is not UTF-8 is never rewritten: saving,
   deleting or moving a host, renaming a key, removing a changed host key
   or an Append import then stops with a message. One that is a link is
