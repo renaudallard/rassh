@@ -154,9 +154,13 @@ keys are encrypted and unlocked with it.
   the message once it is removed say so.
   The host is resolved from the local configuration with `ssh -G`, so
   only the lines matching it are removed. From a line also naming other
-  hosts only its name goes, and a pattern line is left, as other hosts
-  may match it, unlike with `ssh-keygen -R`, which removes whole lines:
-  a message then says to edit `known_hosts` by hand. With a `LogLevel`
+  hosts only its name and the addresses there go, as ssh would refuse a
+  new key differing from the one of the address it reaches with
+  `CheckHostIP`, and a pattern line is left, as other hosts may match
+  it, unlike with `ssh-keygen -R`, which removes whole lines: a message
+  then says to edit `known_hosts` by hand. With `CheckHostIP yes` the
+  warning also says the address may keep the old key on a line of its
+  own, hashed for instance, as nothing finds it. With a `LogLevel`
   below `INFO` nothing is offered, as the server could then print ssh's
   lines itself
 - **Sessions** - several at once, kept alive by a foreground service and

@@ -13,9 +13,11 @@ import kotlin.concurrent.thread
  * port 22, as ssh -G resolves it, and the files ssh looks in. quiet when
  * the LogLevel is below INFO: ssh then does not end a session with a
  * terminal with "Connection to host closed.", which tells its own last
- * lines from the same ones printed by the server.
+ * lines from the same ones printed by the server. checkIp when ssh also
+ * checks the key known for the address it reaches.
  */
-private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?)
+private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?,
+    val checkIp: Boolean)
 
 /*
  * Where ssh looks up the key of the host target reaches, taken from the
@@ -46,7 +48,7 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
         .map { File(it).canonicalFile }
         .filter { it.parentFile == dir && it.isFile }
     return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"),
-        config["stricthostkeychecking"])
+        config["stricthostkeychecking"], config["checkhostip"] == "yes")
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+ ?(CA|REVOKED)?[ \t]*""")
@@ -82,11 +84,25 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
+private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
+
+/*
+ * An address as ssh writes it in known_hosts with CheckHostIP, in
+ * brackets with the port off port 22, IPv6 when it has a colon.
+ */
+private fun isAddress(name: String): Boolean {
+    val host = if (name.startsWith("[")) name.substring(1).substringBefore(']') else name
+    return ':' in host || IPV4.matches(host)
+}
+
 /*
  * What becomes of line of known_hosts once the key of host goes: null
  * when it names host alone, in any case as ssh compares them, or hashed,
  * which names one, the line without host when it names other hosts too,
- * and line itself for a pattern, which other hosts may match.
+ * and line itself for a pattern, which other hosts may match. Addresses
+ * go with host: ssh writes the one it reached beside the name with
+ * CheckHostIP, and would refuse a new key differing from it, while it
+ * adds again one missing.
  */
 private fun withoutHost(line: String, host: String): String? {
     val start = line.indexOfFirst { it != ' ' && it != '\t' }
@@ -95,7 +111,7 @@ private fun withoutHost(line: String, host: String): String? {
     val field = line.substring(start, end)
     if (field.startsWith("|1|")) return null
     if (field.any { it in "*?!" }) return line
-    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) }
+    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) && !isAddress(it) }
     if (names.all { it.isEmpty() }) return null
     return line.substring(0, start) + names.joinToString(",") + line.substring(end)
 }
@@ -123,12 +139,11 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
     val target = session.target ?: return
     session.hostKeyOffered = true
     thread(name = "host-key") {
-        val found = try {
+        val (known, found) = try {
             val known = knownHost(paths, target)
             /* Not offered when the server may have printed what ssh would. */
             if (known.quiet) return@thread
-            Triple(known.name, known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() },
-                known.checking)
+            known to known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() }
         } catch (e: IOException) {
             runOnUiThread { toast(getString(R.string.host_key_failed, e.message)) }
             return@thread
@@ -144,22 +159,23 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
         runOnUiThread {
             if (isDestroyed) return@runOnUiThread offerAgain()
             /* A jump host's key may be the one refused, never offer to drop another. */
-            if (found.first != changed || found.second.isEmpty()) return@runOnUiThread
+            if (known.name != changed || found.isEmpty()) return@runOnUiThread
             /* A pattern is left, it would take the keys of other hosts with it. */
-            val edits = found.second.mapValues { (_, lines) ->
-                lines.associateWith { withoutHost(it, found.first) }.filter { (line, edit) -> edit != line }
+            val edits = found.mapValues { (_, lines) ->
+                lines.associateWith { withoutHost(it, known.name) }.filter { (line, edit) -> edit != line }
             }.filterValues { it.isNotEmpty() }
-            val left = found.second.values.flatten().any { withoutHost(it, found.first) == it }
-            if (edits.isEmpty()) return@runOnUiThread toast(getString(R.string.host_key_shared, found.first))
+            val left = found.values.flatten().any { withoutHost(it, known.name) == it }
+            if (edits.isEmpty()) return@runOnUiThread toast(getString(R.string.host_key_shared, known.name))
             /* What the next connection does once the key is gone: ssh prompts only when asked to. */
-            val (then, removed) = when (found.third) {
+            val (then, removed) = when (known.checking) {
                 "accept-new", "false" -> R.string.host_key_then_accepted to R.string.host_key_removed_accepted
                 "true" -> R.string.host_key_then_refused to R.string.host_key_removed_refused
                 else -> R.string.host_key_then_asked to R.string.host_key_removed
             }
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
-                .setMessage(getString(R.string.host_key_changed_text, found.first, getString(then)))
+                .setMessage(getString(R.string.host_key_changed_text, known.name, getString(then)) +
+                    if (known.checkIp) "\n\n" + getString(R.string.host_key_address, known.name) else "")
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
                         for ((file, lines) in edits) editLines(paths, file, lines)
@@ -167,7 +183,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
                         toast(getString(R.string.host_key_remove_failed, e.message))
                         return@setPositiveButton
                     }
-                    toast(if (left) getString(R.string.host_key_removed_shared, found.first) else getString(removed))
+                    toast(if (left) getString(R.string.host_key_removed_shared, known.name) else getString(removed))
                 }
                 .setNegativeButton(R.string.host_key_keep, null)
                 .show()
