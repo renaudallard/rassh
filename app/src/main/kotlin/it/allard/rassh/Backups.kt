@@ -462,8 +462,7 @@ private fun knownNames(line: String): Pair<String, List<String>>? {
     val marker = fields.firstOrNull()?.takeIf { it.startsWith("@") } ?: ""
     val hosts = fields.getOrNull(if (marker.isEmpty()) 0 else 1) ?: return null
     if (hosts.startsWith("#") || hosts.startsWith("|") || marker == "@revoked") return null
-    return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }
-        .map { name -> name.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("") }
+    return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }.map { lowerAscii(it) }
 }
 
 /*

@@ -83,6 +83,9 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
 
+/* name in lower case as ssh compares host names, A to Z only, see lowercase() in misc.c. */
+fun lowerAscii(name: String): String = name.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("")
+
 private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
 
 /*
@@ -111,7 +114,7 @@ private fun withoutHost(line: String, host: String, addresses: Boolean): String?
     val field = line.substring(start, end)
     if (field.startsWith("|1|")) return null
     if (field.any { it in "*?!" }) return line
-    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) && !(addresses && isAddress(it)) }
+    val names = field.split(',').filter { lowerAscii(it) != lowerAscii(host) && !(addresses && isAddress(it)) }
     if (names.all { it.isEmpty() }) return null
     return line.substring(0, start) + names.joinToString(",") + line.substring(end)
 }
