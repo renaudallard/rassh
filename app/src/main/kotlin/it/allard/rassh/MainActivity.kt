@@ -666,7 +666,7 @@ class MainActivity : Activity(), SessionService.Listener {
              * its fingerprint prompt for one: the one shown reads the hosts
              * again, unless a host is being dragged there.
              */
-            REQUEST_IMPORT -> importFrom(uri, paths, vault) {
+            REQUEST_IMPORT -> importFrom(uri, paths, vault, { binding.service?.keysInUse.orEmpty() }) {
                 shown?.get()?.takeIf { !it.isDestroyed && it.held < 0 }?.loadHosts()
             }
         }

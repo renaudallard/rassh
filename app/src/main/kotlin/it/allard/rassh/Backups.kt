@@ -169,17 +169,18 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
  * once the import wrote, or tried to write, the screen reads what it may
  * have changed.
  */
-fun Activity.importFrom(uri: Uri, paths: Paths, vault: Vault, done: () -> Unit) {
+fun Activity.importFrom(uri: Uri, paths: Paths, vault: Vault, inUse: () -> List<String>, done: () -> Unit) {
     AlertDialog.Builder(this)
         .setTitle(R.string.import_)
         .setMessage(R.string.import_question)
-        .setPositiveButton(R.string.import_append) { _, _ -> readExport(uri, paths, vault, false, done) }
-        .setNeutralButton(R.string.import_replace) { _, _ -> readExport(uri, paths, vault, true, done) }
+        .setPositiveButton(R.string.import_append) { _, _ -> readExport(uri, paths, vault, false, inUse, done) }
+        .setNeutralButton(R.string.import_replace) { _, _ -> readExport(uri, paths, vault, true, inUse, done) }
         .setNegativeButton(R.string.cancel, null)
         .show()
 }
 
-private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: Boolean, done: () -> Unit) {
+private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: Boolean, inUse: () -> List<String>,
+    done: () -> Unit) {
     askPassphrase(R.string.import_, false) { pass ->
         /* In the thread, a provider may have to download the file first. */
         thread(name = "import") {
@@ -230,7 +231,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                     opened.forEach { it.data.fill(0) }
                     applicationContext.toast(getString(R.string.restore_failed, getString(R.string.import_interrupted)))
                 } else {
-                    store(paths, vault, opened, replace, merged, here, done)
+                    store(paths, vault, opened, replace, merged, here, inUse, done)
                 }
             }
         }
@@ -271,10 +272,11 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
 
 /* Store the items, which are zeroed afterwards, asking for a fingerprint when keys are to be added. */
 private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>, replace: Boolean, merged: Merged?,
-    here: KnownHere?, done: () -> Unit) {
+    here: KnownHere?, inUse: () -> List<String>, done: () -> Unit) {
     fun zero() = items.forEach { it.data.fill(0) }
+    /* Taken for Append, a key the Keys screen is still generating, see SessionService.keysInUse. */
     val present = try {
-        Keys.list(paths.sshDir, vault)
+        Keys.list(paths.sshDir, vault) + if (replace) emptyList() else inUse()
     } catch (e: IOException) {
         zero()
         toast(getString(R.string.vault_error, e.message))
