@@ -483,10 +483,10 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
   keys over 64 KiB stay out of it
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
   Play to some app categories
-- On Android 13 and 14, an app a public key was shared to can leave a
-  screen of its own below rassh's in the same task and later start
-  another one over it, a fake prompt for one. From Android 15 the app
-  asks Android to refuse that
+- On Android 13 and 14, an app with a screen below rassh's in the same
+  task, one rassh was opened from or a public key was shared to, can
+  later start another one over rassh's, a fake prompt for one. From
+  Android 15 the app asks Android to refuse that
 
 ## License
 

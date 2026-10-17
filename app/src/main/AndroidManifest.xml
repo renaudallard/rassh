@@ -13,8 +13,9 @@
 
     <!--
         Back through callbacks, the only way Android 13 offers the file browser to go up.
-        From Android 15, an app whose screen stays below in the task, after a share for
-        one, cannot start another one over the app's, a fake prompt for one.
+        From Android 15, an app whose screen stays below in the task, one the app was
+        opened from or shared to, cannot start another one over the app's, a fake
+        prompt for one.
     -->
     <application
         android:allowBackup="false"
