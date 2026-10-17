@@ -172,7 +172,7 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
 /**
  * Read an export from uri and add the hosts and keys whose names are not
  * used yet, or replace them all, as the user chooses. done is called
- * once something changed.
+ * once the import was tried, the screen reads what it may have changed.
  */
 fun Activity.importFrom(uri: Uri, paths: Paths, vault: Vault, done: () -> Unit) {
     AlertDialog.Builder(this)
