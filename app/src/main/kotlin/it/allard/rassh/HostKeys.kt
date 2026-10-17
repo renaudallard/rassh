@@ -15,9 +15,10 @@ import kotlin.concurrent.thread
  * terminal with "Connection to host closed.", which tells its own last
  * lines from the same ones printed by the server. checkIp when ssh also
  * checks the key known for the address it reaches: not through a proxy,
- * nor when the host name is an address, unless HostKeyAlias names the
- * host off port 22, the address then being written with its port beside
- * the alias, see check_host_key() in sshconnect.c.
+ * nor for a loopback one, nor when the host name is an address, unless
+ * HostKeyAlias names the host off port 22, the address then being
+ * written with its port beside the alias, see check_host_key() in
+ * sshconnect.c. Only localhost is known to be loopback among names.
  */
 private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?,
     val checkIp: Boolean)
@@ -49,7 +50,7 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
         .filter { it.parentFile == dir && it.isFile }
     return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"),
         config["stricthostkeychecking"], config["checkhostip"] == "yes" && "proxyjump" !in config &&
-            "proxycommand" !in config && (!isAddress(host) || aliased && port != "22"))
+            "proxycommand" !in config && !isLoopback(host) && (!isAddress(host) || aliased && port != "22"))
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+ ?(CA|REVOKED)?[ \t]*""")
@@ -98,6 +99,10 @@ private fun isAddress(name: String): Boolean {
     val host = if (name.startsWith("[")) name.substring(1).substringBefore(']') else name
     return ':' in host || IPV4.matches(host)
 }
+
+/* ssh -G prints addresses in their shortest form. */
+private fun isLoopback(host: String): Boolean =
+    lowerAscii(host) == "localhost" || host == "::1" || host.startsWith("127.") && IPV4.matches(host)
 
 /*
  * What becomes of line of known_hosts once the key of host goes: null
