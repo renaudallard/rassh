@@ -87,7 +87,8 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
                     ?: return@flatMap emptyList()
                 when (key) {
                     "hostname" -> listOf(value)
-                    "proxyjump" -> value.split(',').map { jumpHost(it) }
+                    /* ssh -G prints it as written, blanks after a comma too, which the shell drops. */
+                    "proxyjump" -> value.split(',').map { jumpHost(it.trim()) }
                     else -> emptyList()
                 }
             }
@@ -96,11 +97,13 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
 
 /*
  * The host of a ProxyJump hop, [user@]host[:port] or an ssh:// URI, whose
- * user ends at the first @ and which may end in a /, see parse_jump() in
- * readconf.c and parse_uri() in misc.c.
+ * user ends at the first @, which may end in a / and whose host loses a
+ * trailing dot, see parse_jump() in readconf.c, parse_uri() and
+ * valid_domain() in misc.c.
  */
 private fun jumpHost(hop: String): String {
-    val host = if (hop.startsWith("ssh://")) hop.removePrefix("ssh://").substringAfter('@').removeSuffix("/")
-        else hop.substringAfterLast('@')
-    return if (host.startsWith("[")) host.substringAfter('[').substringBefore(']') else host.substringBefore(':')
+    val uri = hop.startsWith("ssh://")
+    val host = if (uri) hop.removePrefix("ssh://").substringAfter('@').removeSuffix("/") else hop.substringAfterLast('@')
+    val name = if (host.startsWith("[")) host.substringAfter('[').substringBefore(']') else host.substringBefore(':')
+    return if (uri) name.removeSuffix(".") else name
 }
