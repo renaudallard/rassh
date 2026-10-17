@@ -304,7 +304,11 @@ class HostActivity : Activity() {
             other.error = getString(R.string.error_only)
             ok = false
         }
-        if (!ok) return
+        if (!ok) {
+            /* A field shows its error only when focused, it may be off the screen too. */
+            listOf(name, hostName, user, port, other).firstOrNull { it.error != null }?.requestFocus()
+            return
+        }
 
         val host = Host(
             name = n,
