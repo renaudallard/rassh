@@ -87,23 +87,28 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String> =
                     ?: return@flatMap emptyList()
                 when (key) {
                     "hostname" -> listOf(value)
-                    /* ssh -G prints it as written, blanks after a comma too, which the shell drops. */
-                    "proxyjump" -> value.split(',').map { jumpHost(it.trim()) }
+                    "proxyjump" -> jumpNames(value)
                     else -> emptyList()
                 }
             }
         }.filter { it.isNotEmpty() && it != "none" }.toSet()
     }
 
+private val JUMP_SEPARATORS = Regex("""[\s,;&|<>()`$@:/\[\]]+""")
+private val BRACKETED = Regex("""\[([^\]]*)]""")
+
 /*
- * The host of a ProxyJump hop, [user@]host[:port] or an ssh:// URI, whose
- * user ends at the first @, which may end in a / and whose host loses a
- * trailing dot, see parse_jump() in readconf.c, parse_uri() and
- * valid_domain() in misc.c.
+ * The names a ProxyJump value may reach. ssh puts the hops in the
+ * ProxyCommand it makes of them, which a shell runs, dropping quotes and
+ * backslashes and splitting words, after parsing the last one itself, a
+ * URI losing a trailing dot. So every word of it is taken, also a user,
+ * a port or a scheme, and what is in brackets, an IPv6 address for one,
+ * with and without a trailing dot: a block may be skipped for nothing,
+ * none taken that ssh reads for a jump host but through % escapes or
+ * tokens.
  */
-private fun jumpHost(hop: String): String {
-    val uri = hop.startsWith("ssh://")
-    val host = if (uri) hop.removePrefix("ssh://").substringAfter('@').removeSuffix("/") else hop.substringAfterLast('@')
-    val name = if (host.startsWith("[")) host.substringAfter('[').substringBefore(']') else host.substringBefore(':')
-    return if (uri) name.removeSuffix(".") else name
+private fun jumpNames(value: String): List<String> {
+    val words = value.filter { it !in "\"'\\" }
+    return (words.split(JUMP_SEPARATORS) + BRACKETED.findAll(words).map { it.groupValues[1] })
+        .flatMap { listOf(it, it.removeSuffix(".")) }
 }
