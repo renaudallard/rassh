@@ -162,12 +162,16 @@ class HostActivity : Activity() {
     }
 
     /*
-     * The host as compared with what the editor loaded, without its
-     * comments: one ending the last block goes to a block added below it
-     * once the file is read again, which changes nothing of the host.
+     * The host as ssh reads it, compared with what the editor loaded: its
+     * options by keyword, in their order for one keyword as ssh takes the
+     * first, keywords in any case, without comments. One ending the last
+     * block goes to a block added below it once the file is read again,
+     * and the editor writes the common options and its checkboxes last,
+     * neither of which changes the host.
      */
-    private fun signature(host: Host?): String? =
-        host?.copy(other = host.other.filter { !it.trimStart().startsWith("#") })?.toString()
+    private fun signature(host: Host?): String? = host?.copy(other = host.other.mapNotNull { line ->
+        SshConfig.keyword(line)?.let { (key, value) -> lowerAscii(key) + " " + value }
+    }.sortedBy { it.substringBefore(' ') })?.toString()
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
