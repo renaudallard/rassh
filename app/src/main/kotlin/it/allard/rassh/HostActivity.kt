@@ -31,6 +31,8 @@ class HostActivity : Activity() {
     private var original: String? = null
     /* The host as the editor read it, to tell a change made elsewhere since, a deletion for one. */
     private var loaded: String? = null
+    /* Its comments then, see save(). */
+    private var loadedComments: ArrayList<String>? = null
     private var identities: List<String> = emptyList()
 
     private lateinit var name: EditText
@@ -89,6 +91,8 @@ class HostActivity : Activity() {
         /* Kept across a recreation, null too: a host gone when the editor opened must stay so. */
         loaded = if (savedInstanceState != null) savedInstanceState.getString(STATE_LOADED)
             else original?.let { signature(config.find(it)) }
+        loadedComments = if (savedInstanceState != null) savedInstanceState.getStringArrayList(STATE_COMMENTS)
+            else original?.let { config.find(it)?.other?.filter { line -> isComment(line) }?.let { ArrayList(it) } }
         actionBar?.setTitle(if (original == null) R.string.new_host else R.string.edit_host)
 
         /* A key both in clear and in the vault, from a move cut short, is listed once. */
@@ -169,6 +173,8 @@ class HostActivity : Activity() {
      * and the editor writes the common options and its checkboxes last,
      * neither of which changes the host.
      */
+    private fun isComment(line: String) = line.trimStart().startsWith("#")
+
     private fun signature(host: Host?): String? = host?.copy(other = host.other.mapNotNull { line ->
         SshConfig.keyword(line)?.let { (key, value) -> lowerAscii(key) + " " + value }
     }.sortedBy { it.substringBefore(' ') })?.toString()
@@ -180,6 +186,7 @@ class HostActivity : Activity() {
         outState.putBoolean(STATE_SHOWN, choices.visibility == View.VISIBLE)
         outState.putString(STATE_IDENTITY, identities.getOrNull(identity.selectedItemPosition - 1).orEmpty())
         outState.putString(STATE_LOADED, loaded)
+        outState.putStringArrayList(STATE_COMMENTS, loadedComments)
     }
 
     private fun addChoices() {
@@ -314,6 +321,13 @@ class HostActivity : Activity() {
             return
         }
 
+        /*
+         * A comment loaded with the host that the file no longer holds there
+         * went to a block added below it once it was read again: not written
+         * back, it would be there twice.
+         */
+        val now = original?.let { config.find(it)?.other }.orEmpty()
+        val moved = loadedComments.orEmpty().filter { it !in now }
         val host = Host(
             name = n,
             hostName = h,
@@ -323,7 +337,7 @@ class HostActivity : Activity() {
             localForwards = lines(local),
             remoteForwards = lines(remote),
             dynamicForwards = lines(dynamic),
-            other = lines(other) + chosen.map { (c, v) -> Choices.line(c, v) } +
+            other = lines(other).filter { it !in moved } + chosen.map { (c, v) -> Choices.line(c, v) } +
                 (if (restrict) listOf(ONLY_LINE) else emptyList()) + if (tmux.isChecked) TMUX_LINES else emptyList(),
         )
         config.put(original, host)
@@ -415,6 +429,7 @@ class HostActivity : Activity() {
         private const val STATE_IDENTITY = "identity"
         private const val STATE_KEYBOARD = "keyboard"
         private const val STATE_LOADED = "loaded"
+        private const val STATE_COMMENTS = "loaded_comments"
 
         /*
          * Attach to the last tmux session or start one, with plain
