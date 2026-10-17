@@ -290,9 +290,10 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
             if (replace) thread(name = "drop-resume") { applicationContext.dropResumables() }
             toast(getString(R.string.imported, hosts, keys))
         } catch (e: IOException) {
-            toast(getString(R.string.restore_failed, e.message))
+            /* What to do comes last, try again for one. */
+            sayInFull(getString(R.string.restore_failed, e.message))
         } catch (e: ErrnoException) {
-            toast(getString(R.string.restore_failed, e.message))
+            sayInFull(getString(R.string.restore_failed, e.message))
         } finally {
             zero()
         }

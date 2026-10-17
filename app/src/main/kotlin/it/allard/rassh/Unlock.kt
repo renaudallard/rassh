@@ -260,7 +260,8 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, dismissed: () -> Unit, done
         }
         for (name in moved) File(paths.sshDir, name).delete()
         if (kept.isNotEmpty()) {
-            toast(getString(R.string.vault_name_taken, kept.joinToString(", ")))
+            /* The names come last, past what a toast shows. */
+            sayInFull(getString(R.string.vault_name_taken, kept.joinToString(", ")))
             /* Not asked again for them, as for a refusal. */
             return@withVaultKey done(false)
         }

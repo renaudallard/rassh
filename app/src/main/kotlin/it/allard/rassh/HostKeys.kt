@@ -154,7 +154,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             if (known.quiet) return@thread
             known to known.files.associateWith { keyLines(paths, known.name, it) }.filterValues { it.isNotEmpty() }
         } catch (e: IOException) {
-            runOnUiThread { toast(getString(R.string.host_key_failed, e.message)) }
+            /* ssh's own lines, naming what it refused in the config for one. */
+            runOnUiThread { sayInFull(getString(R.string.host_key_failed, e.message)) }
             return@thread
         }
         /*
