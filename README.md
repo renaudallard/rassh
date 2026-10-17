@@ -149,9 +149,9 @@ keys are encrypted and unlocked with it.
 - **Changed host keys** - when `ssh`, `sftp` or the file browser is
   refused by a server whose key changed, a warning offers to remove the
   old key, then connecting again shows the fingerprint of the new one to
-  confirm, unless `StrictHostKeyChecking` is `accept-new` or `no`, which
-  take it without asking, or `yes`, which refuses it: the warning and
-  the message once it is removed say so.
+  confirm, unless `StrictHostKeyChecking` is `accept-new`, which takes
+  it without asking, or `yes`, which refuses it: the warning and the
+  message once it is removed say so.
   The host is resolved from the local configuration with `ssh -G`, so
   only the lines matching it are removed. From a line also naming other
   hosts only its name and the addresses there go, as ssh would refuse a

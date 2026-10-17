@@ -169,6 +169,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             /*
              * What the next connection does once the key is gone: ssh prompts
              * only when asked to, and still refuses the old key a pattern holds.
+             * With no it never refuses a changed key, so it is only seen here
+             * when set after the refusal, and takes the new one as accept-new does.
              */
             val (then, removed) = when (known.checking) {
                 "accept-new", "false" -> R.string.host_key_then_accepted to R.string.host_key_removed_accepted
