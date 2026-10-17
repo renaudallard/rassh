@@ -268,8 +268,9 @@ class SshConfig private constructor(
      * one. A ProxyJump hop keeps the slashes of an ssh:// URI, and its user
      * and host are no . or .. and start with no dash, the host of the last
      * being %j. ssh takes the rest of a
-     * ProxyJump line past blanks and = as it is, up to a #, not its first
-     * word, see parse_jump(). It puts
+     * ProxyJump line past blanks and = as it is, up to a # and without the
+     * blanks C takes as such ending it, not its first word, see
+     * parse_jump() and rtrim() in misc.c: a no-break space stays. It puts
      * a User there as written: the shell then expands a $ in it and takes
      * a \ off, one starting it may make an option, one ending it joins the
      * word after, so what is left must be plain too: .\. would be ..
@@ -284,7 +285,7 @@ class SshConfig private constructor(
                 !word.startsWith("\\") && !word.endsWith("\\")
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
             equalsAscii(key, "ProxyJump") -> {
-                val raw = value.substringBefore('#').trimStart { it in WHITESPACE || it == '=' }.trim()
+                val raw = value.substringBefore('#').trimStart { it in WHITESPACE || it == '=' }.trimEnd { it in SPACE }
                 Host.isValidJump(raw) && raw.split(',').all { hop ->
                     val s = if (hop.startsWith("ssh://")) hop.removePrefix("ssh://").removeSuffix("/") else hop
                     plain(s) && !OPTION.containsMatchIn(s) && !DOTS.containsMatchIn(s)
@@ -507,6 +508,9 @@ class SshConfig private constructor(
             s.substring(from).trimStart { it in WHITESPACE }
 
         private const val WHITESPACE = " \t\r\n"
+
+        /* What isspace() takes in the C locale. */
+        private const val SPACE = " \t\n\u000b\u000c\r"
 
         /* A user, host or port of a jump hop starting with a dash, see parse_user_host_port() in misc.c. */
         private val OPTION = Regex("""(^|[@\[:])-""")
