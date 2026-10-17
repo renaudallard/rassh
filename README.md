@@ -391,10 +391,10 @@ moving into the vault once their public key is made. On a phone without
 a fingerprint enrolled, all keys come in clear and move into the vault
 once one is.
 Only import files you made: the hosts of an export can run commands
-through `ProxyCommand` or `LocalCommand`, the config of a Replace import
-through `Match exec` too, which ssh runs as soon as a host is opened in
-the editor or saved, and its `known_hosts` decides which servers are
-trusted.
+through `ProxyCommand`, `LocalCommand` or `KnownHostsCommand`, the
+config of a Replace import through `Match exec` too, which ssh runs as
+soon as a host is opened in the editor or saved, and its `known_hosts`
+decides which servers are trusted.
 
 ## How it works
 
