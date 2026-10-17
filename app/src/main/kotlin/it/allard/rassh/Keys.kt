@@ -77,15 +77,16 @@ object Keys {
 
     private val SAFE = ('a'..'z') + ('A'..'Z') + ('0'..'9') + listOf('.', '_', '-')
 
-    /* Only the start is read, any big file may sit in ~/.ssh. */
     /*
-     * A PEM file holding a private key, its BEGIN line among the first of
-     * the file, after the EC parameters openssl writes first for one: a
-     * public key or a certificate alone is not one.
+     * A PEM file holding a private key, its BEGIN line within MAX_SIZE,
+     * the most the key screen takes, after the EC parameters openssl
+     * writes first for one or certificates: a public key or a certificate
+     * alone is not one. Only that much is read, any big file may sit in
+     * ~/.ssh.
      */
     private fun isPrivateKey(file: File): Boolean {
         val head = try {
-            file.inputStream().use { it.readNBytes(HEAD) }
+            file.inputStream().use { it.readNBytes(MAX_SIZE) }
         } catch (_: IOException) {
             return false
         }
@@ -107,8 +108,6 @@ object Keys {
             head.fill(0)
         }
     }
-
-    private const val HEAD = 8192
 
     /*
      * Up to MAX_SIZE + 1 bytes of a key file, so that a larger one is
