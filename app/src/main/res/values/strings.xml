@@ -92,6 +92,8 @@
     <string name="refresh">Refresh</string>
     <string name="show_terminal">Terminal</string>
     <string name="delete_file">Delete %1$s?</string>
+    <string name="delete_folder">Delete the folder %1$s? Only an empty one can be deleted.</string>
+    <string name="exists_already">%1$s exists already</string>
     <string name="error_file_name">Not a valid file name</string>
 
     <!-- Host editor -->

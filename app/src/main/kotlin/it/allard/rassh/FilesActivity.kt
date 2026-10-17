@@ -767,7 +767,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun delete(e: SftpEntry, dir: String) {
         client() ?: return
         AlertDialog.Builder(this)
-            .setMessage(getString(R.string.delete_file, shownName(e.name)))
+            /* sftp-server tells a folder not empty as a mere failure. */
+            .setMessage(getString(if (e.attrs.isDirectory) R.string.delete_folder else R.string.delete_file,
+                shownName(e.name)))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val c = client() ?: return@setPositiveButton
                 val p = path(dir, e.name)
@@ -795,7 +797,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             }
             dialog.dismiss()
             val c = client() ?: return@setOnClickListener
-            run({ c.mkdir(path(dir, name)) }) { load(dir) }
+            /* Said rather than the failure sftp-server tells for it. */
+            run({
+                if (exists(c, path(dir, name))) throw IOException(getString(R.string.exists_already, name))
+                c.mkdir(path(dir, name))
+            }) { load(dir) }
         }
     }
 
