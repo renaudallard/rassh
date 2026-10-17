@@ -272,7 +272,7 @@ class SshConfig private constructor(
      * word, see parse_jump(). It puts
      * a User there as written: the shell then expands a $ in it and takes
      * a \ off, one starting it may make an option, one ending it joins the
-     * word after.
+     * word after, so what is left must be plain too: .\. would be ..
      */
     private fun expandable(line: String): Boolean {
         val (key, value) = keyword(line) ?: return true
@@ -280,7 +280,7 @@ class SshConfig private constructor(
         fun bare(s: String) = plain(s) && s.none { it == '[' || it == ']' }
         return when {
             equalsAscii(key, "HostName") -> Host.isValidWord(word) && bare(word)
-            equalsAscii(key, "User") -> Host.isValidUser(word) && bare(word) && '$' !in word &&
+            equalsAscii(key, "User") -> Host.isValidUser(word) && bare(word.replace("\\", "")) && '$' !in word &&
                 !word.startsWith("\\") && !word.endsWith("\\")
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
             equalsAscii(key, "ProxyJump") -> {
