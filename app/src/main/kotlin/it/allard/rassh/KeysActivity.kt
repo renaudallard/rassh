@@ -259,7 +259,7 @@ class KeysActivity : Activity() {
                     key = read
                     if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
                     /* As an import of an export takes them, see Keys.isPemKey(). */
-                    if (!Keys.isPemKey(read)) throw IOException("not a private key")
+                    if (!Keys.isPemKey(read)) throw IOException("not a private key in PEM form, or not that alone")
                     null
                 } catch (e: Exception) {
                     if (!isFileError(e)) throw e
