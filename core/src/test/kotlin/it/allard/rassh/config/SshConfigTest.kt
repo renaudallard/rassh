@@ -358,6 +358,14 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsNoBlockNamedWithATilde() {
+        /* ssh puts the name in %n, and in %h and %k when no HostName or HostKeyAlias is set. */
+        val config = SshConfig.parse("Host web\n")
+        val other = SshConfig.parse("Host ~r\n  Port 2222\nHost a~b\n  HostName x\nHost pi\n")
+        assertEquals(listOf("pi"), config.addMissing(other))
+    }
+
+    @Test
     fun addsApartFromTheEnd() {
         val config = SshConfig.parse("Host a\n  User x\n\n# end\n")
         assertEquals(listOf("b"), config.addMissing(SshConfig.parse("Host b\n  User y\n")))

@@ -239,12 +239,16 @@ class SshConfig private constructor(
      * any case as ssh lowercases them, and those holding an Include: ssh
      * reads the file it names for every host, its Match exec lines run.
      * Nor one whose values ssh puts in a Match exec command here hold what
-     * the host editor refuses, a shell character for one, see expandable().
+     * the host editor refuses, a shell character for one, see expandable(),
+     * or whose name, %n, and %h or %k without them, holds a ~, which a
+     * shell would turn into a home directory.
      * Returns the names added.
      */
     fun addMissing(other: SshConfig, reached: Collection<String> = emptyList()): List<String> {
         val added = other.blocks.filter { b ->
-            b.name?.let { name -> !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) } } == true &&
+            b.name?.let { name ->
+                '~' !in name && !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) }
+            } == true &&
                 b.lines.none { equalsAscii(keyword(it)?.first, "Include") } && b.lines.all { expandable(it) }
         }
         if (added.isEmpty()) return emptyList()
