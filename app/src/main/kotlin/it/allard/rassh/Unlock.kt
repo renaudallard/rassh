@@ -348,8 +348,9 @@ private val KEY_LINKS = Regex("""keys\.\d+""")
  * for KEY_LIFETIME, gone when the program exits, or at a Ctrl-C, which
  * stops it too, the login being over by then. Connections do not
  * share an agent, as the LocalCommand of one emptying it would leave
- * another without keys in the middle of its login. ProxyJump and
- * LocalCommand reach it through SSH_AUTH_SOCK.
+ * another without keys in the middle of its login. ProxyJump reaches
+ * it through SSH_AUTH_SOCK, the LocalCommand of clearAfterLogin()
+ * through RASSH_AGENT, which an IdentityAgent does not change.
  */
 fun withAgent(paths: Paths, argv: List<String>, names: List<String>): List<String> {
     fun quote(s: String) = "'" + s.replace("'", "'\\''") + "'"
