@@ -36,8 +36,9 @@ sealed class Resumable {
     /*
      * uris uploaded as names into dir, done up to index. The file there
      * was length bytes long and last modified at modified, in ns, when
-     * the server had started to take it, length is -1 when it had not.
-     * sha256 is the hash of its first sent bytes, those read when cut.
+     * the server had started to take it, length is -1 when it had not or
+     * when the file is not a whole regular one. sha256 is the hash of its
+     * first sent bytes, those read when cut.
      */
     class Upload(val dir: String, override val uris: List<Uri>, val names: List<String>, val index: Int,
         val length: Long, val modified: Long, val sent: Long, val sha256: String) : Resumable() {
