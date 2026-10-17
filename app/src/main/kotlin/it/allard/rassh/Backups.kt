@@ -458,11 +458,12 @@ private fun hasPattern(names: List<String>) = names.any { name -> name.any { it 
  * negated left out. Read as hostkeys_foreach_file() and check_markers()
  * in hostfile.c do: blanks are spaces and tabs only, # makes a comment
  * only before the marker, which ends at the first space, or at the first
- * tab when there is none. Null for a line ssh skips, a hashed name, which
- * cannot be compared, and a @revoked line, which only takes trust away.
+ * tab when there is none, and a NUL ends the line, as for C strings.
+ * Null for a line ssh skips, a hashed name, which cannot be compared, and
+ * a @revoked line, which only takes trust away.
  */
 private fun knownNames(line: String): Pair<String, List<String>>? {
-    var rest = line.dropWhile { it == ' ' || it == '\t' }
+    var rest = line.substringBefore('\u0000').dropWhile { it == ' ' || it == '\t' }
     if (rest.isEmpty() || rest.startsWith("#")) return null
     var marker = ""
     if (rest.startsWith("@")) {
