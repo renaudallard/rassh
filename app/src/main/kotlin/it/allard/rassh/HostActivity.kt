@@ -86,7 +86,9 @@ class HostActivity : Activity() {
         }
         original = intent.getStringExtra(EXTRA_HOST)
         val host = original?.let { config.find(it) } ?: Host("")
-        loaded = savedInstanceState?.getString(STATE_LOADED) ?: original?.let { config.find(it)?.toString() }
+        /* Kept across a recreation, null too: a host gone when the editor opened must stay so. */
+        loaded = if (savedInstanceState != null) savedInstanceState.getString(STATE_LOADED)
+            else original?.let { config.find(it)?.toString() }
         actionBar?.setTitle(if (original == null) R.string.new_host else R.string.edit_host)
 
         /* A key both in clear and in the vault, from a move cut short, is listed once. */
