@@ -433,14 +433,28 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
      */
     for (item in keys) dropStrayFiles(paths, items, item.name, names)
     val sealed = keys.filter { sealable(items, it, seal) }
-    if (sealed.isNotEmpty()) vault.addAll(key ?: throw IOException("keys locked"), sealed.map { it.name to it.data })
-    for (item in keys) {
-        if (item !in sealed) paths.writePrivate(File(dir, item.name), item.data)
-        for (suffix in Keys.suffixes(item.name, names)) {
-            items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let {
-                paths.writePrivate(File(dir, it.name), it.data)
-            }
+    /*
+     * The files first, the vault last, their names being free: a write
+     * failing, on a full disk for one, then leaves no key in the vault or
+     * public key without the rest, which a new import would skip as there
+     * already. What was written goes again.
+     */
+    val written = mutableListOf<File>()
+    fun write(name: String, data: ByteArray) {
+        val file = File(dir, name)
+        paths.writePrivate(file, data)
+        written.add(file)
+    }
+    try {
+        for (item in keys) {
+            if (item !in sealed) write(item.name, item.data)
+            for (suffix in Keys.suffixes(item.name, names))
+                items.find { it.type == Backup.FILE && it.name == item.name + suffix }?.let { write(it.name, it.data) }
         }
+        if (sealed.isNotEmpty()) vault.addAll(key ?: throw IOException("keys locked"), sealed.map { it.name to it.data })
+    } catch (e: IOException) {
+        written.forEach { it.delete() }
+        throw e
     }
     configText?.let { paths.writeText(configFile, it) }
     knownText?.let { paths.writeText(knownFile, it) }
