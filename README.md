@@ -146,12 +146,12 @@ keys are encrypted and unlocked with it.
   session from the terminal screen, or refused by the server is not
   offered: a download removes its partial file, an upload the file it
   created if the connection still works, but not one a resumed upload
-  found there. Deleting or editing the host drops what was cut short,
-  saving it unchanged does not, as does a Replace import. A transfer
-  still running then and cut
-  afterwards is offered again if the host kept its name, or dropped when
-  the app starts again. A dropped download removes its partial file only
-  if its size and time, when known, did not change since it was cut
+  found there. Deleting or editing the host drops what was cut short, as
+  does a Replace import, saving it unchanged does not. A transfer still
+  running then and cut afterwards is offered again if the host kept its
+  name, or dropped when the app starts again. A dropped download removes
+  its partial file only if its size and time, when known, did not change
+  since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
   it
