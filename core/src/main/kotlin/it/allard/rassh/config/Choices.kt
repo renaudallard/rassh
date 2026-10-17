@@ -1,7 +1,13 @@
 package it.allard.rassh.config
 
-/** An ssh_config option offered with a few values, written as ssh_config(5) spells them. */
-class Choice(val keyword: String, val values: List<String>)
+/**
+ * An ssh_config option offered with a few values, written as ssh_config(5)
+ * spells them, with the obsolete names ssh still takes for it.
+ */
+class Choice(val keyword: String, val values: List<String>, private val aliases: List<String> = emptyList()) {
+    /** Whether ssh reads key as this option. */
+    fun isNamed(key: String?): Boolean = equalsAscii(key, keyword) || aliases.any { equalsAscii(key, it) }
+}
 
 /**
  * Options often set for a host, edited apart from its other lines. A
@@ -15,7 +21,7 @@ object Choices {
         Choice("StrictHostKeyChecking", listOf("ask", "accept-new", "yes", "no")),
         Choice("UpdateHostKeys", listOf("yes", "ask", "no")),
         Choice("ConnectTimeout", listOf("5", "10", "30")),
-        Choice("TCPKeepAlive", listOf("yes", "no")),
+        Choice("TCPKeepAlive", listOf("yes", "no"), listOf("KeepAlive")),
         Choice("AddressFamily", listOf("any", "inet", "inet6")),
         Choice("ExitOnForwardFailure", listOf("yes", "no")),
         /* Not QUIET nor FATAL, they hide the error the app reads at a changed host key. */
@@ -25,7 +31,7 @@ object Choices {
     /** The choice for the keyword of line, or null. */
     fun of(line: String): Choice? {
         val key = SshConfig.keyword(line)?.first ?: return null
-        return ALL.find { equalsAscii(key, it.keyword) }
+        return ALL.find { it.isNamed(key) }
     }
 
     fun line(choice: Choice, value: String): String = "${choice.keyword} $value"
@@ -61,7 +67,7 @@ object Choices {
         /* Lines end in line feeds only: a value may hold a carriage return, which must not start a line. */
         for (line in dump.split('\n')) {
             val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: continue
-            val choice = ALL.find { equalsAscii(key, it.keyword) } ?: continue
+            val choice = ALL.find { it.isNamed(key) } ?: continue
             values[choice] = when (value) {
                 "true" -> "yes"
                 "false" -> "no"

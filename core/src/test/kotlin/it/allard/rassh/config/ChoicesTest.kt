@@ -34,6 +34,9 @@ class ChoicesTest {
     @Test
     fun findsKeyword() {
         assertEquals(choice("TCPKeepAlive"), Choices.of("  tcpkeepalive=no"))
+        /* The obsolete name ssh still reads as TCPKeepAlive. */
+        assertEquals(choice("TCPKeepAlive"), Choices.of("KeepAlive no"))
+        assertTrue(Choices.take(listOf("KeepAlive no", "TCPKeepAlive yes")).first.isEmpty())
         assertNull(Choices.of("# Compression yes"))
         assertNull(Choices.of("Ciphers aes256-ctr"))
     }
