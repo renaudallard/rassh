@@ -708,10 +708,13 @@ class MainActivity : Activity(), SessionService.Listener {
          * one of clearAfterLogin() comes first and still runs. Never a
          * ControlMaster either, as sftp: the sessions sharing it would end
          * with the browser. It still goes through one already running. A
-         * jump host's ssh takes none of these, as with sftp -J.
+         * jump host's ssh takes none of these, as with sftp -J. Nor going
+         * to the background once logged in, or reading no input, as a
+         * tunnel's block may ask: the browser talks through its pipes and
+         * takes the exit of ssh for the end of the session.
          */
-        private val FILES =
-            listOf("-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no", "-o", "ControlMaster=no")
+        private val FILES = listOf("-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no",
+            "-o", "ControlMaster=no", "-o", "ForkAfterAuthentication=no", "-o", "StdinNull=no")
         private const val MENU_ADD = 1
         private const val MENU_SESSIONS = 2
         private const val MENU_KEYS = 3
