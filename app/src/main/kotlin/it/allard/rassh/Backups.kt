@@ -378,7 +378,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
         val missing = knownLines(known.theirs).filter { line ->
             val k = knownNames(line)
             line.isNotBlank() && line !in lines &&
-                (k == null || !hasPattern(k.second) && k.second.none { (tag(k.first) to it) in known.found })
+                (k == null || !hasPattern(k.second) && k.second.none { it in known.found })
         }.distinct()
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
@@ -421,13 +421,15 @@ private fun knownLines(text: String) = text.split('\n').map { it.removeSuffix("\
 
 /*
  * The known_hosts of an export, the one here as read and the names of
- * the export's lines ssh-keygen finds a line for here, with what it
- * tells of that line, see foundLines(). A name is known here, its key
- * not added, also through a hashed line or a pattern: ssh takes a key
+ * the export's lines ssh-keygen finds a line for here, see foundLines().
+ * A name is known here, its keys and authorities not added, also through
+ * a hashed line, a pattern or a line of another kind: ssh takes a key
  * any of a host's lines holds, an old one, removed here once changed,
- * would be trusted again.
+ * would be trusted again, and a certificate a new authority signed
+ * passes for a host known by its key, as a key does for one known by
+ * its authority.
  */
-private class KnownHere(val read: String, val theirs: String, val found: Set<Pair<String, String>>)
+private class KnownHere(val read: String, val theirs: String, val found: Set<String>)
 
 /* Null when items hold no known_hosts. */
 @Throws(IOException::class)
@@ -437,17 +439,8 @@ private fun knownHere(paths: Paths, items: List<Backup.Item>): KnownHere? {
     val read = paths.textOf(file)
     val theirs = Paths.utf8(item.data, KNOWN_HOSTS)
     val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.filter { !hasPattern(it) }.flatten().toSet()
-    val found = if (read.isEmpty()) emptySet() else names.flatMap { name ->
-        foundLines(paths, name, file).map { it.first to name }
-    }.toSet()
+    val found = if (read.isEmpty()) emptySet() else names.filter { foundLines(paths, it, file).isNotEmpty() }.toSet()
     return KnownHere(read, theirs, found)
-}
-
-/* What ssh-keygen -F tells of a line with marker, null for one it does not. */
-private fun tag(marker: String): String? = when (marker) {
-    "" -> ""
-    "@cert-authority" -> "CA"
-    else -> null
 }
 
 /* Host names of a known_hosts line with a wildcard, which other hosts may match. */
