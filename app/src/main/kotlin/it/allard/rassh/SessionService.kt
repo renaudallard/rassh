@@ -55,11 +55,11 @@ class SessionService : Service() {
     /*
      * The names of keys ssh-keygen is still to write, at its passphrase
      * prompt for one, which it then writes over whatever is there: a
-     * session of the Keys screen goes by the key's name, and no other one
-     * without a server can, a key name holding no blank.
+     * session of the Keys screen goes by the key's name, which no other
+     * one without a server can, the file browser's holding a blank.
      */
     val keysInUse: List<String>
-        get() = _sessions.filter { it.server == null && it.isRunning }.map { it.name }
+        get() = _sessions.filter { it.server == null && it.isRunning && Keys.isValidName(it.name) }.map { it.name }
 
     override fun onCreate() {
         super.onCreate()
