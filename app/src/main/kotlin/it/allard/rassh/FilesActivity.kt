@@ -560,8 +560,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null
         }
-        /* A NUL as well, sftp-server ends the connection on a name holding one before its end. */
-        val safe = name?.replace('/', '_')?.replace('\u0000', '_')?.trim()
+        /*
+         * Controls as well, a NUL for one, on which sftp-server ends the
+         * connection, and what breaks or reorders a line, the names are shown
+         * one per line before the upload: one could hide or disguise another.
+         */
+        val safe = name?.map { if (it == '/' || it.isISOControl() || it in UNSHOWN) '_' else it }
+            ?.joinToString("")?.trim()
         /* Over 255 bytes no file system takes it, and a long one makes a request sftp-server refuses. */
         return if (safe.isNullOrEmpty() || safe == "." || safe == ".." || safe.toByteArray().size > 255) "upload" else safe
     }
@@ -936,6 +941,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_CLOSE = 5
         private const val PROGRESS_NANOS = 200_000_000L
         private const val BUFFER_SIZE = 65536
+
+        /* Line and paragraph separators, and the bidi controls. */
+        private const val UNSHOWN = "\u2028\u2029\u061c\u200e\u200f" +
+            "\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069"
 
         /* Permissions as ls -l shows them. */
         fun mode(p: Int): String {
