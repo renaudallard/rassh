@@ -305,6 +305,10 @@ private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>,
     withVaultKey(vault, getString(R.string.import_reason), { zero() }, {
         zero()
         toast(getString(R.string.restore_failed, getString(R.string.import_dismissed)))
+    }, {
+        /* Hosts and known_hosts too, the import is one: the user resets the vault and imports again. */
+        zero()
+        sayInFull(getString(R.string.restore_failed, getString(R.string.import_invalidated)))
     }) { key -> write(key) }
 }
 

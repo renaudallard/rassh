@@ -23,20 +23,22 @@ private const val KEY_LIFETIME = 60
  * Ask for a fingerprint, then call use with the vault key, zeroed
  * afterwards. failed is called when the user cancels or it fails,
  * dismissed when the prompt is closed otherwise, with Back or by the
- * system when the app is left or the screen turns off.
+ * system when the app is left or the screen turns off, invalidated once
+ * the dialog saying the vault can no longer be read is closed.
  */
 fun Activity.withVaultKey(
     vault: Vault,
     reason: String,
     failed: () -> Unit = {},
     dismissed: () -> Unit = failed,
+    invalidated: () -> Unit = failed,
     use: (ByteArray) -> Unit,
 ) {
     val cipher = try {
         vault.cipher()
     } catch (_: KeyPermanentlyInvalidatedException) {
         /* Once read: a connection would otherwise open over the dialog without keys. */
-        vaultInvalidated(vault, failed)
+        vaultInvalidated(vault, invalidated)
         return
     } catch (e: GeneralSecurityException) {
         toast(getString(R.string.vault_error, e.message))
