@@ -14,7 +14,9 @@ import kotlin.concurrent.thread
  * the LogLevel is below INFO: ssh then does not end a session with a
  * terminal with "Connection to host closed.", which tells its own last
  * lines from the same ones printed by the server. checkIp when ssh also
- * checks the key known for the address it reaches.
+ * checks the key known for the address it reaches, which it does not
+ * through a proxy or when the host name is that address, see
+ * sshconnect.c.
  */
 private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?,
     val checkIp: Boolean)
@@ -37,18 +39,15 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     /* An alias is taken as it is, the port only goes with the host name, see sshconnect.c. */
     val alias = config["hostkeyalias"]
     val port = config["port"] ?: "22"
-    val name = if (alias != null && alias != "none") {
-        alias
-    } else {
-        val host = config["hostname"] ?: throw IOException("no host name")
-        if (port == "22") host else "[$host]:$port"
-    }
+    val host = config["hostname"] ?: throw IOException("no host name")
+    val name = if (alias != null && alias != "none") alias else if (port == "22") host else "[$host]:$port"
     val dir = paths.sshDir.canonicalFile
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
         .map { File(it).canonicalFile }
         .filter { it.parentFile == dir && it.isFile }
     return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"),
-        config["stricthostkeychecking"], config["checkhostip"] == "yes")
+        config["stricthostkeychecking"], config["checkhostip"] == "yes" && "proxyjump" !in config &&
+            "proxycommand" !in config && !isAddress(host))
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+ ?(CA|REVOKED)?[ \t]*""")
@@ -100,18 +99,19 @@ private fun isAddress(name: String): Boolean {
  * when it names host alone, in any case as ssh compares them, or hashed,
  * which names one, the line without host when it names other hosts too,
  * and line itself for a pattern, which other hosts may match. Addresses
- * go with host: ssh writes the one it reached beside the name with
- * CheckHostIP, and would refuse a new key differing from it, while it
- * adds again one missing.
+ * go with host when ssh checks them: it writes the one it reached beside
+ * the name with CheckHostIP, and would refuse a new key differing from
+ * it, while it adds again one missing. Otherwise they stay, a connection
+ * to the address itself still finds its key changed.
  */
-private fun withoutHost(line: String, host: String): String? {
+private fun withoutHost(line: String, host: String, addresses: Boolean): String? {
     val start = line.indexOfFirst { it != ' ' && it != '\t' }
     if (start < 0) return line
     val end = line.indexOfAny(charArrayOf(' ', '\t'), start).let { if (it < 0) line.length else it }
     val field = line.substring(start, end)
     if (field.startsWith("|1|")) return null
     if (field.any { it in "*?!" }) return line
-    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) && !isAddress(it) }
+    val names = field.split(',').filter { !it.equals(host, ignoreCase = true) && !(addresses && isAddress(it)) }
     if (names.all { it.isEmpty() }) return null
     return line.substring(0, start) + names.joinToString(",") + line.substring(end)
 }
@@ -162,9 +162,9 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             if (known.name != changed || found.isEmpty()) return@runOnUiThread
             /* A pattern is left, it would take the keys of other hosts with it. */
             val edits = found.mapValues { (_, lines) ->
-                lines.associateWith { withoutHost(it, known.name) }.filter { (line, edit) -> edit != line }
+                lines.associateWith { withoutHost(it, known.name, known.checkIp) }.filter { (line, edit) -> edit != line }
             }.filterValues { it.isNotEmpty() }
-            val left = found.values.flatten().any { withoutHost(it, known.name) == it }
+            val left = found.values.flatten().any { withoutHost(it, known.name, known.checkIp) == it }
             if (edits.isEmpty()) return@runOnUiThread toast(getString(R.string.host_key_shared, known.name))
             /*
              * What the next connection does once the key is gone: ssh prompts
