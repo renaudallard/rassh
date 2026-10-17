@@ -100,9 +100,9 @@ private fun isAddress(name: String): Boolean {
     return ':' in host || IPV4.matches(host)
 }
 
-/* ssh -G prints addresses in their shortest form. */
-private fun isLoopback(host: String): Boolean =
-    lowerAscii(host) == "localhost" || host == "::1" || host.startsWith("127.") && IPV4.matches(host)
+/* ssh -G prints addresses in their shortest form, an IPv6 one with its zone. */
+private fun isLoopback(host: String): Boolean = lowerAscii(host) == "localhost" ||
+    host.substringBefore('%') == "::1" || host.startsWith("127.") && IPV4.matches(host)
 
 /*
  * What becomes of line of known_hosts once the key of host goes: null
