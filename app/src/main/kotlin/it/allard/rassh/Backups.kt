@@ -275,6 +275,12 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
 private fun Activity.store(paths: Paths, vault: Vault, items: List<Backup.Item>, replace: Boolean, merged: Merged?,
     here: KnownHere?, inUse: () -> List<String>, done: () -> Unit) {
     fun zero() = items.forEach { it.data.fill(0) }
+    /* ssh-keygen would write such a key over what a Replace puts there, see SessionService.keysInUse. */
+    if (replace) inUse().firstOrNull()?.let {
+        zero()
+        sayInFull(getString(R.string.restore_failed, getString(R.string.import_key_busy, it)))
+        return
+    }
     /* Taken for Append, a key the Keys screen is still generating, see SessionService.keysInUse. */
     val present = try {
         Keys.list(paths.sshDir, vault) + if (replace) emptyList() else inUse()

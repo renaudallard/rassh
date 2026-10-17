@@ -206,6 +206,7 @@
     <string name="import_reason">Store the imported keys</string>
     <string name="restore_failed">Cannot import: %1$s</string>
     <string name="wrong_passphrase">wrong passphrase or damaged file</string>
+    <string name="import_key_busy">the key %1$s is still being made on the Keys screen, finish or close that session first</string>
     <string name="import_invalidated">nothing was imported, as the key storage could no longer be read: import again once it is set up anew</string>
     <string name="import_interrupted">the screen changed meanwhile, nothing was imported</string>
     <string name="import_config_changed">the ssh config or known_hosts changed meanwhile, nothing was imported, try again</string>
