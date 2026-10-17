@@ -136,24 +136,27 @@ class Vault(private val paths: Paths) {
     }
 
     /**
-     * Make keys, by name, the only ones stored, in one write: the limit
-     * counts what is kept, and a failure leaves the vault as it was.
-     * dataKey may be null when keys is empty.
+     * Make keys, by name, the only ones stored, but for those under a
+     * name the app no longer allows, in one write: the limit counts what
+     * is kept, and a failure leaves the vault as it was. dataKey may be
+     * null when keys is empty.
      */
     @Throws(IOException::class)
     fun replaceAll(dataKey: ByteArray?, keys: List<Pair<String, ByteArray>>) {
-        if (keys.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
         val v = load()
+        /* Under a name 0.1.2 and 0.1.3 allowed, no export holds them: they stay, sealed as they are. */
+        val kept = v?.second.orEmpty().filter { !Keys.isValidName(it.name) }
+        if (keys.size + kept.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
         if (v == null) {
             if (keys.isEmpty()) return
             throw IOException("no vault")
         }
         if (keys.isEmpty()) {
-            save(v.first, emptyList())
+            save(v.first, kept)
             return
         }
         val k = dataKey ?: throw IOException("keys locked")
-        save(v.first, keys.map { seal(k, it.first, it.second) })
+        save(v.first, kept + keys.map { seal(k, it.first, it.second) })
     }
 
     /* The name is part of the sealed data, so renaming seals the key again. */

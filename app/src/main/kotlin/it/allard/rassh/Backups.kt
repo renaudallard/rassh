@@ -327,8 +327,10 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
      */
     val keys = items.filter { it.type == Backup.KEY }
     val sealed = keys.filter { sealable(items, it, seal) }.map { it.name }.toSet()
+    /* Vault keys under a name the app no longer allows stay, see Vault.replaceAll(). */
+    val misnamed = present.filter { !Keys.isValidName(it) }
     /* Checked first, not to stop with only part of the file written. */
-    if (sealed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
+    if (sealed.size + misnamed.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
     val publicKeys = items.filter { it.type == Backup.FILE && it.name.endsWith(".pub") }
     for (item in items) {
         when (item.type) {
@@ -346,7 +348,7 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         if (item.name !in sealed) paths.writePrivate(File(dir, item.name), item.data)
     }
     val files = items.filter { it.type == Backup.FILE }.map { it.name }.toSet()
-    for (name in present) {
+    for (name in present - misnamed.toSet()) {
         /* The imported copy replaces the one of the same name. */
         if (name in sealed) {
             File(dir, name).delete()
