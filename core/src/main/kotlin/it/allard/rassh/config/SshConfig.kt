@@ -240,14 +240,13 @@ class SshConfig private constructor(
      * reads the file it names for every host, its Match exec lines run.
      * Nor one whose values ssh puts in a Match exec command here hold what
      * the host editor refuses, a shell character for one, see expandable(),
-     * or whose name, %n, and %h or %k without them, holds a ~, which a
-     * shell would turn into a home directory.
+     * or whose name, %n, and %h or %k without them, is not plain().
      * Returns the names added.
      */
     fun addMissing(other: SshConfig, reached: Collection<String> = emptyList()): List<String> {
         val added = other.blocks.filter { b ->
             b.name?.let { name ->
-                '~' !in name && !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) }
+                plain(name) && !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) }
             } == true &&
                 b.lines.none { equalsAscii(keyword(it)?.first, "Include") } && b.lines.all { expandable(it) }
         }
@@ -265,10 +264,10 @@ class SshConfig private constructor(
      * Whether a line of an imported block may go into a %h, %r, %k or %j
      * of a Match exec or an Include here, as the HostName, User,
      * HostKeyAlias or ProxyJump it sets: what the host editor takes, and
-     * no blank, # or glob, which would change the command or the files it
-     * names, nor a slash, which would reach another file. A ProxyJump hop
-     * keeps those of an ssh:// URI, and its user and host start with no
-     * dash, the host of the last being %j. ssh takes the rest of a
+     * plain(), with no bracket in a HostName or User, which have no use of
+     * one. A ProxyJump hop keeps the slashes of an ssh:// URI, and its user
+     * and host are no . or .. and start with no dash, the host of the last
+     * being %j. ssh takes the rest of a
      * ProxyJump line past blanks and = as it is, up to a #, not its first
      * word, see parse_jump(). It puts
      * a User there as written: the shell then expands a $ in it and takes
@@ -278,22 +277,30 @@ class SshConfig private constructor(
     private fun expandable(line: String): Boolean {
         val (key, value) = keyword(line) ?: return true
         val word = first(value)
-        fun plain(s: String) = s.none { it.isWhitespace() || it in "/#*?~" }
+        fun bare(s: String) = plain(s) && s.none { it == '[' || it == ']' }
         return when {
-            equalsAscii(key, "HostName") -> Host.isValidWord(word) && plain(word)
-            equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word) && '$' !in word &&
+            equalsAscii(key, "HostName") -> Host.isValidWord(word) && bare(word)
+            equalsAscii(key, "User") -> Host.isValidUser(word) && bare(word) && '$' !in word &&
                 !word.startsWith("\\") && !word.endsWith("\\")
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
             equalsAscii(key, "ProxyJump") -> {
                 val raw = value.substringBefore('#').trimStart { it in WHITESPACE || it == '=' }.trim()
                 Host.isValidJump(raw) && raw.split(',').all { hop ->
                     val s = if (hop.startsWith("ssh://")) hop.removePrefix("ssh://").removeSuffix("/") else hop
-                    plain(s) && !OPTION.containsMatchIn(s)
+                    plain(s) && !OPTION.containsMatchIn(s) && !DOTS.containsMatchIn(s)
                 }
             }
             else -> true
         }
     }
+
+    /*
+     * No blank, # or glob, which would change a Match exec command or the
+     * files an Include names, ! and ^ making a bracket match any other
+     * character, no ~ either, nor a slash or a . or .., which would reach
+     * another file.
+     */
+    private fun plain(s: String) = s != "." && s != ".." && s.none { it.isWhitespace() || it in "/#*?!^~" }
 
     override fun toString(): String {
         val sb = StringBuilder()
@@ -503,6 +510,9 @@ class SshConfig private constructor(
 
         /* A user, host or port of a jump hop starting with a dash, see parse_user_host_port() in misc.c. */
         private val OPTION = Regex("""(^|[@\[:])-""")
+
+        /* A user or host of a jump hop that is . or .. */
+        private val DOTS = Regex("""(^|[@\[])\.\.?($|[@\]:])""")
 
         /**
          * The arguments of a line after its keyword, as argv_split() in

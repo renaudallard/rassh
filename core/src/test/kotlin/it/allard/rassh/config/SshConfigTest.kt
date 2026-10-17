@@ -355,8 +355,10 @@ class SshConfigTest {
                 "Host j\n  HostName *\nHost k\n  User \"x #\"\nHost l\n  ProxyJump gw x;touch y\nHost m\n  ProxyJump a, b\n" +
                 "Host q\n  ProxyJump gw,-oFoo\nHost r\n  ProxyJump u@-oBaz\nHost s\n  ProxyJump ssh://-oQ\n" +
                 "Host t\n  ProxyJump ==-oBar\nHost u\n  ProxyJump [-o]:22\nHost v\n  ProxyJump gw/\n" +
+                "Host w\n  HostName [!x]\nHost x\n  User [ab]\nHost y\n  HostKeyAlias [^h]:22\nHost z\n  HostName ..\n" +
+                "Host aa\n  ProxyJump u@..:22\nHost ab\n  ProxyJump gw,[.]:22\nHost ..\n  Port 22\nHost .\n  Port 22\n" +
                 "Host n\n  User x${'$'}{IFS}${'$'}{HOME}\nHost o\n  User \\-rf\nHost p\n  User x\\\n" +
-                "Host pi\n  HostName 10.0.0.2\n  User CORP\\jdoe\n  HostKeyAlias [h]:2222\n  ProxyJump u@gw:22,ssh://v@h:22/\n")
+                "Host pi\n  HostName 10.0.0.2\n  User CORP\\jdoe\n  HostKeyAlias [h]:2222\n  ProxyJump u@gw:22,ssh://v@h:22/,[::1]:22,..x\n")
         assertEquals(listOf("pi"), config.addMissing(other))
     }
 
