@@ -371,9 +371,11 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val knownText = here?.let { known ->
         val text = known.read
         val lines = knownLines(text).toSet()
+        /* A pattern is left out, ssh-keygen cannot tell which hosts known here it matches. */
         val missing = knownLines(known.theirs).filter { line ->
             val k = knownNames(line)
-            line.isNotBlank() && line !in lines && (k == null || k.second.none { (tag(k.first) to it) in known.found })
+            line.isNotBlank() && line !in lines &&
+                (k == null || !hasPattern(k.second) && k.second.none { (tag(k.first) to it) in known.found })
         }.distinct()
         val start = if (text.isEmpty() || text.endsWith("\n")) text else text + "\n"
         if (missing.isEmpty()) null else start + missing.joinToString("\n", postfix = "\n")
@@ -431,7 +433,7 @@ private fun knownHere(paths: Paths, items: List<Backup.Item>): KnownHere? {
     val file = File(paths.sshDir, KNOWN_HOSTS)
     val read = paths.textOf(file)
     val theirs = Paths.utf8(item.data, KNOWN_HOSTS)
-    val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.flatten().toSet()
+    val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.filter { !hasPattern(it) }.flatten().toSet()
     val found = if (read.isEmpty()) emptySet() else names.flatMap { name ->
         foundLines(paths, name, file).map { it.first to name }
     }.toSet()
@@ -444,6 +446,9 @@ private fun tag(marker: String): String? = when (marker) {
     "@cert-authority" -> "CA"
     else -> null
 }
+
+/* Host names of a known_hosts line with a wildcard, which other hosts may match. */
+private fun hasPattern(names: List<String>) = names.any { name -> name.any { it == '*' || it == '?' } }
 
 /*
  * The marker of a known_hosts line, empty for a key, and the host names

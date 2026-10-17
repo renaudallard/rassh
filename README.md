@@ -321,18 +321,20 @@ replace:
   the `known_hosts` lines of hosts not known here yet, also through a
   hashed line or a pattern, as ssh would trust again an old key of one,
   removed here once changed, hashed and `@revoked` lines as they are,
-  and the font size if not set yet. Only `Host` blocks naming a single
-  host are taken: global options, `Match` blocks and `Host` blocks with
-  wildcards or several names are left out, as they could change the
-  hosts already there, and so is a block named as the `HostName` or a
-  `ProxyJump` host of a host or a `Host` pattern there, as ssh reads the
-  block of a jump host for it, and that of its `HostName` after a
-  `Match final` or canonicalization. A jump host named with `%` tokens,
-  or reached through `ProxyCommand`, is not seen. ssh checks the result
-  first, as when saving one, and nothing is imported if it refuses it: a
-  host relying on a global `IgnoreUnknown` line left out would make it
-  refuse them all. A host added whose key has the name of one already
-  there uses that one, not the key of the file.
+  but no key or `@cert-authority` line with wildcards, which could match
+  a host known here, and the font size if not set yet. Only `Host`
+  blocks naming a single host are taken: global options, `Match` blocks
+  and `Host` blocks with wildcards or several names are left out, as
+  they could change the hosts already there, and so is a block named as
+  the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
+  there, as ssh reads the block of a jump host for it, and that of its
+  `HostName` after a `Match final` or canonicalization. A jump host
+  named with `%` tokens, or reached through `ProxyCommand`, is not seen.
+  ssh checks the result first, as when saving one, and nothing is
+  imported if it refuses it: a host relying on a global `IgnoreUnknown`
+  line left out would make it refuse them all. A host added whose key
+  has the name of one already there uses that one, not the key of the
+  file.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed, but for keys named in a
