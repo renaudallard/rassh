@@ -108,25 +108,27 @@ object Keys {
     private val PEM = "-----BEGIN ".toByteArray()
 
     /**
-     * Whether data is a private key in PEM form, followed by nothing but
-     * other PEM blocks, a certificate for one, and blank lines: no line of
-     * it is one ssh could take for a host key or an option, were it read
-     * as known_hosts or as a config. Read in place, data is secret.
+     * Whether data holds a private key in PEM form and nothing but other PEM
+     * blocks, EC parameters or a certificate for one, and blank or # lines
+     * outside them, all of which ssh reads past: no line of it is one ssh
+     * could take for a host key or an option, were it read as known_hosts
+     * or as a config. Read in place, data is secret.
      */
     fun isPemKey(data: ByteArray): Boolean {
         var label: String? = null
-        var blocks = 0
+        var keys = 0
         var start = 0
         while (start < data.size) {
             var end = start
             while (end < data.size && data[end] != '\n'.code.toByte()) end++
             val stop = if (end > start && data[end - 1] == '\r'.code.toByte()) end - 1 else end
+            val first = (start until stop).firstOrNull { data[it].toInt().toChar() !in " \t" }
             when {
-                label == null && stop == start -> {}
+                label == null && (first == null || data[first] == '#'.code.toByte()) -> {}
                 label == null -> {
                     val begin = String(data, start, stop - start, Charsets.ISO_8859_1)
                     label = BEGIN.matchEntire(begin)?.groupValues?.get(1) ?: return false
-                    if (blocks++ == 0 && !label.endsWith("PRIVATE KEY")) return false
+                    if (label.endsWith("PRIVATE KEY")) keys++
                 }
                 data[start] == '-'.code.toByte() ->
                     if (String(data, start, stop - start, Charsets.ISO_8859_1) == "-----END $label-----") label = null
@@ -135,7 +137,7 @@ object Keys {
             }
             start = end + 1
         }
-        return label == null && blocks > 0
+        return label == null && keys > 0
     }
 
     private val BEGIN = Regex("""-----BEGIN ([A-Z0-9]+(?: [A-Z0-9]+)*)-----""")
