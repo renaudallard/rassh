@@ -384,7 +384,8 @@ fun withAgent(paths: Paths, argv: List<String>, names: List<String>): List<Strin
      * forwards the agent while the keys are in it when its block asks.
      */
     val script = "p=\$PATH; PATH=/system/bin; " +
-        "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; export SSH_AUTH_SOCK; rm -f \"\$SSH_AUTH_SOCK\"; " +
+        "SSH_AUTH_SOCK=\"\$TMPDIR/agent.\$\$\"; RASSH_AGENT=\$SSH_AUTH_SOCK; export SSH_AUTH_SOCK RASSH_AGENT; " +
+        "rm -f \"\$SSH_AUTH_SOCK\"; " +
         "${quote(paths.agent)} -D -O no-forwarded -a \"\$SSH_AUTH_SOCK\" </dev/null >/dev/null 2>&1 & agent=\$!; " +
         AGENT_WAIT +
         "d=\"\$TMPDIR/keys.\$\$\"; rm -rf \"\$d\"; mkdir -m 700 \"\$d\"$links && " +
@@ -428,8 +429,11 @@ fun agentSockets(paths: Paths): List<File> =
  * LocalCommand right after authentication. Options given here win over
  * the config. scp and sftp refuse LocalCommand, KEY_LIFETIME covers them,
  * failed logins and an ssh going through a ControlMaster connection,
- * which does not log in itself.
+ * which does not log in itself. The agent is named by RASSH_AGENT, see
+ * withAgent(): ssh sets SSH_AUTH_SOCK to the IdentityAgent of a config,
+ * the user's own agent the keys must not be taken from.
  */
 fun clearAfterLogin(argv: List<String>): List<String> =
     if (argv.firstOrNull() != "ssh") argv
-    else listOf("ssh", "-o", "PermitLocalCommand=yes", "-o", "LocalCommand=ssh-add -D >/dev/null 2>&1") + argv.drop(1)
+    else listOf("ssh", "-o", "PermitLocalCommand=yes",
+        "-o", "LocalCommand=SSH_AUTH_SOCK=\"\$RASSH_AGENT\" ssh-add -D >/dev/null 2>&1") + argv.drop(1)
