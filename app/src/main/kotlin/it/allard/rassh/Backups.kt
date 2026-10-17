@@ -57,6 +57,24 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
         toast(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
         return
     }
+    /* A key in clear no import would take, said before as well, see exportItems(). Vault keys need the fingerprint. */
+    val notKey = Keys.plaintext(paths.sshDir).filter { it !in names }.firstOrNull { name ->
+        val data = try {
+            Paths.bytesOf(File(paths.sshDir, name), Paths.MAX_FILE)
+        } catch (_: IOException) {
+            return@firstOrNull false
+        }
+        try {
+            !Keys.isPemKey(data)
+        } finally {
+            data.fill(0)
+        }
+    }
+    if (notKey != null) {
+        discard()
+        toast(getString(R.string.export_failed, getString(R.string.export_not_key, notKey)))
+        return
+    }
     askPassphrase(R.string.export, true, { discard() }) { pass ->
         fun export(key: ByteArray?) {
             val items = try {
