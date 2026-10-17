@@ -161,10 +161,10 @@ keys are encrypted and unlocked with it.
   with `ssh-keygen -R`, which removes whole lines: the warning, or a
   message when nothing else can go, then says to edit `known_hosts` by
   hand, as ssh would still refuse the old key there. When ssh checks it
-  the warning also says the address may keep the old key on a line of
-  its own, hashed for instance, as nothing finds it. With a `LogLevel`
-  below `INFO` nothing is offered, as the server could then print ssh's
-  lines itself
+  the warning also says the address may keep the old key on another
+  line, of its own, hashed for instance, or with another name of the
+  same server, which nothing finds. With a `LogLevel` below `INFO`
+  nothing is offered, as the server could then print ssh's lines itself
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
