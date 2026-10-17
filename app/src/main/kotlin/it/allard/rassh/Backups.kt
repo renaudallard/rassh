@@ -119,12 +119,6 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     }
 }
 
-/* In a dialog, a toast cuts a message short after two lines. */
-private fun Activity.sayInFull(message: String) {
-    if (isDestroyed) applicationContext.toast(message)
-    else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
-}
-
 /* key unseals the vault keys, null when there are none. */
 @Throws(IOException::class)
 private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): List<Backup.Item> {

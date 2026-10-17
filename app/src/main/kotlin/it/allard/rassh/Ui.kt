@@ -1,6 +1,7 @@
 package it.allard.rassh
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.Application
 import android.app.Dialog
 import android.content.ActivityNotFoundException
@@ -95,6 +96,12 @@ private const val DIALOG_PADDING = 20
 
 fun Context.toast(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+}
+
+/** message in a dialog, a toast cuts it short after two lines, or a toast once the screen is gone. */
+fun Activity.sayInFull(message: String) {
+    if (isDestroyed) applicationContext.toast(message)
+    else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
 }
 
 /* Open the document picker, which a phone may have disabled. */
