@@ -505,6 +505,9 @@ agent of the connection, until the login. JuiceSSH is no longer on Google Play.
   and the key-only lines after them, which changes the values that win
   when its block has an `Include`. Names used in included files are not
   checked when a host is added
+- Keys, public keys and certificates are files in `~/.ssh`: an
+  `Include` whose pattern matches the name of one, made or imported,
+  makes ssh read it as config and refuse the hosts it applies to
 - The vault holds at most 64 keys, all loaded for each connection, and
   keys over 64 KiB stay out of it
 - All files access (`MANAGE_EXTERNAL_STORAGE`) is restricted on Google
