@@ -320,15 +320,16 @@ anyone getting the file can try passphrases offline, choose a long
 one. Android backup stays off, since the vault cannot leave the phone
 that made it. Files read through `Include` and keys kept outside
 `~/.ssh` are not exported. A key named as early versions or the local
-shell allowed, with an `@` for instance, must be renamed first, as no
-import would take it.
+shell allowed, with an `@` for instance, must be renamed first, and an
+export stops at a key holding no private key in PEM form, a lone
+certificate for one, naming it, as no import would take either.
 
 Import reads the file on the other phone, refusing it when one of its
 keys holds no private key in PEM form, and writes of a key only its PEM
 blocks, what ssh reads of it: any other line could make it a file ssh
-reads otherwise, a known_hosts the config names for one. The key screen
-does the same, and an export stops at a key holding none, naming it.
-Import then asks whether to append or replace:
+reads otherwise, a known_hosts the config names for one, as the key
+screen does with a key file. Import then asks whether to append or
+replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`
