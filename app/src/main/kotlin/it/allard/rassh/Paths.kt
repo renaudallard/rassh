@@ -84,13 +84,16 @@ class Paths(context: Context) {
      * longer allowed for one, is not a missing file: written, the link
      * would become a file of its own, the one it names left behind. One
      * naming a file still to be made in a folder there is taken, as ssh
-     * would make it.
+     * would make it, but not through another link, which a write would
+     * replace instead.
      */
     @Throws(IOException::class)
     private fun checkReachable(file: File) {
         val path = file.toPath()
         if (!Files.isSymbolicLink(path) || Files.exists(path)) return
-        if (!Files.isDirectory(linkTarget(file).toPath().parent ?: return)) throw UnreachableException(file.name)
+        val target = linkTarget(file).toPath()
+        if (Files.isSymbolicLink(target) || !Files.isDirectory(target.parent ?: return))
+            throw UnreachableException(file.name)
     }
 
     /* The file a link names, followed once: a missing one has no canonical path. */
