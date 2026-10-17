@@ -68,6 +68,8 @@ class MainActivity : Activity(), SessionService.Listener {
      * went down and where it is.
      */
     private var held = -1
+    /* Hosts changed while one was held, read again once it is let go. */
+    private var stale = false
     private var heldFrom = -1
     private var heldMenu: PopupMenu? = null
     private var moving = false
@@ -252,6 +254,7 @@ class MainActivity : Activity(), SessionService.Listener {
             emptyList()
         }
         held = -1
+        stale = false
         adapter.held = -1
         adapter.items = hosts.map { it.name to summary(it) }
     }
@@ -335,7 +338,10 @@ class MainActivity : Activity(), SessionService.Listener {
         held = -1
         adapter.held = -1
         list.removeCallbacks(scroll)
-        if (to == heldFrom) return
+        if (to == heldFrom) {
+            if (stale) loadHosts()
+            return
+        }
         try {
             val config = SshConfig.parse(paths.textOf(paths.config))
             if (config.move(name, to)) paths.writeText(paths.config, config.toString())
@@ -667,7 +673,7 @@ class MainActivity : Activity(), SessionService.Listener {
              * again, unless a host is being dragged there.
              */
             REQUEST_IMPORT -> importFrom(uri, paths, vault, { binding.service?.keysInUse.orEmpty() }) {
-                shown?.get()?.takeIf { !it.isDestroyed && it.held < 0 }?.loadHosts()
+                shown?.get()?.takeIf { !it.isDestroyed }?.let { if (it.held < 0) it.loadHosts() else it.stale = true }
             }
         }
     }
