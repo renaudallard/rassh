@@ -33,6 +33,7 @@ import it.allard.rassh.config.Args
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
 import java.io.IOException
+import java.lang.ref.WeakReference
 import java.time.LocalDate
 import kotlin.concurrent.thread
 import kotlin.math.abs
@@ -82,6 +83,7 @@ class MainActivity : Activity(), SessionService.Listener {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        shown = WeakReference(this)
         hideOverlays()
         setContentView(R.layout.activity_main)
         findViewById<View>(R.id.root).padForInsets()
@@ -232,6 +234,7 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     override fun onDestroy() {
+        if (shown?.get() === this) shown = null
         binding.service?.removeListener(this)
         binding.unbind()
         super.onDestroy()
@@ -658,11 +661,21 @@ class MainActivity : Activity(), SessionService.Listener {
         if (resultCode != RESULT_OK || uri == null) return
         when (requestCode) {
             REQUEST_EXPORT -> exportTo(uri, paths, vault)
-            REQUEST_IMPORT -> importFrom(uri, paths, vault) { if (!isDestroyed) loadHosts() }
+            /*
+             * The screen of the import may have been recreated meanwhile, at
+             * its fingerprint prompt for one: the one shown reads the hosts
+             * again, unless a host is being dragged there.
+             */
+            REQUEST_IMPORT -> importFrom(uri, paths, vault) {
+                shown?.get()?.takeIf { !it.isDestroyed && it.held < 0 }?.loadHosts()
+            }
         }
     }
 
     companion object {
+        /* The main screen last created, see REQUEST_IMPORT. */
+        private var shown: WeakReference<MainActivity>? = null
+
         /*
          * The agent holds the keys while logging in, a server reached with
          * agent forwarding could use them then. A -o from the command line
