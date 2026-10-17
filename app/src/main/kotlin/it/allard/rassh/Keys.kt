@@ -131,12 +131,14 @@ object Keys {
     }
 
     /**
-     * The line of a public key or certificate file ssh loads, see
-     * sshkey_try_load_public() in authfile.c: the first that is one, past
-     * blank lines and those starting with #, before a private key, without
-     * its leading blanks. Null when there is none as ssh-keygen writes
-     * them, with blanks between the fields: none ssh could take for an
-     * option or a host key, were it read as a config or known_hosts.
+     * The key line of a public key or certificate file, without its
+     * leading blanks: the first shaped as ssh-keygen writes them, with
+     * blanks between the fields, past blank lines and those starting with
+     * #, before a private key, as sshkey_try_load_public() in authfile.c
+     * looks for one. The key itself is not read, ssh may load a later line
+     * when that one does not decode. Null when there is none: no line ssh
+     * could take for an option or a host key, were it read as a config or
+     * known_hosts.
      */
     fun publicLine(data: ByteArray): ByteArray? {
         /* Byte for byte, a comment may be in any encoding. */
