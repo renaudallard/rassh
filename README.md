@@ -326,7 +326,9 @@ import would take it.
 Import reads the file on the other phone, refusing it when one of its
 keys holds more than a private key in PEM form, other PEM blocks, EC
 parameters or a certificate for one, and blank or `#` lines, as a key
-item is written as it is, and asks whether to append or replace:
+item is written as it is, and asks whether to append or replace. The key
+screen takes only such keys, and an export stops at one that is not,
+naming it:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`

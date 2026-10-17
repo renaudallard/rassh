@@ -120,6 +120,8 @@ private fun Context.exportItems(paths: Paths, vault: Vault, key: ByteArray?): Li
             val i = inVault.indexOf(name)
             val secret = if (i >= 0) secrets[i] else Paths.bytesOf(File(paths.sshDir, name), Paths.MAX_FILE)
             items.add(Backup.Item(Backup.KEY, name, secret))
+            /* An import would refuse the whole file, see checked(). */
+            if (!Keys.isPemKey(secret)) throw IOException(getString(R.string.export_not_key, name))
             for (suffix in Keys.suffixes(name, names)) {
                 val file = File(paths.sshDir, name + suffix)
                 if (file.isFile) items.add(Backup.Item(Backup.FILE, file.name, Paths.bytesOf(file, Paths.MAX_FILE)))

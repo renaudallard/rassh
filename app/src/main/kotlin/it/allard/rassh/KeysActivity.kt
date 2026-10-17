@@ -258,7 +258,8 @@ class KeysActivity : Activity() {
                         ?: throw IOException("cannot open $uri")
                     key = read
                     if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
-                    if (!Keys.isPem(read)) throw IOException("not a private key")
+                    /* As an import of an export takes them, see Keys.isPemKey(). */
+                    if (!Keys.isPemKey(read)) throw IOException("not a private key")
                     null
                 } catch (e: Exception) {
                     if (!isFileError(e)) throw e

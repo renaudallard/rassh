@@ -188,6 +188,7 @@
     <string name="export">Export</string>
     <string name="export_reason">Read your keys to export them</string>
     <string name="export_failed">Cannot export: %1$s</string>
+    <string name="export_not_key">the key %1$s holds more than a private key in PEM form, which an import refuses</string>
     <string name="export_bad_name">rename the key %1$s first, its name is not allowed</string>
     <string name="exported">Hosts, keys and settings exported</string>
     <string name="passphrase">Passphrase</string>
