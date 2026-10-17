@@ -38,11 +38,11 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
         val i = line.indexOf(' ')
         if (i > 0) line.substring(0, i) to line.substring(i + 1) else null
     }.toMap()
-    /* An alias is taken as it is, the port only goes with the host name, see sshconnect.c. */
+    /* An alias is taken as it is, none too, which ssh takes as a name, the port only goes with the host name. */
     val alias = config["hostkeyalias"]
     val port = config["port"] ?: "22"
     val host = config["hostname"] ?: throw IOException("no host name")
-    val aliased = alias != null && alias != "none"
+    val aliased = alias != null
     val name = if (aliased) alias else if (port == "22") host else "[$host]:$port"
     val dir = paths.sshDir.canonicalFile
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
