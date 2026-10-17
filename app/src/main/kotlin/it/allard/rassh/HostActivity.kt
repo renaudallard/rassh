@@ -177,19 +177,27 @@ class HostActivity : Activity() {
         window.insetsController?.show(WindowInsets.Type.ime())
     }
 
-    /*
-     * The host as ssh reads it, compared with what the editor loaded: its
-     * options by keyword, in their order for one keyword as ssh takes the
-     * first, keywords in any case, without comments. One ending the last
-     * block goes to a block added below it once the file is read again,
-     * and the editor writes the common options and its checkboxes last,
-     * neither of which changes the host.
-     */
     private fun isComment(line: String) = line.trimStart().startsWith("#")
 
-    private fun signature(host: Host?): String? = host?.copy(other = host.other.mapNotNull { line ->
-        SshConfig.keyword(line)?.let { (key, value) -> lowerAscii(key) + " " + value }
-    }.sortedBy { it.substringBefore(' ') })?.toString()
+    /*
+     * The host as ssh reads it, compared with what the editor loaded,
+     * without comments: one ending the last block goes to a block added
+     * below it once the file is read again. The options the editor writes
+     * itself, last and in its spelling, the common ones, IdentitiesOnly and
+     * the tmux lines, by keyword and value, those it leaves in the order of
+     * the file, which matters to ssh, ProxyCommand before ProxyJump for one.
+     */
+    private fun signature(host: Host?): String? {
+        host ?: return null
+        val options = host.other.mapNotNull { SshConfig.keyword(it) }
+        fun key(k: String) = lowerAscii(Choices.ALL.find { it.isNamed(k) }?.keyword ?: k)
+        val count = options.groupingBy { key(it.first) }.eachCount()
+        val (own, rest) = options.partition { (k, _) ->
+            count[key(k)] == 1 && (Choices.ALL.any { it.isNamed(k) } || OWN.any { equalsAscii(k, it) })
+        }
+        return host.copy(other = rest.map { (k, v) -> lowerAscii(k) + " " + v } +
+            own.map { (k, v) -> key(k) + " " + if (equalsAscii(k, "RemoteCommand")) v else lowerAscii(v) }.sorted()).toString()
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -442,6 +450,8 @@ class HostActivity : Activity() {
         private const val STATE_KEYBOARD = "keyboard"
         private const val STATE_LOADED = "loaded"
         private const val MAX_FIELD = 16384
+        /* Options of checkboxes, see signature(). */
+        private val OWN = listOf("IdentitiesOnly", "RemoteCommand", "RequestTTY")
         private const val STATE_COMMENTS = "loaded_comments"
 
         /*
