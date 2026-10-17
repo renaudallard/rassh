@@ -679,7 +679,10 @@ class MainActivity : Activity(), SessionService.Listener {
              * again, unless a host is being dragged there.
              */
             REQUEST_IMPORT -> importFrom(uri, paths, vault, { binding.service?.keysInUse.orEmpty() }) {
-                shown?.get()?.takeIf { !it.isDestroyed }?.let { if (it.held < 0) it.loadHosts() else it.stale = true }
+                /* A host only waits when a finger moves it, a long press from a keyboard ends with no touch. */
+                shown?.get()?.takeIf { !it.isDestroyed }?.let {
+                    if (it.held < 0 || !it.moving) it.loadHosts() else it.stale = true
+                }
             }
         }
     }
