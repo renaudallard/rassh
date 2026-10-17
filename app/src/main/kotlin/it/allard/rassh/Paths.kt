@@ -74,7 +74,21 @@ class Paths(context: Context) {
      * writes back whole, see utf8().
      */
     @Throws(IOException::class)
-    fun textOf(file: File): String = if (file.isFile) utf8(bytesOf(file), file.name) else ""
+    fun textOf(file: File): String {
+        checkReachable(file)
+        return if (file.isFile) utf8(bytesOf(file), file.name) else ""
+    }
+
+    /*
+     * A link the app cannot follow, into a storage card removed or no
+     * longer allowed for one, is not a missing file: written, the link
+     * would become a file of its own, the one it names left behind.
+     */
+    @Throws(IOException::class)
+    private fun checkReachable(file: File) {
+        if (Files.isSymbolicLink(file.toPath()) && !Files.exists(file.toPath()))
+            throw IOException("${file.name} is a link the app cannot follow")
+    }
 
     /* The config as shown, decoded leniently: textOf() is for one written back. */
     @Throws(IOException::class)
@@ -114,6 +128,7 @@ class Paths(context: Context) {
 
     @Throws(IOException::class)
     fun writePrivate(file: File, data: ByteArray) {
+        checkReachable(file)
         /* Through a link, made in the local shell for instance, the file it names is replaced. */
         val target = if (Files.isSymbolicLink(file.toPath())) file.canonicalFile else file
         /* Hidden, a key the user named x.tmp is not taken for one, see Keys.removeLeftovers(). */

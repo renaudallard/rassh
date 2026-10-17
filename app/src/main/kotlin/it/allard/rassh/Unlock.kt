@@ -291,7 +291,7 @@ fun useKeyNames(paths: Paths, names: List<String>) {
 /** Rewrite IdentityFile lines, and CertificateFile ones with certificates, naming files of ~/.ssh, mapped old to new. */
 @Throws(IOException::class)
 fun rewriteIdentities(paths: Paths, files: Map<String, String>, certificates: Boolean = true) {
-    if (!paths.config.isFile || files.isEmpty()) return
+    if (files.isEmpty()) return
     /* The ways such a file can be written, kept as they are. */
     fun spellings(file: String) = listOf("~/.ssh/$file", "%d/.ssh/$file", File(paths.sshDir, file).path)
     val map = files.flatMap { (from, to) -> spellings(from).zip(spellings(to)) }.toMap()

@@ -68,11 +68,13 @@ keys are encrypted and unlocked with it.
   or `known_hosts` that is not UTF-8 is never rewritten: saving,
   deleting or moving a host, renaming a key, removing a changed host key
   or an Append import then stops with a message. One that is a link is
-  rewritten in the file it names, but a changed host key is only offered
-  for removal from a `known_hosts` in `~/.ssh`. Neither is read when
-  over 1 MiB, which could take all the memory of the app, nor made so
-  large by the app, an import or a save for one, nor is a vault over 16
-  MiB. A checkbox attaches to the last tmux session or starts one, with
+  rewritten in the file it names, and one linking to what the app cannot
+  reach, a storage card removed for one, is neither read nor written,
+  but a changed host key is only offered for removal from a
+  `known_hosts` in `~/.ssh`. Neither is read when over 1 MiB, which
+  could take all the memory of the app, nor made so large by the app, an
+  import or a save for one, nor is a vault over 16 MiB. A checkbox
+  attaches to the last tmux session or starts one, with
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
   the identity file, makes `ssh` use only that key, and those other
   blocks such as `Host *` name, with `IdentitiesOnly yes`, without
