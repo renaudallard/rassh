@@ -205,7 +205,7 @@
     <string name="import_reason">Store the imported keys</string>
     <string name="restore_failed">Cannot import: %1$s</string>
     <string name="wrong_passphrase">wrong passphrase or damaged file</string>
-    <string name="import_invalidated">nothing was imported, as the key storage can no longer be read: reset it, then import again</string>
+    <string name="import_invalidated">nothing was imported, as the key storage could no longer be read: import again once it is set up anew</string>
     <string name="import_interrupted">the screen changed meanwhile, nothing was imported</string>
     <string name="import_config_changed">the ssh config or known_hosts changed meanwhile, nothing was imported, try again</string>
     <string name="import_dismissed">the fingerprint prompt was closed, nothing was imported</string>
