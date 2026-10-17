@@ -88,7 +88,7 @@ class HostActivity : Activity() {
         val host = original?.let { config.find(it) } ?: Host("")
         /* Kept across a recreation, null too: a host gone when the editor opened must stay so. */
         loaded = if (savedInstanceState != null) savedInstanceState.getString(STATE_LOADED)
-            else original?.let { config.find(it)?.toString() }
+            else original?.let { signature(config.find(it)) }
         actionBar?.setTitle(if (original == null) R.string.new_host else R.string.edit_host)
 
         /* A key both in clear and in the vault, from a move cut short, is listed once. */
@@ -160,6 +160,14 @@ class HostActivity : Activity() {
         keyboard = false
         window.insetsController?.show(WindowInsets.Type.ime())
     }
+
+    /*
+     * The host as compared with what the editor loaded, without its
+     * comments: one ending the last block goes to a block added below it
+     * once the file is read again, which changes nothing of the host.
+     */
+    private fun signature(host: Host?): String? =
+        host?.copy(other = host.other.filter { !it.trimStart().startsWith("#") })?.toString()
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -245,7 +253,7 @@ class HostActivity : Activity() {
          * Its fields would undo what another screen or the local shell did
          * since: bring back a host deleted, or the old name of a key renamed.
          */
-        if (original != null && original?.let { config.find(it)?.toString() } != loaded) {
+        if (original != null && original?.let { signature(config.find(it)) } != loaded) {
             toast(getString(R.string.host_changed, original))
             return
         }
