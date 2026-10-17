@@ -261,7 +261,8 @@ There is no PIN fallback.
   public key sits next to them, if the vault has room and neither key is
   over 64 KiB, a larger public key being taken as missing. One named as
   a key of the vault never replaces it, it stays in clear unless it is
-  the same key. Names hold letters, digits, `.`, `_` and `-` only, as
+  the same key. Names hold up to 240 letters, digits, `.`, `_` and `-`
+  only, the files of a key having to fit the length of a file name, as
   they go into `IdentityFile` lines, and neither end in `.tmp` nor take
   the name of another file there, `config` or `known_hosts` for
   instance: a key named otherwise, made in the local shell for instance,

@@ -62,14 +62,18 @@ object Keys {
     /*
      * A plain file name that does not clash with other ssh files. Names
      * end up in IdentityFile lines, where ssh expands % and ${} and
-     * parses quotes, so only a safe set of characters is allowed.
+     * parses quotes, so only a safe set of characters is allowed. At most
+     * MAX_NAME long: with -cert.pub and the .x.tmp of a write, the files of
+     * a key must still fit the 255 bytes of a file name.
      */
     fun isValidName(name: String): Boolean =
-        name.isNotEmpty() && !name.startsWith(".") && name.all { it in SAFE } &&
+        name.isNotEmpty() && name.length <= MAX_NAME && !name.startsWith(".") && name.all { it in SAFE } &&
             !name.endsWith(".pub") && !name.endsWith(".tmp") && name !in RESERVED
 
     /** name with the characters isValidName() refuses replaced. */
     fun safeName(name: String): String = name.map { if (it in SAFE) it else '_' }.joinToString("")
+
+    private const val MAX_NAME = 240
 
     private val SAFE = ('a'..'z') + ('A'..'Z') + ('0'..'9') + listOf('.', '_', '-')
 

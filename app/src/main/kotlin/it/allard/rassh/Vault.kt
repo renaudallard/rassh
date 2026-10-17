@@ -144,7 +144,7 @@ class Vault(private val paths: Paths) {
     @Throws(IOException::class)
     fun replaceAll(dataKey: ByteArray?, keys: List<Pair<String, ByteArray>>) {
         val v = load()
-        /* Under a name 0.1.2 and 0.1.3 allowed, no export holds them: they stay, sealed as they are. */
+        /* Under a name no longer allowed, as 0.1.2 and 0.1.3 or a longer one: no export holds them, they stay sealed. */
         val kept = v?.second.orEmpty().filter { !Keys.isValidName(it.name) }
         if (keys.size + kept.size > Keys.MAX_COUNT) throw IOException("at most ${Keys.MAX_COUNT} keys")
         if (v == null) {
