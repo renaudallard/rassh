@@ -183,9 +183,11 @@ class Terminal(
         /*
          * Without a saved cursor, as after 47 or 1047, the bottom rows are
          * kept: the top goes to the history, or is dropped on the alternate
-         * screen, which has none.
+         * screen, which has none. A cursor the main screen saved before 47
+         * or 1047 is from another time, see leaveAltScreen().
          */
-        val y = other.resize(columns, rows, other.saved?.y ?: (this.rows - 1))
+        val saved = other.saved?.takeIf { other !== main || altBy1049 }
+        val y = other.resize(columns, rows, saved?.y ?: (this.rows - 1))
         if (other.saved != null) moveSaved(other, y, columns, rows)
         /* The stops of the columns a narrower screen loses come back with them. */
         if (columns > tabStops.size) tabStops = defaultTabs(columns).also { tabStops.copyInto(it) }

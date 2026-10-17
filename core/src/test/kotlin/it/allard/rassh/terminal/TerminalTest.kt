@@ -595,6 +595,17 @@ class TerminalTest {
     }
 
     @Test
+    fun resizeOn1047KeepsTheLastLinesOfTheMainScreen() {
+        val t = term(columns = 20, rows = 6)
+        /* An old DECSC at the top, then 1047 without one of its own. */
+        t.put("\u001b7l1\r\nl2\r\nl3\r\nl4\r\nl5\r\n$ less\u001b[?1047h")
+        t.resize(20, 3)
+        t.put("\u001b[?1047l")
+        assertEquals(listOf("l4", "l5", "$ less"), (0 until 3).map { t.line(it) })
+        assertEquals("l3", t.line(-1))
+    }
+
+    @Test
     fun keepsWhatTheAltScreenShowedLast() {
         val t = term(columns = 30, rows = 6)
         t.put("one\r\ntwo\r\n\u001b[?1049h\u001b[2J\u001b[H\u001b[31mtmux\u001b[m\u001b[4;1Hbar")
