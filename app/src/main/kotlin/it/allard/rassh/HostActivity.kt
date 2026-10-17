@@ -370,8 +370,12 @@ class HostActivity : Activity() {
                     }
                     paths.ensureSshDir()
                     paths.writeText(paths.config, text)
-                    /* Edited, the host may be another server: a transfer cut short there is not resumed. */
-                    original?.let { thread(name = "drop-resume") { applicationContext.dropResumable(it) } }
+                    /*
+                     * Edited, the host may be another server: a transfer cut short
+                     * there is not resumed. Saved unchanged, it still is.
+                     */
+                    val edited = n != original || signature(SshConfig.parse(text).find(n)) != loaded
+                    if (edited) original?.let { thread(name = "drop-resume") { applicationContext.dropResumable(it) } }
                 } catch (e: IOException) {
                     toast(getString(R.string.config_failed, e.message))
                     return@runOnUiThread
