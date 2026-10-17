@@ -24,7 +24,11 @@ object Choices {
         Choice("TCPKeepAlive", listOf("yes", "no"), listOf("KeepAlive")),
         Choice("AddressFamily", listOf("any", "inet", "inet6")),
         Choice("ExitOnForwardFailure", listOf("yes", "no")),
-        /* Not QUIET nor FATAL, they hide the error the app reads at a changed host key. */
+        /*
+         * Not QUIET nor FATAL, they hide the error the app reads at a changed
+         * host key. ERROR shows it, but the app then offers nothing, as the
+         * server could print ssh's lines, see HostKeys.knownHost().
+         */
         Choice("LogLevel", listOf("ERROR", "INFO", "VERBOSE", "DEBUG", "DEBUG2", "DEBUG3")),
     )
 
