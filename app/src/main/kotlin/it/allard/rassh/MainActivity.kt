@@ -15,6 +15,7 @@ import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.Settings
 import android.system.ErrnoException
+import android.text.InputFilter
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
@@ -100,6 +101,8 @@ class MainActivity : Activity(), SessionService.Listener {
         Keys.removeLeftovers(paths.sshDir)
 
         quick = findViewById(R.id.quick)
+        /* Its text goes into the saved state, see HostActivity's fields. */
+        quick.filters = arrayOf(InputFilter.LengthFilter(MAX_QUICK))
         quick.setOnEditorActionListener { _, action, event ->
             if (action == EditorInfo.IME_ACTION_GO ||
                 event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN) {
@@ -679,6 +682,8 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     companion object {
+        private const val MAX_QUICK = 4096
+
         /* The main screen last created, see REQUEST_IMPORT. */
         private var shown: WeakReference<MainActivity>? = null
 

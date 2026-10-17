@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
 import android.system.ErrnoException
+import android.text.InputFilter
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -72,6 +73,8 @@ class HostActivity : Activity() {
         remote = findViewById(R.id.remote)
         dynamic = findViewById(R.id.dynamic)
         other = findViewById(R.id.other)
+        /* Their text goes into the saved state, which must fit what Android passes between processes. */
+        for (field in listOf(local, remote, dynamic, other)) field.filters = arrayOf(InputFilter.LengthFilter(MAX_FIELD))
         tmux = findViewById(R.id.tmux)
         choicesToggle = findViewById(R.id.choices_toggle)
         choices = findViewById(R.id.choices)
@@ -88,6 +91,14 @@ class HostActivity : Activity() {
         }
         original = intent.getStringExtra(EXTRA_HOST)
         val host = original?.let { config.find(it) } ?: Host("")
+        /* Cut to fit the fields, its lines would be lost at the next save: such a host is for the local shell. */
+        if (listOf(host.localForwards, host.remoteForwards, host.dynamicForwards, host.other).any { lines ->
+                lines.sumOf { it.length + 1 } > MAX_FIELD
+            }) {
+            toast(getString(R.string.host_too_large, host.name))
+            finish()
+            return
+        }
         /* Kept across a recreation, null too: a host gone when the editor opened must stay so. */
         loaded = if (savedInstanceState != null) savedInstanceState.getString(STATE_LOADED)
             else original?.let { signature(config.find(it)) }
@@ -429,6 +440,7 @@ class HostActivity : Activity() {
         private const val STATE_IDENTITY = "identity"
         private const val STATE_KEYBOARD = "keyboard"
         private const val STATE_LOADED = "loaded"
+        private const val MAX_FIELD = 16384
         private const val STATE_COMMENTS = "loaded_comments"
 
         /*

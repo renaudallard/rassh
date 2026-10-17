@@ -22,6 +22,7 @@
     <string name="move_refused">Cannot move %1$s there, ssh could then read the config differently</string>
     <string name="ssh_dir_failed">Cannot create ~/.ssh: %1$s</string>
     <string name="config_changed">The ssh config changed meanwhile, save again</string>
+    <string name="host_too_large">%1$s is too large to edit here, edit it in the local shell</string>
     <string name="host_changed">%1$s was changed or removed elsewhere meanwhile</string>
     <string name="config_refused">ssh refuses this configuration for %1$s: %2$s</string>
     <string name="config_unlisted">hosts no Host line names</string>
