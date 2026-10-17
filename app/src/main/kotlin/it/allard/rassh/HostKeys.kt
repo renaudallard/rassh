@@ -104,8 +104,8 @@ private fun isAddress(name: String): Boolean {
  * and line itself for a pattern, which other hosts may match. Addresses
  * go with host when ssh checks them: it writes the one it reached beside
  * the name with CheckHostIP, and would refuse a new key differing from
- * it, while it adds again one missing. Otherwise they stay, a connection
- * to the address itself still finds its key changed.
+ * it, or ask each time, while it adds again one missing. Otherwise they
+ * stay, a connection to the address itself still finds its key changed.
  */
 private fun withoutHost(line: String, host: String, addresses: Boolean): String? {
     val start = line.indexOfFirst { it != ' ' && it != '\t' }
