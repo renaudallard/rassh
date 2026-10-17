@@ -588,7 +588,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val c = client() ?: return
         run({
             val cut = r.names.getOrNull(r.index)?.let { path(r.dir, it) }
-            val known = if (r.length < 0) -1 else minOf(r.length, r.sent)
+            /* Without the length, cut before the first write or not from a regular file, only what was sent. */
+            val known = if (r.length < 0) r.sent else minOf(r.length, r.sent)
             val other = cut != null && exists(c, cut) && sizeOf(c, cut)?.let { SftpClient.mayHold(it, known) } != true
             other || r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) }
         }) { clash ->
