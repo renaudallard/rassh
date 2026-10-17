@@ -641,7 +641,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var hashing: Hashing? = null
             /* Whether the file at index is the one resumed, checked. */
             var verified = false
-            /* Where it started, -1 before the server opens it. */
+            /* Where it started, -1 before the upload chose, the server file untouched then. */
             var start = -1L
             try {
                 while (index < uris.size) {
