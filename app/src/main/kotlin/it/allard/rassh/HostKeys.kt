@@ -2,6 +2,7 @@ package it.allard.rassh
 
 import android.app.Activity
 import android.app.AlertDialog
+import it.allard.rassh.config.lowerAscii
 import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
@@ -86,9 +87,6 @@ private fun keyLines(paths: Paths, name: String, file: File): Set<String> {
     val found = foundLines(paths, name, file).filter { it.first.isEmpty() }.map { it.second }.toSet()
     return Paths.bytesOf(file).toString(Charsets.UTF_8).split('\n').filter { it.trimEnd() in found }.toSet()
 }
-
-/* name in lower case as ssh compares host names, A to Z only, see lowercase() in misc.c. */
-fun lowerAscii(name: String): String = name.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("")
 
 private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
 

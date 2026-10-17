@@ -25,7 +25,7 @@ object Choices {
     /** The choice for the keyword of line, or null. */
     fun of(line: String): Choice? {
         val key = SshConfig.keyword(line)?.first ?: return null
-        return ALL.find { it.keyword.equals(key, true) }
+        return ALL.find { equalsAscii(key, it.keyword) }
     }
 
     fun line(choice: Choice, value: String): String = "${choice.keyword} $value"
@@ -43,7 +43,7 @@ object Choices {
         val count = lines.groupingBy { of(it) }.eachCount()
         for (line in lines) {
             val choice = of(line)
-            val value = choice?.let { c -> c.values.find { it.equals(SshConfig.keyword(line)?.second, true) } }
+            val value = choice?.let { c -> c.values.find { equalsAscii(SshConfig.keyword(line)?.second, it) } }
             if (choice != null && value != null && count[choice] == 1)
                 taken[choice] = value
             else
@@ -61,7 +61,7 @@ object Choices {
         /* Lines end in line feeds only: a value may hold a carriage return, which must not start a line. */
         for (line in dump.split('\n')) {
             val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: continue
-            val choice = ALL.find { it.keyword.equals(key, true) } ?: continue
+            val choice = ALL.find { equalsAscii(key, it.keyword) } ?: continue
             values[choice] = when (value) {
                 "true" -> "yes"
                 "false" -> "no"

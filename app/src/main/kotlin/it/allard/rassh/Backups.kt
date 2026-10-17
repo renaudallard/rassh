@@ -11,6 +11,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import it.allard.rassh.backup.Backup
 import it.allard.rassh.config.SshConfig
+import it.allard.rassh.config.lowerAscii
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException

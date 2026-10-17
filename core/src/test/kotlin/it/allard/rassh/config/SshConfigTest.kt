@@ -368,6 +368,17 @@ class SshConfigTest {
     }
 
     @Test
+    fun keywordsIgnoreTheCaseOfAsciiLettersOnly() {
+        /* A long s folds to S in Kotlin, ssh sees an unknown option. */
+        val config = SshConfig.parse("Host a\n  User u\nHo\u017Ft b\n  ProxyCommand x\nHOST c\n")
+        assertEquals(listOf("a", "c"), config.names)
+        assertFalse(Host.isValidOption("Host x"))
+        assertTrue(Host.isValidOption("Ho\u017Ft x"))
+        assertEquals("tcpkeepalive", Choices.of("TCPKeepAlive yes")?.keyword?.lowercase())
+        assertNull(Choices.of("TCP\u212AeepAlive yes"))
+    }
+
+    @Test
     fun indentedCommentStaysWithItsBlock() {
         val config = SshConfig.parse("Host *\n    User u\n    # ForwardAgent yes\n# the work host\nHost work\n    HostName w\n")
         config.remove("work")

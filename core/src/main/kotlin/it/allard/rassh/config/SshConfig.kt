@@ -1,5 +1,11 @@
 package it.allard.rassh.config
 
+/** s in lower case as ssh lowercases keywords and host names, A to Z only, see lowercase() in misc.c. */
+fun lowerAscii(s: String): String = s.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("")
+
+/** Whether ssh takes a for b, comparing as strcasecmp() does in the C locale: A to Z only. */
+fun equalsAscii(a: String?, b: String): Boolean = a != null && lowerAscii(a) == lowerAscii(b)
+
 /** A saved connection, stored as a Host block of ssh_config(5). */
 data class Host(
     val name: String,
@@ -57,7 +63,7 @@ data class Host(
         /** An option line that does not start a new block. */
         fun isValidOption(line: String): Boolean {
             val key = SshConfig.keyword(line)?.first ?: return true
-            return !key.equals("Host", true) && !key.equals("Match", true)
+            return !equalsAscii(key, "Host") && !equalsAscii(key, "Match")
         }
 
         /* A port number, leading zeros allowed as ssh reads it with strtonum(). */
@@ -89,7 +95,7 @@ class SshConfig private constructor(
     ) {
         /* The one host a Host line names, a comment after it allowed, or null. */
         val name: String? =
-            if (!keyword.equals("Host", ignoreCase = true)) null
+            if (!equalsAscii(keyword, "Host")) null
             else arguments(value)?.singleOrNull()?.takeIf { Host.isValidName(it) }
 
         val isHost: Boolean
@@ -105,12 +111,12 @@ class SshConfig private constructor(
 
     /** Every host name the Host lines list, alone or with others, patterns and negations left out. */
     val names: List<String>
-        get() = blocks.filter { it.keyword.equals("Host", ignoreCase = true) }
+        get() = blocks.filter { equalsAscii(it.keyword, "Host") }
             .flatMap { arguments(it.value).orEmpty() }.filter { Host.isValidName(it) }.distinct()
 
     /** Every pattern the Host lines list, negations left out: ssh -G takes one as a name the blocks of it match. */
     val patterns: List<String>
-        get() = blocks.filter { it.keyword.equals("Host", ignoreCase = true) }
+        get() = blocks.filter { equalsAscii(it.keyword, "Host") }
             .flatMap { arguments(it.value).orEmpty() }
             .filter { !it.startsWith("!") && (it.contains('*') || it.contains('?')) }.distinct()
 
@@ -127,7 +133,7 @@ class SshConfig private constructor(
      */
     fun isUsed(name: String, except: String? = null): Boolean =
         blocks.any { b ->
-            (except == null || b.name != except) && b.keyword.equals("Host", ignoreCase = true) &&
+            (except == null || b.name != except) && equalsAscii(b.keyword, "Host") &&
                 arguments(b.value).orEmpty().any { it.equals(name, ignoreCase = true) }
         }
 
@@ -204,7 +210,7 @@ class SshConfig private constructor(
         val j = firsts[to.coerceIn(firsts.indices)]
         val between = if (i < j) i + 1..j else j until i
         fun ordered(b: Block) = b.lines.any { line ->
-            keyword(line)?.first.let { it.equals("IgnoreUnknown", true) || it.equals("Include", true) }
+            keyword(line)?.first.let { equalsAscii(it, "IgnoreUnknown") || equalsAscii(it, "Include") }
         }
         if (ordered(blocks[i]) ||
             between.any { k -> blocks[k].name.let { it == null || it.equals(name, ignoreCase = true) } || ordered(blocks[k]) })
@@ -263,13 +269,13 @@ class SshConfig private constructor(
         for (line in block.lines) {
             val (key, value) = keyword(line) ?: Pair("", "")
             when {
-                key.equals("HostName", true) && hostName == null -> hostName = first(value)
-                key.equals("User", true) && user == null -> user = first(value)
-                key.equals("Port", true) && port == null -> port = first(value)
-                key.equals("IdentityFile", true) && identity == null -> identity = first(value)
-                key.equals("LocalForward", true) -> local.add(value)
-                key.equals("RemoteForward", true) -> remote.add(value)
-                key.equals("DynamicForward", true) -> dynamic.add(value)
+                equalsAscii(key, "HostName") && hostName == null -> hostName = first(value)
+                equalsAscii(key, "User") && user == null -> user = first(value)
+                equalsAscii(key, "Port") && port == null -> port = first(value)
+                equalsAscii(key, "IdentityFile") && identity == null -> identity = first(value)
+                equalsAscii(key, "LocalForward") -> local.add(value)
+                equalsAscii(key, "RemoteForward") -> remote.add(value)
+                equalsAscii(key, "DynamicForward") -> dynamic.add(value)
                 line.isNotBlank() -> other.add(trimOption(line))
             }
         }
@@ -313,7 +319,7 @@ class SshConfig private constructor(
             val all = if (text.isEmpty()) emptyList() else text.removeSuffix("\n").split('\n')
             for (line in all) {
                 val kv = keyword(line)
-                if (kv != null && (kv.first.equals("Host", true) || kv.first.equals("Match", true))) {
+                if (kv != null && (equalsAscii(kv.first, "Host") || equalsAscii(kv.first, "Match"))) {
                     /*
                      * Comments right above a block describe it, not the one
                      * before, unless indented beyond its line, as the options
@@ -381,8 +387,8 @@ class SshConfig private constructor(
             val lines = text.removeSuffix("\n").split('\n').map { line ->
                 val kv = keyword(line)
                 val to = kv?.let { paths[first(it.second)] }
-                if (kv == null || to == null || !kv.first.equals("IdentityFile", true) &&
-                    !(certificates && kv.first.equals("CertificateFile", true))) {
+                if (kv == null || to == null || !equalsAscii(kv.first, "IdentityFile") &&
+                    !(certificates && equalsAscii(kv.first, "CertificateFile"))) {
                     line
                 } else {
                     /* What follows the path, a comment for one, stays. */

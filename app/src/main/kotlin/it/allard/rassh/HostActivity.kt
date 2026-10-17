@@ -18,6 +18,8 @@ import android.widget.TextView
 import it.allard.rassh.config.Choices
 import it.allard.rassh.config.Host
 import it.allard.rassh.config.SshConfig
+import it.allard.rassh.config.equalsAscii
+import it.allard.rassh.config.lowerAscii
 import java.io.IOException
 import kotlin.concurrent.thread
 
@@ -383,15 +385,15 @@ class HostActivity : Activity() {
 
         private const val ONLY_LINE = "IdentitiesOnly yes"
 
-        private fun keyword(line: String): String? = SshConfig.keyword(line)?.first?.lowercase()
+        private fun keyword(line: String): String? = SshConfig.keyword(line)?.first?.let { lowerAscii(it) }
 
         private fun isTmuxLine(line: String): Boolean =
-            SshConfig.keyword(line)?.let { it.first.equals("RemoteCommand", true) && it.second == TMUX_COMMAND } == true
+            SshConfig.keyword(line)?.let { equalsAscii(it.first, "RemoteCommand") && it.second == TMUX_COMMAND } == true
 
         private fun isOnlyLine(line: String): Boolean =
-            SshConfig.keyword(line)?.let { it.first.equals("IdentitiesOnly", true) && it.second.equals("yes", true) } == true
+            SshConfig.keyword(line)?.let { equalsAscii(it.first, "IdentitiesOnly") && equalsAscii(it.second, "yes") } == true
 
         private fun isTtyLine(line: String): Boolean =
-            SshConfig.keyword(line)?.let { it.first.equals("RequestTTY", true) && it.second.equals("yes", true) } == true
+            SshConfig.keyword(line)?.let { equalsAscii(it.first, "RequestTTY") && equalsAscii(it.second, "yes") } == true
     }
 }
