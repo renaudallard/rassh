@@ -214,13 +214,14 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
     }
 }
 
-/* items when every name is one an export holds, zeroed otherwise. */
+/* items when every name is one an export holds and every key one, zeroed otherwise. */
 @Throws(IOException::class)
 private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
             Keys.SUFFIXES.any { item.name.endsWith(it) && Keys.isValidName(item.name.removeSuffix(it)) }
-        Backup.KEY -> Keys.isValidName(item.name)
+        /* Only a key, written as it is it could be a file ssh reads, an Include of the config for one. */
+        Backup.KEY -> Keys.isValidName(item.name) && Keys.isPem(item.data)
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
         else -> false

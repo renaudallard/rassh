@@ -318,8 +318,9 @@ that made it. Files read through `Include` and keys kept outside
 shell allowed, with an `@` for instance, must be renamed first, as no
 import would take it.
 
-Import reads the file on the other phone and asks whether to append or
-replace:
+Import reads the file on the other phone, refusing it when one of its
+keys is not a private key in PEM form, as the key screen does, and asks
+whether to append or replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, also through a
