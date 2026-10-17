@@ -118,6 +118,7 @@
     <string name="choice_default">Default</string>
     <string name="choice_default_value">Default (%1$s)</string>
     <string name="error_choice">%1$s is already set in common options</string>
+    <string name="error_choice_alias">%1$s, an old name of %2$s, is already set in common options</string>
     <string name="other_label">Other ssh_config options</string>
     <string name="other_hint">One per line, e.g. ProxyJump jump.example.org</string>
     <string name="save">Save</string>

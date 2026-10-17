@@ -265,9 +265,15 @@ class HostActivity : Activity() {
         val chosen = Choices.ALL.withIndex().mapNotNull { (i, c) ->
             spinners[i].selectedItemPosition.takeIf { it > 0 }?.let { c to c.values[it - 1] }
         }.toMap()
-        val set = lines(other).firstNotNullOfOrNull { line -> Choices.of(line)?.takeIf { it in chosen } }
+        val set = lines(other).firstNotNullOfOrNull { line ->
+            Choices.of(line)?.takeIf { it in chosen }?.let { line to it }
+        }
         if (set != null) {
-            other.error = getString(R.string.error_choice, set.keyword)
+            /* As the line names it, KeepAlive for TCPKeepAlive for one. */
+            val (line, choice) = set
+            val key = SshConfig.keyword(line)?.first ?: choice.keyword
+            other.error = if (equalsAscii(key, choice.keyword)) getString(R.string.error_choice, key)
+                else getString(R.string.error_choice_alias, key, choice.keyword)
             ok = false
         }
         val selected = identity.selectedItemPosition
