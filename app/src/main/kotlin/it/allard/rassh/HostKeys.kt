@@ -10,15 +10,16 @@ import kotlin.concurrent.thread
 
 /*
  * The name a known_hosts line has for the target, as [host]:port off
- * port 22, as ssh -G resolves it, and the files ssh looks in. quiet when
- * the LogLevel is below INFO: ssh then does not end a session with a
- * terminal with "Connection to host closed.", which tells its own last
- * lines from the same ones printed by the server. checkIp when ssh also
- * checks the key known for the address it reaches: not through a proxy,
- * nor for a loopback one, nor when the host name is an address, unless
- * HostKeyAlias names the host off port 22, the address then being
- * written with its port beside the alias, see check_host_key() in
- * sshconnect.c. Only localhost is known to be loopback among names.
+ * port 22, as ssh -G resolves it and in lower case as ssh writes it, and
+ * the files ssh looks in. quiet when the LogLevel is below INFO: ssh
+ * then does not end a session with a terminal with "Connection to host
+ * closed.", which tells its own last lines from the same ones printed by
+ * the server. checkIp when ssh also checks the key known for the address
+ * it reaches: not through a proxy, nor for a loopback one, nor when the
+ * host name is an address, unless HostKeyAlias names the host off port
+ * 22, the address then being written with its port beside the alias, see
+ * check_host_key() in sshconnect.c. Only localhost is known to be
+ * loopback among names.
  */
 private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?,
     val checkIp: Boolean)
@@ -43,7 +44,7 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     val port = config["port"] ?: "22"
     val host = config["hostname"] ?: throw IOException("no host name")
     val aliased = alias != null
-    val name = if (aliased) alias else if (port == "22") host else "[$host]:$port"
+    val name = lowerAscii(if (aliased) alias else if (port == "22") host else "[$host]:$port")
     val dir = paths.sshDir.canonicalFile
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
         .map { File(it).canonicalFile }
