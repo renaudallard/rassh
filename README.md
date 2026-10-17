@@ -73,10 +73,10 @@ keys are encrypted and unlocked with it.
   but a changed host key is only offered for removal from a
   `known_hosts` in `~/.ssh`. Neither is read when over 1 MiB, which
   could take all the memory of the app, nor made so large by the app, an
-  import or a save for one, nor is a vault over 16 MiB. A host whose
-  other options or forwards hold more than 16384 characters is edited in
-  the local shell, the editor fields being that large at most. A
-  checkbox attaches to the last tmux session or starts one, with
+  import or a save for one, nor is a vault over 16 MiB. A host with more
+  than 16384 characters in one of the editor's fields, its other options
+  for one, is edited in the local shell, the fields being that large at
+  most. A checkbox attaches to the last tmux session or starts one, with
   `RemoteCommand tmux a || tmux` and `RequestTTY yes`. Another, under
   the identity file, makes `ssh` use only that key, and those other
   blocks such as `Host *` name, with `IdentitiesOnly yes`, without

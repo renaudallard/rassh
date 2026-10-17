@@ -74,7 +74,8 @@ class HostActivity : Activity() {
         dynamic = findViewById(R.id.dynamic)
         other = findViewById(R.id.other)
         /* Their text goes into the saved state, which must fit what Android passes between processes. */
-        for (field in listOf(local, remote, dynamic, other)) field.filters = arrayOf(InputFilter.LengthFilter(MAX_FIELD))
+        for (field in listOf(name, hostName, user, port, local, remote, dynamic, other))
+            field.filters = arrayOf(InputFilter.LengthFilter(MAX_FIELD))
         tmux = findViewById(R.id.tmux)
         choicesToggle = findViewById(R.id.choices_toggle)
         choices = findViewById(R.id.choices)
@@ -92,9 +93,9 @@ class HostActivity : Activity() {
         original = intent.getStringExtra(EXTRA_HOST)
         val host = original?.let { config.find(it) } ?: Host("")
         /* Cut to fit the fields, its lines would be lost at the next save: such a host is for the local shell. */
-        if (listOf(host.localForwards, host.remoteForwards, host.dynamicForwards, host.other).any { lines ->
-                lines.sumOf { it.length + 1 } > MAX_FIELD
-            }) {
+        val fields = listOf(host.name, host.hostName, host.user, host.port) +
+            listOf(host.localForwards, host.remoteForwards, host.dynamicForwards, host.other).map { it.joinToString("\n") }
+        if (fields.any { it.length > MAX_FIELD }) {
             toast(getString(R.string.host_too_large, host.name))
             finish()
             return
