@@ -285,6 +285,8 @@ fun useKeyNames(paths: Paths, names: List<String>) {
         rewriteIdentities(paths, names.associate { "$it.pub" to it }, certificates = false)
     } catch (_: Paths.NotUtf8Exception) {
         /* Left as it is, run at each focus, the old names still work. */
+    } catch (_: Paths.UnreachableException) {
+        /* Neither read nor written then, an import must not stop on it. */
     }
 }
 

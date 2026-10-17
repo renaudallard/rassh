@@ -87,7 +87,7 @@ class Paths(context: Context) {
     @Throws(IOException::class)
     private fun checkReachable(file: File) {
         if (Files.isSymbolicLink(file.toPath()) && !Files.exists(file.toPath()))
-            throw IOException("${file.name} is a link the app cannot follow")
+            throw UnreachableException(file.name)
     }
 
     /* The config as shown, decoded leniently: textOf() is for one written back. */
@@ -192,6 +192,9 @@ class Paths(context: Context) {
             throw NotUtf8Exception(name)
         }
     }
+
+    /** A file that is a link the app cannot follow, see checkReachable(). */
+    class UnreachableException(name: String) : IOException("$name is a link the app cannot follow")
 
     class NotUtf8Exception(name: String) : IOException("$name is not in UTF-8")
 }
