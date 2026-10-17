@@ -342,9 +342,10 @@ Import on the other phone first asks whether to append or replace, then
 reads the file, refusing it when one of its keys holds no private key in
 PEM form, and writes of a key only its PEM blocks, what ssh reads of it:
 any other line could make it a file ssh reads otherwise, a known_hosts
-the config names for one, as the key screen does with a key file. A
-public key or certificate that is not one line as ssh-keygen writes them
-is left out, the key then has none yet:
+the config names for one, as the key screen does with a key file. Of a
+public key or certificate only the line ssh loads is kept, and the file
+is left out when that is not one as ssh-keygen writes them, the key then
+has none yet:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`

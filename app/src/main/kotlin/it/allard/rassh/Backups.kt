@@ -261,20 +261,19 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
         throw IOException("${big.name} is too large")
     }
     /*
-     * A public key or certificate of another form is left out, the key
-     * then has none yet: written as it is, it could be a file ssh reads
-     * otherwise, through an Include the config names for one.
+     * Of a key only its PEM blocks, and of a public key or certificate
+     * the line ssh loads, the file being left out when it has none, the
+     * key then has none yet: anything else could make it a file ssh reads
+     * otherwise, a known_hosts or an Include the config names for one.
      */
-    val odd = items.filter { it.type == Backup.FILE && Keys.SUFFIXES.any { s -> it.name.endsWith(s) } && !Keys.isPublicKeyLine(it.data) }
-    odd.forEach { it.data.fill(0) }
-    /*
-     * Of a key only its PEM blocks, what ssh reads of it: anything else
-     * could make it a file ssh reads otherwise, a known_hosts or an Include
-     * the config names for one.
-     */
-    return (items - odd.toSet()).map { item ->
-        if (item.type != Backup.KEY) item
-        else Backup.Item(item.type, item.name, Keys.pemOnly(item.data)!!).also { item.data.fill(0) }
+    return items.mapNotNull { item ->
+        val data = when {
+            item.type == Backup.KEY -> Keys.pemOnly(item.data)!!
+            item.type == Backup.FILE && Keys.SUFFIXES.any { item.name.endsWith(it) } -> Keys.publicLine(item.data)
+            else -> return@mapNotNull item
+        }
+        item.data.fill(0)
+        data?.let { Backup.Item(item.type, item.name, it) }
     }
 }
 

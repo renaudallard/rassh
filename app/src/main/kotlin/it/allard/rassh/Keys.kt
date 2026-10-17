@@ -132,14 +132,25 @@ object Keys {
     }
 
     /**
-     * Whether data is one public key or certificate line, as ssh-keygen
-     * writes them: none ssh could take for an option or a host key, were
-     * it read as a config or known_hosts.
+     * The line of a public key or certificate file ssh loads, see
+     * sshkey_try_load_public() in authfile.c: the first that is one, past
+     * blank lines and those starting with #, before a private key, without
+     * its leading blanks. Null when there is none as ssh-keygen writes
+     * them, with blanks between the fields: none ssh could take for an
+     * option or a host key, were it read as a config or known_hosts.
      */
-    fun isPublicKeyLine(data: ByteArray): Boolean =
-        PUBLIC_LINE.matches(String(data, Charsets.UTF_8).removeSuffix("\n").removeSuffix("\r"))
+    fun publicLine(data: ByteArray): ByteArray? {
+        /* Byte for byte, a comment may be in any encoding. */
+        for (raw in String(data, Charsets.ISO_8859_1).split('\n')) {
+            if (raw.startsWith("#")) continue
+            if (raw.startsWith("-----BEGIN")) break
+            val line = raw.removeSuffix("\r").trimStart { it == ' ' || it == '\t' }
+            if (PUBLIC_LINE.matches(line)) return (line + "\n").toByteArray(Charsets.ISO_8859_1)
+        }
+        return null
+    }
 
-    private val PUBLIC_LINE = Regex("""(ssh|ecdsa|sk)-[a-z0-9@.-]+ [A-Za-z0-9+/]+=*( [^\n]*)?""")
+    private val PUBLIC_LINE = Regex("""(ssh|ecdsa|sk)-[a-z0-9@.-]+[ \t]+[A-Za-z0-9+/]+=*([ \t][^\n]*)?""")
 
     /** Whether data starts as a private key file does. */
     fun isPem(data: ByteArray): Boolean = data.size >= PEM.size && PEM.indices.all { data[it] == PEM[it] }
