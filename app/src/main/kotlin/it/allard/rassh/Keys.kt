@@ -106,6 +106,16 @@ object Keys {
         }
     }
 
+    /**
+     * Whether data is one public key or certificate line, as ssh-keygen
+     * writes them: none ssh could take for an option or a host key, were
+     * it read as a config or known_hosts.
+     */
+    fun isPublicKeyLine(data: ByteArray): Boolean =
+        PUBLIC_LINE.matches(String(data, Charsets.UTF_8).removeSuffix("\n").removeSuffix("\r"))
+
+    private val PUBLIC_LINE = Regex("""(ssh|ecdsa|sk)-[a-z0-9@.-]+ [A-Za-z0-9+/]+=*( [^\n]*)?""")
+
     /** Whether data starts as a private key file does. */
     fun isPem(data: ByteArray): Boolean = data.size >= PEM.size && PEM.indices.all { data[it] == PEM[it] }
 
