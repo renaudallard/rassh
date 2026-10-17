@@ -54,6 +54,10 @@ data class Host(
          * Windows account such as CORP\jdoe, refused on ssh's command line,
          * can only be given here. Spaces are quoted when saved.
          */
+        /** A ProxyJump value: hosts, users, ports and URIs, without what a shell or ssh -J reads otherwise. */
+        fun isValidJump(value: String): Boolean =
+            !value.startsWith("-") && value.none { it.isWhitespace() || it.isISOControl() || it in "'`\"$\\;&<>|(){}#*?~" }
+
         fun isValidUser(value: String): Boolean {
             val literal = value.replace(ENVIRONMENT, "x")
             return !literal.startsWith("-") && " -" !in literal &&
@@ -234,12 +238,14 @@ class SshConfig private constructor(
      * blocks named in reached, the names ssh reaches these hosts by, in
      * any case as ssh lowercases them, and those holding an Include: ssh
      * reads the file it names for every host, its Match exec lines run.
+     * Nor one whose values ssh puts in a Match exec command here hold what
+     * the host editor refuses, a shell character for one, see expandable().
      * Returns the names added.
      */
     fun addMissing(other: SshConfig, reached: Collection<String> = emptyList()): List<String> {
         val added = other.blocks.filter { b ->
             b.name?.let { name -> !isUsed(name) && reached.none { it.equals(name, ignoreCase = true) } } == true &&
-                b.lines.none { equalsAscii(keyword(it)?.first, "Include") }
+                b.lines.none { equalsAscii(keyword(it)?.first, "Include") } && b.lines.all { expandable(it) }
         }
         if (added.isEmpty()) return emptyList()
         val at = blocks.indexOfFirst { !it.isHost }.let { if (it < 0) blocks.size else it }
@@ -249,6 +255,24 @@ class SshConfig private constructor(
         for (k in maxOf(at - 1, 0) until at + added.size)
             if (k != blocks.lastIndex || footer.isNotEmpty()) apart(k)
         return added.mapNotNull { it.name }.distinct()
+    }
+
+    /*
+     * Whether a line of an imported block may go into a %h, %r, %k or %j
+     * of a Match exec here, as the HostName, User, HostKeyAlias or
+     * ProxyJump it sets: what the host editor takes, a HostName without a
+     * slash, an Include of %h here could reach another file.
+     */
+    private fun expandable(line: String): Boolean {
+        val (key, value) = keyword(line) ?: return true
+        val word = first(value)
+        return when {
+            equalsAscii(key, "HostName") -> Host.isValidWord(word) && '/' !in word
+            equalsAscii(key, "User") -> Host.isValidUser(word)
+            equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word)
+            equalsAscii(key, "ProxyJump") -> Host.isValidJump(word)
+            else -> true
+        }
     }
 
     override fun toString(): String {

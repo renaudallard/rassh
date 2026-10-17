@@ -345,6 +345,16 @@ class SshConfigTest {
     }
 
     @Test
+    fun addsNoBlockAMatchExecHereWouldRunTheValuesOf() {
+        /* ssh puts them in a Match exec command of the config here, %h, %r, %k and %j. */
+        val config = SshConfig.parse("Host web\n")
+        val other = SshConfig.parse(
+            "Host a\n  HostName \"x;touch y\"\nHost b\n  User \"u;id\"\nHost c\n  HostKeyAlias k`id`\n" +
+                "Host d\n  ProxyJump j;id\nHost e\n  HostName ../x.pub\nHost pi\n  HostName 10.0.0.2\n  ProxyJump u@gw:22,ssh://v@h\n")
+        assertEquals(listOf("pi"), config.addMissing(other))
+    }
+
+    @Test
     fun addsApartFromTheEnd() {
         val config = SshConfig.parse("Host a\n  User x\n\n# end\n")
         assertEquals(listOf("b"), config.addMissing(SshConfig.parse("Host b\n  User y\n")))
