@@ -108,39 +108,72 @@ object Keys {
     private val PEM = "-----BEGIN ".toByteArray()
 
     /**
-     * Whether data holds a private key in PEM form and nothing but other PEM
-     * blocks, EC parameters or a certificate for one, and blank or # lines
-     * outside them, all of which ssh reads past: no line of it is one ssh
-     * could take for a host key or an option, were it read as known_hosts
-     * or as a config. Read in place, data is secret.
+     * Whether data holds a private key in PEM form, which ssh reads past
+     * what lies outside its blocks, see pemOnly().
      */
-    fun isPemKey(data: ByteArray): Boolean {
+    fun isPemKey(data: ByteArray): Boolean = pemBlocks(data, null) >= 0
+
+    /**
+     * The PEM blocks of data alone, each line without the blanks around
+     * it, when one holds a private key: what ssh reads of a key file. No
+     * line of it is then one ssh could take for a host key or an option,
+     * were it read as known_hosts or as a config. Null when there is no
+     * private key block, or a block holds a line that is not base64.
+     * Read in place, data is secret, and so is the copy.
+     */
+    fun pemOnly(data: ByteArray): ByteArray? {
+        val out = ByteArray(data.size + 1)
+        try {
+            val n = pemBlocks(data, out)
+            return if (n < 0) null else out.copyOf(n)
+        } finally {
+            out.fill(0)
+        }
+    }
+
+    /* The length of the blocks of data written to out, when given, or -1. */
+    private fun pemBlocks(data: ByteArray, out: ByteArray?): Int {
         var label: String? = null
         var keys = 0
+        var n = 0
         var start = 0
         while (start < data.size) {
             var end = start
             while (end < data.size && data[end] != '\n'.code.toByte()) end++
-            val stop = if (end > start && data[end - 1] == '\r'.code.toByte()) end - 1 else end
-            val first = (start until stop).firstOrNull { data[it].toInt().toChar() !in " \t" }
-            when {
-                label == null && (first == null || data[first] == '#'.code.toByte()) -> {}
-                label == null -> {
-                    val begin = String(data, start, stop - start, Charsets.ISO_8859_1)
-                    label = BEGIN.matchEntire(begin)?.groupValues?.get(1) ?: return false
-                    if (label.endsWith("PRIVATE KEY")) keys++
-                }
-                data[start] == '-'.code.toByte() ->
-                    if (String(data, start, stop - start, Charsets.ISO_8859_1) == "-----END $label-----") label = null
-                    else return false
-                !isPemBody(data, start, stop) -> return false
+            var from = start
+            var to = end
+            while (from < to && isBlank(data[from])) from++
+            while (to > from && isBlank(data[to - 1])) to--
+            val keep = if (label == null) {
+                /* Outside the blocks, a key's public key or openssl's notes for one, left out. */
+                label = if (to == from || data[from] != '-'.code.toByte()) null
+                    else BEGIN.matchEntire(String(data, from, to - from, Charsets.ISO_8859_1))?.groupValues?.get(1)
+                if (label?.endsWith("PRIVATE KEY") == true) keys++
+                label != null
+            } else if (to > from && data[from] == '-'.code.toByte()) {
+                if (String(data, from, to - from, Charsets.ISO_8859_1) != "-----END $label-----") return -1
+                label = null
+                true
+            } else {
+                if (!isPemBody(data, from, to)) return -1
+                true
+            }
+            if (keep && out != null) {
+                data.copyInto(out, n, from, to)
+                n += to - from
+                out[n++] = '\n'.code.toByte()
+            } else if (keep) {
+                n += to - from + 1
             }
             start = end + 1
         }
-        return label == null && keys > 0
+        return if (label == null && keys > 0) n else -1
     }
 
-    private val BEGIN = Regex("""-----BEGIN ([A-Z0-9]+(?: [A-Z0-9]+)*)-----""")
+    /* Blanks LibreSSL reads past around a line, a carriage return for one. */
+    private fun isBlank(b: Byte): Boolean = b.toInt().toChar() in " \t\r\u000c"
+
+    private val BEGIN = Regex("""-----BEGIN ([A-Za-z0-9]+(?: [A-Za-z0-9]+)*)-----""")
     private val HEADERS = listOf("Proc-Type: ", "DEK-Info: ").map { it.toByteArray() }
 
     /* A base64 line, or a header of an encrypted key in the older form, Proc-Type: 4,ENCRYPTED for one. */

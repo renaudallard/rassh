@@ -256,10 +256,13 @@ class KeysActivity : Activity() {
                 val failed = try {
                     val read = contentResolver.openInputStream(uri)?.use { Keys.read(it) }
                         ?: throw IOException("cannot open $uri")
-                    key = read
-                    if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
-                    /* As an import of an export takes them, see Keys.isPemKey(). */
-                    if (!Keys.isPemKey(read)) throw IOException("not a private key in PEM form, or not that alone")
+                    try {
+                        if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
+                        /* Its PEM blocks alone, as an import of an export keeps them. */
+                        key = Keys.pemOnly(read) ?: throw IOException("not a private key in PEM form")
+                    } finally {
+                        read.fill(0)
+                    }
                     null
                 } catch (e: Exception) {
                     if (!isFileError(e)) throw e

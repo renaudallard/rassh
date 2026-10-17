@@ -226,7 +226,7 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
             Keys.SUFFIXES.any { item.name.endsWith(it) && Keys.isValidName(item.name.removeSuffix(it)) }
-        /* Only a key, written as it is it could be a file ssh reads, a known_hosts or Include the config names. */
+        /* Only a key, see the PEM blocks kept below. */
         Backup.KEY -> Keys.isValidName(item.name) && Keys.isPemKey(item.data)
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
@@ -241,7 +241,15 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
         items.forEach { it.data.fill(0) }
         throw IOException("${big.name} is too large")
     }
-    return items
+    /*
+     * Of a key only its PEM blocks, what ssh reads of it: anything else
+     * could make it a file ssh reads otherwise, a known_hosts or an Include
+     * the config names for one.
+     */
+    return items.map { item ->
+        if (item.type != Backup.KEY) item
+        else Backup.Item(item.type, item.name, Keys.pemOnly(item.data)!!).also { item.data.fill(0) }
+    }
 }
 
 /* Store the items, which are zeroed afterwards, asking for a fingerprint when keys are to be added. */

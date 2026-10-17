@@ -324,11 +324,11 @@ shell allowed, with an `@` for instance, must be renamed first, as no
 import would take it.
 
 Import reads the file on the other phone, refusing it when one of its
-keys holds more than a private key in PEM form, other PEM blocks, EC
-parameters or a certificate for one, and blank or `#` lines, as a key
-item is written as it is, and asks whether to append or replace. The key
-screen takes only such keys, and an export stops at one that is not,
-naming it:
+keys holds no private key in PEM form, and writes of a key only its PEM
+blocks, what ssh reads of it: any other line could make it a file ssh
+reads otherwise, a known_hosts the config names for one. The key screen
+does the same, and an export stops at a key holding none, naming it.
+Import then asks whether to append or replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`
