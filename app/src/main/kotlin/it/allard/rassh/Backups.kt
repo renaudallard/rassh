@@ -224,8 +224,8 @@ private fun checked(items: List<Backup.Item>): List<Backup.Item> {
     fun valid(item: Backup.Item): Boolean = when (item.type) {
         Backup.FILE -> item.name == CONFIG || item.name == KNOWN_HOSTS ||
             Keys.SUFFIXES.any { item.name.endsWith(it) && Keys.isValidName(item.name.removeSuffix(it)) }
-        /* Only a key, written as it is it could be a file ssh reads, an Include of the config for one. */
-        Backup.KEY -> Keys.isValidName(item.name) && Keys.isPem(item.data)
+        /* Only a key, written as it is it could be a file ssh reads, a known_hosts or Include the config names. */
+        Backup.KEY -> Keys.isValidName(item.name) && Keys.isPemKey(item.data)
         /* Settings of later versions are skipped. */
         Backup.SETTING -> true
         else -> false

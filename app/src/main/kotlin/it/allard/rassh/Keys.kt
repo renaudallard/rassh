@@ -107,6 +107,55 @@ object Keys {
 
     private val PEM = "-----BEGIN ".toByteArray()
 
+    /**
+     * Whether data is a private key in PEM form, followed by nothing but
+     * other PEM blocks, a certificate for one, and blank lines: no line of
+     * it is one ssh could take for a host key or an option, were it read
+     * as known_hosts or as a config. Read in place, data is secret.
+     */
+    fun isPemKey(data: ByteArray): Boolean {
+        var label: String? = null
+        var blocks = 0
+        var start = 0
+        while (start < data.size) {
+            var end = start
+            while (end < data.size && data[end] != '\n'.code.toByte()) end++
+            val stop = if (end > start && data[end - 1] == '\r'.code.toByte()) end - 1 else end
+            when {
+                label == null && stop == start -> {}
+                label == null -> {
+                    val begin = String(data, start, stop - start, Charsets.ISO_8859_1)
+                    label = BEGIN.matchEntire(begin)?.groupValues?.get(1) ?: return false
+                    if (blocks++ == 0 && !label.endsWith("PRIVATE KEY")) return false
+                }
+                data[start] == '-'.code.toByte() ->
+                    if (String(data, start, stop - start, Charsets.ISO_8859_1) == "-----END $label-----") label = null
+                    else return false
+                !isPemBody(data, start, stop) -> return false
+            }
+            start = end + 1
+        }
+        return label == null && blocks > 0
+    }
+
+    private val BEGIN = Regex("""-----BEGIN ([A-Z0-9]+(?: [A-Z0-9]+)*)-----""")
+    private val HEADERS = listOf("Proc-Type: ", "DEK-Info: ").map { it.toByteArray() }
+
+    /* A base64 line, or a header of an encrypted key in the older form, Proc-Type: 4,ENCRYPTED for one. */
+    private fun isPemBody(data: ByteArray, from: Int, to: Int): Boolean {
+        val header = HEADERS.find { h -> to - from > h.size && h.indices.all { data[from + it] == h[it] } }
+        if (header != null)
+            return (from + header.size until to).all { isAlnum(data[it]) || data[it].toInt().toChar() in ",-" }
+        var i = from
+        while (i < to && (isAlnum(data[i]) || data[i].toInt().toChar() in "+/")) i++
+        if (i < to && data[i] == '='.code.toByte()) i++
+        if (i < to && data[i] == '='.code.toByte()) i++
+        return i == to
+    }
+
+    private fun isAlnum(b: Byte): Boolean =
+        b.toInt().toChar().let { it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' }
+
     /*
      * Remove the private keys left in temporary files, .x.tmp for key x,
      * by a write the app did not finish, see Paths.writePrivate(). Other
