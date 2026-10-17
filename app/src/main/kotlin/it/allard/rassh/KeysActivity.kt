@@ -286,7 +286,12 @@ class KeysActivity : Activity() {
                     } finally {
                         key?.fill(0)
                     }
-                    if (isDestroyed) return@runOnUiThread
+                    /* Said anyway once the screen is gone, its public key is then for the user to create. */
+                    if (isDestroyed) {
+                        applicationContext.toast(if (error != null) getString(R.string.import_failed, error)
+                            else getString(R.string.import_no_public, n))
+                        return@runOnUiThread
+                    }
                     /* Android refuses to start the session from the background. */
                     if (error != null) toast(getString(R.string.import_failed, error))
                     else if (resumed) derivePublicKey(n)
