@@ -452,16 +452,18 @@ private fun hasPattern(names: List<String>) = names.any { name -> name.any { it 
 
 /*
  * The marker of a known_hosts line, empty for a key, and the host names
- * it is for, in lower case as ssh compares them, those negated left out.
- * Null for a comment, a hashed name, which cannot be compared, and a
- * @revoked line, which only takes trust away. See hostfile.c.
+ * it is for, in lower case as ssh compares them, A to Z only, those
+ * negated left out. Null for a comment, a hashed name, which cannot be
+ * compared, and a @revoked line, which only takes trust away. See
+ * hostfile.c.
  */
 private fun knownNames(line: String): Pair<String, List<String>>? {
     val fields = line.trim().split(' ', '\t').filter { it.isNotEmpty() }
     val marker = fields.firstOrNull()?.takeIf { it.startsWith("@") } ?: ""
     val hosts = fields.getOrNull(if (marker.isEmpty()) 0 else 1) ?: return null
     if (hosts.startsWith("#") || hosts.startsWith("|") || marker == "@revoked") return null
-    return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }.map { it.lowercase() }
+    return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }
+        .map { name -> name.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("") }
 }
 
 /*
