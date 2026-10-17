@@ -118,15 +118,18 @@ keys are encrypted and unlocked with it.
 - **File browser** - from the menu of a saved host: browse, download,
   upload, rename, delete files and empty folders and create folders over
   SFTP, through `ssh`, so the host's options, jump hosts and keys apply,
-  but not its port forwards nor its `LocalCommand`, as with `sftp`. A
-  transfer cut short by a lost connection, or by the browser going away,
-  swiped from the recent apps for one, is offered to resume the next
-  time the browser connects to that host. A download goes on if the file
-  did not change on the server and the one on the phone is a regular
-  file it can append to that did not change, its size and time checked.
-  Changed on the phone, it is left alone and the download stops, as it
-  may be another file now. An upload goes on if the file on the phone is
-  a regular file that did not change, its size, time and the SHA-256 of
+  but not its port forwards nor its `LocalCommand`, as with `sftp`. An
+  upload first shows the names the files get on the server, as the app
+  they come from gives them, those that exist there already and would be
+  replaced too, and a name over 255 bytes becomes `upload`. A transfer
+  cut short by a lost connection, or by the browser going away, swiped
+  from the recent apps for one, is offered to resume the next time the
+  browser connects to that host. A download goes on if the file did not
+  change on the server and the one on the phone is a regular file it can
+  append to that did not change, its size and time checked. Changed on
+  the phone, it is left alone and the download stops, as it may be
+  another file now. An upload goes on if the file on the phone is a
+  regular file that did not change, its size, time and the SHA-256 of
   what was sent checked, and the server holds no more than was sent, nor
   less than all but its last 2 MiB. It writes again the last 2 MiB the
   server holds, as some of the 64 requests of 32 KiB in flight may not

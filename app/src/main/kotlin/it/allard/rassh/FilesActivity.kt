@@ -562,20 +562,35 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
         /* A NUL as well, sftp-server ends the connection on a name holding one before its end. */
         val safe = name?.replace('/', '_')?.replace('\u0000', '_')?.trim()
-        return if (safe.isNullOrEmpty() || safe == "." || safe == "..") "upload" else safe
+        /* Over 255 bytes no file system takes it, and a long one makes a request sftp-server refuses. */
+        return if (safe.isNullOrEmpty() || safe == "." || safe == ".." || safe.toByteArray().size > 255) "upload" else safe
     }
 
-    /* The server says what exists in dir, the listing shown may be another one. */
+    /*
+     * The names are shown before anything is sent, those that exist on
+     * the server too: a provider may give another name than the one the
+     * picker showed, that of a file a shell reads at login for one. The
+     * server says what exists in dir, the listing shown may be another one.
+     */
     private fun confirmUpload(uris: List<Uri>, dir: String) {
         val c = client() ?: return
         /* The names come from the providers, which may be slow, on the worker too. */
         run({
             val names = uris.map { remoteName(it) }
             /* They would replace each other without a word. */
-            if (names.toSet().size != names.size) null else Pair(names, names.any { exists(c, path(dir, it)) })
+            if (names.toSet().size != names.size) null else Pair(names, names.filter { exists(c, path(dir, it)) })
         }) { found ->
-            val (names, clash) = found ?: return@run toast(getString(R.string.upload_same_name))
-            replacing(clash) { uploadAll(uris, names, dir) }
+            val (names, existing) = found ?: return@run toast(getString(R.string.upload_same_name))
+            val shown = { list: List<String> -> list.joinToString("\n") { shownName(it) } }
+            AlertDialog.Builder(this)
+                .setTitle(R.string.upload)
+                .setMessage(getString(R.string.upload_names, shownName(dir), shown(names)) +
+                    if (existing.isEmpty()) "" else "\n\n" + getString(R.string.replace_named, shown(existing)))
+                .setPositiveButton(if (existing.isEmpty()) R.string.upload else R.string.replace) { _, _ ->
+                    uploadAll(uris, names, dir)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
         }
     }
 
