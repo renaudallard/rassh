@@ -181,6 +181,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 s.sftp ?: throw IOException(getString(R.string.files_not_connected))
             }
             client.realpath(".")
+        }, { e ->
+            /*
+             * Said where it stays, as a toast cuts the advice of a bad packet
+             * length short, and so is a server refusing REALPATH, which left
+             * the browser connecting with nothing to do.
+             */
+            failed(e)
+            if (e !is SftpCancelledException) status.text = getString(R.string.files_failed, e.message)
         }) { start ->
             home = start
             /* Uploads still go there when it cannot be listed, a drop folder for one. */
