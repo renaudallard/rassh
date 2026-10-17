@@ -456,15 +456,26 @@ private fun hasPattern(names: List<String>) = names.any { name -> name.any { it 
 /*
  * The marker of a known_hosts line, empty for a key, and the host names
  * it is for, in lower case as ssh compares them, A to Z only, those
- * negated left out. Null for a comment, a hashed name, which cannot be
- * compared, and a @revoked line, which only takes trust away. See
- * hostfile.c.
+ * negated left out. Read as hostkeys_foreach_file() and check_markers()
+ * in hostfile.c do: blanks are spaces and tabs only, # makes a comment
+ * only before the marker, which ends at the first space, or at the first
+ * tab when there is none. Null for a line ssh skips, a hashed name, which
+ * cannot be compared, and a @revoked line, which only takes trust away.
  */
 private fun knownNames(line: String): Pair<String, List<String>>? {
-    val fields = line.trim().split(' ', '\t').filter { it.isNotEmpty() }
-    val marker = fields.firstOrNull()?.takeIf { it.startsWith("@") } ?: ""
-    val hosts = fields.getOrNull(if (marker.isEmpty()) 0 else 1) ?: return null
-    if (hosts.startsWith("#") || hosts.startsWith("|") || marker == "@revoked") return null
+    var rest = line.dropWhile { it == ' ' || it == '\t' }
+    if (rest.isEmpty() || rest.startsWith("#")) return null
+    var marker = ""
+    if (rest.startsWith("@")) {
+        val end = rest.indexOf(' ').takeIf { it >= 0 } ?: rest.indexOf('\t')
+        if (end < 0) return null
+        marker = rest.substring(0, end)
+        if (marker != "@cert-authority" && marker != "@revoked") return null
+        rest = rest.substring(end).dropWhile { it == ' ' || it == '\t' }
+        if (rest.startsWith("@")) return null
+    }
+    val hosts = rest.takeWhile { it != ' ' && it != '\t' }
+    if (hosts == rest || hosts.startsWith("|") || marker == "@revoked") return null
     return marker to hosts.split(',').filter { it.isNotEmpty() && !it.startsWith("!") }.map { lowerAscii(it) }
 }
 
