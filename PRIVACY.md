@@ -13,7 +13,9 @@ and opens only the port forwards you configure. The names of the
 servers it connects to directly, jump hosts included, are looked up
 through the phone's DNS resolver, as for any app, so the network or the
 Private DNS provider you set sees them. A host reached through a jump
-host is looked up by that host. Nothing else is sent anywhere.
+host is looked up by that host, unless its options say otherwise: with
+`VerifyHostKeyDNS` the phone also looks up its key in the DNS, and with
+`CanonicalizeHostname always` its name. Nothing else is sent anywhere.
 
 ## Data on your phone
 
