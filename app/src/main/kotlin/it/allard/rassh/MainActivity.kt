@@ -274,6 +274,8 @@ class MainActivity : Activity(), SessionService.Listener {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 held = -1
+                /* A long press from a keyboard or TalkBack ends without a lift. */
+                if (stale) loadHosts()
                 finger = e.getPointerId(0)
                 downY = e.y
             }
@@ -341,7 +343,8 @@ class MainActivity : Activity(), SessionService.Listener {
         held = -1
         adapter.held = -1
         list.removeCallbacks(scroll)
-        if (to == heldFrom) {
+        /* Changed meanwhile, by an import for one, the place is one of the hosts before. */
+        if (to == heldFrom || stale) {
             if (stale) loadHosts()
             return
         }
