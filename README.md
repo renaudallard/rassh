@@ -149,6 +149,7 @@ keys are encrypted and unlocked with it.
   since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
+  it
 - **Export and import** - hosts, keys and settings in one file sealed with
   a passphrase, see [Moving to another phone](#moving-to-another-phone)
 - **Changed host keys** - when `ssh`, `sftp` or the file browser is
