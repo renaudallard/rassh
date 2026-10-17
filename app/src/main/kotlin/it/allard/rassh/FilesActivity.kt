@@ -682,14 +682,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (!isFileError(e)) throw e
                 if (host != null && kept && c.isBroken && !stopped()) {
                     /*
-                     * Cut again before reading past what was checked, as
-                     * it starts below what the server has: the record it
-                     * resumed still stands, the server holds no more.
-                     * Not once started over, the server then holds what
-                     * was sent since.
+                     * Cut again before the server file was touched, or
+                     * before reading past what was checked, as it starts
+                     * below what the server has: the record it resumed
+                     * still stands, the server holds no more. Not once
+                     * started over from 0, the server then holds what was
+                     * sent since.
                      */
                     val h = hashing
-                    if (resumed != null && verified && start != 0L && h != null && h.count < resumed.sent)
+                    if (resumed != null && index == resumed.index &&
+                        (start == -1L || verified && start != 0L && h != null && h.count < resumed.sent))
                         keepResumable(host, resumed)
                     else
                         keepResumable(host, Resumable.Upload(dir, uris, names, index, length, modified,
