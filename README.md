@@ -157,12 +157,13 @@ keys are encrypted and unlocked with it.
   hosts only its name and the addresses there go, as ssh would refuse a
   new key differing from the one of the address it reaches with
   `CheckHostIP`, and a pattern line is left, as other hosts may match
-  it, unlike with `ssh-keygen -R`, which removes whole lines: a message
-  then says to edit `known_hosts` by hand. With `CheckHostIP yes` the
-  warning also says the address may keep the old key on a line of its
-  own, hashed for instance, as nothing finds it. With a `LogLevel`
-  below `INFO` nothing is offered, as the server could then print ssh's
-  lines itself
+  it, unlike with `ssh-keygen -R`, which removes whole lines: the
+  warning, or a message when nothing else can go, then says to edit
+  `known_hosts` by hand, as ssh would still refuse the old key there.
+  With `CheckHostIP yes` the warning also says the address may keep the
+  old key on a line of its own, hashed for instance, as nothing finds
+  it. With a `LogLevel` below `INFO` nothing is offered, as the server
+  could then print ssh's lines itself
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or

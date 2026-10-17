@@ -166,7 +166,10 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             }.filterValues { it.isNotEmpty() }
             val left = found.values.flatten().any { withoutHost(it, known.name) == it }
             if (edits.isEmpty()) return@runOnUiThread toast(getString(R.string.host_key_shared, known.name))
-            /* What the next connection does once the key is gone: ssh prompts only when asked to. */
+            /*
+             * What the next connection does once the key is gone: ssh prompts
+             * only when asked to, and still refuses the old key a pattern holds.
+             */
             val (then, removed) = when (known.checking) {
                 "accept-new", "false" -> R.string.host_key_then_accepted to R.string.host_key_removed_accepted
                 "true" -> R.string.host_key_then_refused to R.string.host_key_removed_refused
@@ -174,7 +177,8 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             }
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
-                .setMessage(getString(R.string.host_key_changed_text, known.name, getString(then)) +
+                .setMessage(getString(R.string.host_key_changed_text, known.name,
+                    if (left) getString(R.string.host_key_then_shared, known.name) else getString(then)) +
                     if (known.checkIp) "\n\n" + getString(R.string.host_key_address, known.name) else "")
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {

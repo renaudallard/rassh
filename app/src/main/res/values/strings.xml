@@ -50,6 +50,7 @@
     <string name="host_key_then_accepted">With StrictHostKeyChecking accept-new or no, connecting again then takes whatever key the server presents without asking: compare the fingerprint ssh printed above with the administrator first.</string>
     <string name="host_key_then_refused">With StrictHostKeyChecking yes, connecting again is then refused until the new key is in known_hosts.</string>
     <string name="host_key_address">With CheckHostIP yes, the address of %1$s may keep the old key on a line of its own, hashed for instance, and ssh then says it differs from the new one: edit known_hosts in the local shell.</string>
+    <string name="host_key_then_shared">A pattern line for %1$s, which other hosts may match, is left and may hold the old key: connecting again is then still refused until it is edited in known_hosts in the local shell.</string>
     <string name="host_key_remove">Remove old key</string>
     <string name="host_key_keep">Keep</string>
     <string name="host_key_removed">Old key removed, connect again to check the new one</string>
