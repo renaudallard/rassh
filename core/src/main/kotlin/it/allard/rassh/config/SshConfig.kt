@@ -263,7 +263,8 @@ class SshConfig private constructor(
      * HostKeyAlias or ProxyJump it sets: what the host editor takes, and
      * no blank, # or glob, which would change the command or the files it
      * names, nor a slash, which would reach another file. A ProxyJump hop
-     * keeps those of an ssh:// URI.
+     * keeps those of an ssh:// URI. ssh takes the rest of a ProxyJump line
+     * as it is, up to a #, not its first word, see parse_jump().
      */
     private fun expandable(line: String): Boolean {
         val (key, value) = keyword(line) ?: return true
@@ -273,8 +274,9 @@ class SshConfig private constructor(
             equalsAscii(key, "HostName") -> Host.isValidWord(word) && plain(word)
             equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word)
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
-            equalsAscii(key, "ProxyJump") ->
-                Host.isValidJump(word) && word.split(',').all { plain(it.removePrefix("ssh://").removeSuffix("/")) }
+            equalsAscii(key, "ProxyJump") -> value.substringBefore('#').trim().let { raw ->
+                Host.isValidJump(raw) && raw.split(',').all { plain(it.removePrefix("ssh://").removeSuffix("/")) }
+            }
             else -> true
         }
     }

@@ -356,13 +356,13 @@ is left out, the key then has none yet:
   or `@cert-authority` line with a wildcard in a name not negated, which
   could match a host known here, and the font size if not set yet. Only
   `Host` blocks naming a single host are taken: global options, `Match`
-  blocks and `Host` blocks with wildcards or several names or holding an
-  `Include`, whose file ssh reads for every host, are left out, and so
-  are blocks whose `HostName`, `User`, `HostKeyAlias` or `ProxyJump`
-  holds what the host editor refuses, a shell character for one, or a
-  blank, `#`, `/`, `*`, `?` or `~`, as ssh checks the result with the
-  `Match exec` and `Include` lines here, which may take these values, as
-  they could change the hosts already there, and so is a block named as
+  blocks and `Host` blocks with wildcards or several names are left out,
+  as they could change the hosts already there, and so is a block
+  holding an `Include`, whose file ssh reads for every host, one whose
+  `HostName`, `User`, `HostKeyAlias` or `ProxyJump` holds a quote or
+  another shell character, a blank, `#`, `*`, `?`, `~` or a `/` but that
+  of an `ssh://` jump host, as the `Match exec` and `Include` lines here
+  may take these values when ssh checks the result, and a block named as
   the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
   there, as ssh reads the block of a jump host for it, and that of its
   `HostName` after a `Match final` or canonicalization. Every word of a
