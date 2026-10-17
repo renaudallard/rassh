@@ -707,7 +707,8 @@ class MainActivity : Activity(), SessionService.Listener {
          * sftp does too: what it prints would go into the SFTP pipe. The
          * one of clearAfterLogin() comes first and still runs. Never a
          * ControlMaster either, as sftp: the sessions sharing it would end
-         * with the browser. It still goes through one already running.
+         * with the browser. It still goes through one already running. A
+         * jump host's ssh takes none of these, as with sftp -J.
          */
         private val FILES =
             listOf("-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no", "-o", "ControlMaster=no")
