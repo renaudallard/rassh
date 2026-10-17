@@ -82,13 +82,20 @@ class Paths(context: Context) {
     /*
      * A link the app cannot follow, into a storage card removed or no
      * longer allowed for one, is not a missing file: written, the link
-     * would become a file of its own, the one it names left behind.
+     * would become a file of its own, the one it names left behind. One
+     * naming a file still to be made in a folder there is taken, as ssh
+     * would make it.
      */
     @Throws(IOException::class)
     private fun checkReachable(file: File) {
-        if (Files.isSymbolicLink(file.toPath()) && !Files.exists(file.toPath()))
-            throw UnreachableException(file.name)
+        val path = file.toPath()
+        if (!Files.isSymbolicLink(path) || Files.exists(path)) return
+        if (!Files.isDirectory(linkTarget(file).toPath().parent ?: return)) throw UnreachableException(file.name)
     }
+
+    /* The file a link names, followed once: a missing one has no canonical path. */
+    private fun linkTarget(file: File): File =
+        file.toPath().resolveSibling(Files.readSymbolicLink(file.toPath())).toFile()
 
     /* The config as shown, decoded leniently: textOf() is for one written back. */
     @Throws(IOException::class)
@@ -130,7 +137,11 @@ class Paths(context: Context) {
     fun writePrivate(file: File, data: ByteArray) {
         checkReachable(file)
         /* Through a link, made in the local shell for instance, the file it names is replaced. */
-        val target = if (Files.isSymbolicLink(file.toPath())) file.canonicalFile else file
+        val target = when {
+            !Files.isSymbolicLink(file.toPath()) -> file
+            Files.exists(file.toPath()) -> file.canonicalFile
+            else -> linkTarget(file)
+        }
         /* Hidden, a key the user named x.tmp is not taken for one, see Keys.removeLeftovers(). */
         val tmp = File(target.parentFile, ".${target.name}.tmp")
         try {
