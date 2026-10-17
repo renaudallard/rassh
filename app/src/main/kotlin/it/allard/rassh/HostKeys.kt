@@ -28,7 +28,7 @@ private class KnownHost(val name: String, val files: List<File>, val quiet: Bool
 /*
  * Where ssh looks up the key of the host target reaches, taken from the
  * local configuration only: what the server printed cannot choose which
- * keys are removed. Only files under ~/.ssh are considered.
+ * keys are removed. Only files in ~/.ssh itself are considered.
  */
 @Throws(IOException::class)
 private fun knownHost(paths: Paths, target: List<String>): KnownHost {
