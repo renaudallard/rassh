@@ -54,7 +54,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     val misnamed = names.sorted().firstOrNull { !Keys.isValidName(it) } ?: Keys.misnamed(paths.sshDir).firstOrNull()
     if (misnamed != null) {
         discard()
-        toast(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
+        sayInFull(getString(R.string.export_failed, getString(R.string.export_bad_name, misnamed)))
         return
     }
     /* A key in clear no import would take, said before as well, see exportItems(). Vault keys need the fingerprint. */
@@ -72,7 +72,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
     }
     if (notKey != null) {
         discard()
-        toast(getString(R.string.export_failed, getString(R.string.export_not_key, notKey)))
+        sayInFull(getString(R.string.export_failed, getString(R.string.export_not_key, notKey)))
         return
     }
     askPassphrase(R.string.export, true, { discard() }) { pass ->
@@ -82,7 +82,8 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
             } catch (e: IOException) {
                 pass.fill('\u0000')
                 discard()
-                toast(getString(R.string.export_failed, e.message))
+                /* A key an import would refuse is named, with what to do. */
+                sayInFull(getString(R.string.export_failed, e.message))
                 return
             }
             thread(name = "export") {
@@ -116,6 +117,12 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                 discard()
             }) { key -> export(key) }
     }
+}
+
+/* In a dialog, a toast cuts a message short after two lines. */
+private fun Activity.sayInFull(message: String) {
+    if (isDestroyed) applicationContext.toast(message)
+    else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
 }
 
 /* key unseals the vault keys, null when there are none. */
@@ -222,10 +229,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                     toast(getString(R.string.restore_failed, error))
                 } else if (refusal != null) {
                     opened.forEach { it.data.fill(0) }
-                    val message = getString(R.string.restore_failed, refusedMessage(refusal))
-                    /* A dialog, a toast would cut ssh's lines short. */
-                    if (isDestroyed) applicationContext.toast(message)
-                    else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
+                    sayInFull(getString(R.string.restore_failed, refusedMessage(refusal)))
                 } else if (isDestroyed) {
                     /* Adding keys needs a fingerprint prompt, which only a live screen shows. */
                     opened.forEach { it.data.fill(0) }
