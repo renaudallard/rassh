@@ -14,9 +14,10 @@ import kotlin.concurrent.thread
  * the LogLevel is below INFO: ssh then does not end a session with a
  * terminal with "Connection to host closed.", which tells its own last
  * lines from the same ones printed by the server. checkIp when ssh also
- * checks the key known for the address it reaches, which it does not
- * through a proxy or when the host name is that address, see
- * sshconnect.c.
+ * checks the key known for the address it reaches: not through a proxy,
+ * nor when the host name is an address, unless HostKeyAlias names the
+ * host off port 22, the address then being written with its port beside
+ * the alias, see check_host_key() in sshconnect.c.
  */
 private class KnownHost(val name: String, val files: List<File>, val quiet: Boolean, val checking: String?,
     val checkIp: Boolean)
@@ -40,14 +41,15 @@ private fun knownHost(paths: Paths, target: List<String>): KnownHost {
     val alias = config["hostkeyalias"]
     val port = config["port"] ?: "22"
     val host = config["hostname"] ?: throw IOException("no host name")
-    val name = if (alias != null && alias != "none") alias else if (port == "22") host else "[$host]:$port"
+    val aliased = alias != null && alias != "none"
+    val name = if (aliased) alias else if (port == "22") host else "[$host]:$port"
     val dir = paths.sshDir.canonicalFile
     val files = config["userknownhostsfile"].orEmpty().split(' ').filter { it.isNotEmpty() }
         .map { File(it).canonicalFile }
         .filter { it.parentFile == dir && it.isFile }
     return KnownHost(name, files, config["loglevel"]?.uppercase() in setOf("QUIET", "FATAL", "ERROR"),
         config["stricthostkeychecking"], config["checkhostip"] == "yes" && "proxyjump" !in config &&
-            "proxycommand" !in config && !isAddress(host))
+            "proxycommand" !in config && (!isAddress(host) || aliased && port != "22"))
 }
 
 private val FOUND = Regex("""# Host .* found: line \d+ ?(CA|REVOKED)?[ \t]*""")
