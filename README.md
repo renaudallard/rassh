@@ -150,8 +150,8 @@ keys are encrypted and unlocked with it.
   refused by a server whose key changed, a warning offers to remove the
   old key, then connecting again shows the fingerprint of the new one to
   confirm, unless `StrictHostKeyChecking` is `accept-new`, which takes
-  it without asking, or `yes`, which refuses it: the warning and the
-  message once it is removed say so.
+  it without asking, or `yes`, which refuses it: the warning says so, as
+  does the message once it is removed when no pattern line is left.
   The host is resolved from the local configuration with `ssh -G`, so
   only the lines matching it are removed. From a line also naming other
   hosts only its name goes, with the addresses there when ssh checks the

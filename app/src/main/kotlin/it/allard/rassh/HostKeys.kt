@@ -180,7 +180,7 @@ fun Activity.offerNewHostKey(paths: Paths, session: Session) {
             val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.host_key_changed)
                 .setMessage(getString(R.string.host_key_changed_text, known.name,
-                    if (left) getString(R.string.host_key_then_shared, known.name) else getString(then)) +
+                    (if (left) getString(R.string.host_key_then_shared, known.name) + " " else "") + getString(then)) +
                     if (known.checkIp) "\n\n" + getString(R.string.host_key_address, known.name) else "")
                 .setPositiveButton(R.string.host_key_remove) { _, _ ->
                     try {
