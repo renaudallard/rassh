@@ -35,8 +35,9 @@ private const val KNOWN_HOSTS2 = "known_hosts2"
  * not happen, a new file is deleted, one replaced only once written to.
  */
 fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
+    /* In a thread, a provider may be slow to answer, a cloud one for instance. */
     fun discard() {
-        if (isEmptyDocument(uri)) deleteDocument(uri)
+        thread(name = "discard") { if (isEmptyDocument(uri)) deleteDocument(uri) }
     }
     /* A vault it cannot read is said before the passphrase is asked. */
     val names = try {
