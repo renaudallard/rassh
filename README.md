@@ -326,7 +326,8 @@ keys is not a private key in PEM form, as the key screen does, and asks
 whether to append or replace:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
-  the `known_hosts` lines of hosts not known here yet, also through a
+  the `known_hosts` lines of hosts not known here yet, in `known_hosts`
+  or `known_hosts2`, the files ssh reads by default, also through a
   hashed line, a pattern or a line of the other kind, key or
   `@cert-authority`, as ssh would trust again an old key of one, removed
   here once changed, or a certificate a new authority signed, hashed and

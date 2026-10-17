@@ -26,6 +26,9 @@ private const val MIN_PASSPHRASE = 12
 private const val CONFIG = "config"
 private const val KNOWN_HOSTS = "known_hosts"
 
+/* The other file ssh reads host keys from by default, only written by hand. */
+private const val KNOWN_HOSTS2 = "known_hosts2"
+
 /**
  * Seal the hosts, keys and settings into uri with a passphrase. The file
  * picker created uri or picked a file to replace: when the export does
@@ -176,7 +179,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                             refused = configRefusal(paths, it.text, it.names, it.read, it.added)
                         }
                     }
-                    /* One ssh-keygen for each name. */
+                    /* One ssh-keygen for each name and file. */
                     if (!replace) here = knownHere(paths, opened)
                 } catch (e: IOException) {
                     opened.forEach { it.data.fill(0) }
@@ -423,13 +426,13 @@ private fun knownLines(text: String) = text.split('\n').map { it.removeSuffix("\
 
 /*
  * The known_hosts of an export, the one here as read and the names of
- * the export's lines ssh-keygen finds a line for here, see foundLines().
- * A name is known here, its keys and authorities not added, also through
- * a hashed line, a pattern or a line of another kind: ssh takes a key
- * any of a host's lines holds, an old one, removed here once changed,
- * would be trusted again, and a certificate a new authority signed
- * passes for a host known by its key, as a key does for one known by
- * its authority.
+ * the export's lines ssh-keygen finds a line for here, in known_hosts or
+ * known_hosts2, see foundLines(). A name is known here, its keys and
+ * authorities not added, also through a hashed line, a pattern or a line
+ * of another kind: ssh takes a key any of a host's lines holds, an old
+ * one, removed here once changed, would be trusted again, and a
+ * certificate a new authority signed passes for a host known by its key,
+ * as a key does for one known by its authority.
  */
 private class KnownHere(val read: String, val theirs: String, val found: Set<String>)
 
@@ -441,7 +444,8 @@ private fun knownHere(paths: Paths, items: List<Backup.Item>): KnownHere? {
     val read = paths.textOf(file)
     val theirs = Paths.utf8(item.data, KNOWN_HOSTS)
     val names = knownLines(theirs).mapNotNull { knownNames(it)?.second }.filter { !hasPattern(it) }.flatten().toSet()
-    val found = if (read.isEmpty()) emptySet() else names.filter { foundLines(paths, it, file).isNotEmpty() }.toSet()
+    val files = listOfNotNull(file.takeIf { read.isNotEmpty() }, File(paths.sshDir, KNOWN_HOSTS2).takeIf { it.isFile })
+    val found = names.filter { name -> files.any { foundLines(paths, name, it).isNotEmpty() } }.toSet()
     return KnownHere(read, theirs, found)
 }
 
