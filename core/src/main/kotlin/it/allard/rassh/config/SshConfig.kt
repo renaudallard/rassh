@@ -268,7 +268,10 @@ class SshConfig private constructor(
      * no blank, # or glob, which would change the command or the files it
      * names, nor a slash, which would reach another file. A ProxyJump hop
      * keeps those of an ssh:// URI. ssh takes the rest of a ProxyJump line
-     * as it is, up to a #, not its first word, see parse_jump().
+     * as it is, up to a #, not its first word, see parse_jump(). It puts
+     * a User there as written: the shell then expands a $ in it and takes
+     * a \ off, one starting it may make an option, one ending it joins the
+     * word after.
      */
     private fun expandable(line: String): Boolean {
         val (key, value) = keyword(line) ?: return true
@@ -276,7 +279,8 @@ class SshConfig private constructor(
         fun plain(s: String) = s.none { it.isWhitespace() || it in "/#*?~" }
         return when {
             equalsAscii(key, "HostName") -> Host.isValidWord(word) && plain(word)
-            equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word)
+            equalsAscii(key, "User") -> Host.isValidUser(word) && plain(word) && '$' !in word &&
+                !word.startsWith("\\") && !word.endsWith("\\")
             equalsAscii(key, "HostKeyAlias") -> Host.isValidWord(word) && plain(word)
             equalsAscii(key, "ProxyJump") -> value.substringBefore('#').trim().let { raw ->
                 Host.isValidJump(raw) && raw.split(',').all { plain(it.removePrefix("ssh://").removeSuffix("/")) }
