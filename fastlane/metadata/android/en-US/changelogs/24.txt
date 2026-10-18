@@ -1,0 +1,7 @@
+- Imports read known_hosts, hosts and keys as ssh does: a hostile export can no longer trust a key for any host or feed values to a Match exec in your config
+- Other apps' overlays are hidden while rassh is shown
+- A jump host with ForwardAgent yes gets no vault key
+- The changed host key dialog no longer removes other hosts' keys
+- Upload names are shown before uploading
+- A session ending inside tmux or vim keeps ssh's last message
+- Many fixes in the editor, file browser, keys, terminal
