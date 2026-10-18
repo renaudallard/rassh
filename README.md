@@ -225,8 +225,7 @@ keys are encrypted and unlocked with it.
 
 Download `rassh-v<version>.apk` from the
 [latest release](https://github.com/renaudallard/rassh/releases/latest)
-and install it. It needs Android 13 or newer on an `arm64-v8a` or
-`x86_64` device.
+and install it. It needs Android 13 or newer on an `arm64-v8a` device.
 
 | Permission | Why |
 | --- | --- |
@@ -442,9 +441,10 @@ native/build.sh
 ./gradlew :core:test :app:assembleDebug
 ```
 
-`native/build.sh` downloads the LibreSSL and OpenSSH release tarballs from
-cdn.openbsd.org, checks their SHA-256 and builds `arm64-v8a` and `x86_64`,
-or only the ABIs given as arguments. The programs go to
+`native/build.sh` downloads the LibreSSL and OpenSSH release tarballs
+from cdn.openbsd.org, checks their SHA-256 and builds them for
+`arm64-v8a`, or for the ABIs given as arguments: `x86_64` for an
+emulator, which no release includes. The programs go to
 `app/src/main/jniLibs`, and their license files, shown in the About
 dialog, to `app/src/main/assets/licenses`.
 

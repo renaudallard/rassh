@@ -135,7 +135,8 @@ toolchain=$ndk/toolchains/llvm/prebuilt/$host
 [ -d "$toolchain" ] || die "$toolchain: not found"
 jobs=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
 
-[ $# -gt 0 ] || set -- arm64-v8a x86_64
+# What is published. x86_64 only for those trying the app in an emulator.
+[ $# -gt 0 ] || set -- arm64-v8a
 
 mkdir -p "$work"
 fetch "$LIBRESSL_URL" "libressl-$LIBRESSL_VERSION.tar.gz" "$LIBRESSL_SHA256"
