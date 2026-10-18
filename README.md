@@ -53,17 +53,18 @@ keys are encrypted and unlocked with it.
   `TAB`, `HOME`, `END`, arrows and page keys repeat while held
 - **Saved hosts** - kept as `Host` blocks of `~/.ssh/config`: host name,
   user, port, identity file, local, remote and dynamic forwards, plus
-  any other `ssh_config(5)` option. Other blocks, `Host *` and `Match`
-  included, and their comments are left untouched, the comments of an
-  edited host stay among its other options, but not one ending its host
-  name, user, port or identity file line. Further `Host` blocks of the
-  same name only change with it: renaming the host renames them,
-  deleting it deletes them. ssh checks the file before it is saved, for
-  each host its `Host` lines name and for a name they do not, like those
-  of quick connect, since one bad line would stop them all: ssh reads
-  every block, and an option a host's own `IgnoreUnknown` lets pass
-  stops the others. Another host ssh refused already does not stop the
-  change. A file changed during that check is not overwritten, nor a
+  any other `ssh_config(5)` option. Other blocks, `Host *`, `Match` and
+  those naming several hosts included, and their comments are left
+  untouched, the latter not listed, though their names are taken, the
+  comments of an edited host stay among its other options, but not one
+  ending its host name, user, port or identity file line. Further `Host`
+  blocks of the same name only change with it: renaming the host renames
+  them, deleting it deletes them. ssh checks the file before it is
+  saved, for each host its `Host` lines name and for a name they do not,
+  like those of quick connect, since one bad line would stop them all:
+  ssh reads every block, and an option a host's own `IgnoreUnknown` lets
+  pass stops the others. Another host ssh refused already does not stop
+  the change. A file changed during that check is not overwritten, nor a
   host changed or deleted elsewhere since its editor opened it. A config
   or `known_hosts` that is not UTF-8 is never rewritten: saving,
   deleting or moving a host, renaming a key, removing a changed host key
@@ -97,23 +98,25 @@ keys are encrypted and unlocked with it.
   or `-J jump host`
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
   app user, in its home directory, with `ssh`, `scp`, `sftp`, `ssh-add`,
-  `ssh-agent` and `ssh-keygen` first in `PATH`. Keys in the vault do not
-  reach it, only keys in clear are found there. With All files access it
-  also reads and writes your files in shared storage, under `/sdcard`
+  `ssh-agent` and `ssh-keygen` first in `PATH`. It is given no agent, so
+  only keys in clear are found there. With All files access it also
+  reads and writes your files in shared storage, under `/sdcard`
 - **Encrypted keys** - private keys live in a vault sealed by the Android
   Keystore and opened with a fingerprint, see [Key storage](#key-storage)
 - **Agent** - each connection gets an `ssh-agent` of its own holding the
-  unlocked keys while it logs in, so `ssh`, `scp`, `sftp` and `ProxyJump`
-  hosts use them without writing them to disk, and one login emptying
-  its agent cannot leave another without keys. `ssh` and the file browser
-  remove the keys once logged in, `scp`, `sftp` and either of the first
-  two reusing a `ControlMaster` connection after 60 seconds. Agent
-  forwarding is off, as the server could use the keys while they are
-  loaded. `-A` turns it on, but ssh only forwards the agent once logged
-  in, when the keys have left it, so no vault key reaches the server.
-  The agent also serves nothing to a connection ssh forwards with agent
-  forwarding, so a jump host whose block sets `ForwardAgent yes`, read by
-  its own ssh without the app's options, gets no key either
+  unlocked keys while it logs in, so `ssh`, `scp`, `sftp` and
+  `ProxyJump` hosts use them without writing them to disk, and one login
+  emptying its agent cannot leave another without keys. `ssh` and the
+  file browser remove the keys once logged in, `scp`, `sftp` and either
+  of the first two reusing a `ControlMaster` connection after 60
+  seconds. Agent forwarding is off, as the server could use the keys
+  while they are loaded. `-A` turns it on, but ssh only forwards the
+  agent once logged in, when the keys have left it, so no vault key
+  reaches the server. The agent also serves nothing to a connection ssh
+  forwards with agent forwarding, so a jump host whose block sets
+  `ForwardAgent yes`, read by its own ssh without the app's options,
+  gets no key either. A host whose `IdentityAgent` is set, by a `Host *`
+  block for one, uses that agent instead and gets no vault key
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
   key, show, copy or share public keys. OpenSSH 10.6 renamed the
@@ -131,30 +134,33 @@ keys are encrypted and unlocked with it.
   on the server, as the app they come from gives them, those that exist
   there already and would be replaced too, one per line, with `_` for a
   slash and for control, line break and bidi characters, which could
-  hide or disguise another name, and a name over 255 bytes becomes
-  `upload`. A transfer cut short by a lost connection, or by the browser
-  going away, swiped from the recent apps for one, is offered to resume
-  the next time the browser connects to that host. A download goes on if
-  the file did not change on the server and the one on the phone is a
-  regular file it can append to that did not change, its size and time
-  checked. Changed on the phone, it is left alone and the download
-  stops, as it may be another file now. An upload goes on if the file on
-  the phone is a regular file that did not change, its size, time and
-  the SHA-256 of what was sent checked, and the server holds no more
-  than was sent, nor less than all but its last 2 MiB. It writes again
-  the last 2 MiB the server holds, as some of the 64 requests of 32 KiB
-  in flight may not have landed. Otherwise the file starts again. A file
-  of its name on the server that the upload could not have left, and the
-  files after it that exist there by then, are replaced only once asked.
-  A transfer stopped, also by closing its session from the terminal
-  screen, or refused by the server is not offered: a download removes
-  its partial file, an upload the file it created if the connection
-  still works, but not one a resumed upload found there. Deleting or
-  editing the host drops what was cut short, as does a Replace import,
-  saving it unchanged does not. A transfer still running then and cut
-  afterwards is offered again if the host kept its name, or dropped when
-  the app starts again. A dropped download removes its partial file only
-  if its size and time, when known, did not change since it was cut
+  hide or disguise another name, and a name over 255 bytes, empty, `.`
+  or `..` becomes `upload`, blanks around it trimmed. Files that would
+  get the same name are refused, to upload one at a time. A transfer cut
+  short by a lost connection, or by the browser going away, swiped from
+  the recent apps for one, is offered to resume the next time the
+  browser connects to that host, the last one cut short there only. A
+  download goes on if the file did not change on the server and the one
+  on the phone is a regular file it can append to that did not change,
+  its size and time checked. Changed on the phone, it is left alone and
+  the download stops, as it may be another file now. An upload goes on
+  if the file on the phone is a regular file that did not change, its
+  size, time and the SHA-256 of what was sent checked, and the server
+  holds no more than was sent, nor less than all but its last 2 MiB. It
+  writes again the last 2 MiB the server holds, as some of the 64
+  requests of 32 KiB in flight may not have landed. Otherwise the file
+  starts again. A file of its name on the server that the upload could
+  not have left, and the files after it that exist there by then, are
+  replaced only once asked. A transfer stopped, also by closing its
+  session from the terminal screen, or refused by the server is not
+  offered: a download removes its partial file, an upload the file it
+  created if the connection still works, but not one a resumed upload
+  found there. Deleting or editing the host drops what was cut short, as
+  does a Replace import, saving it unchanged does not. A transfer still
+  running then and cut afterwards is offered again if the host kept its
+  name, or dropped when the app starts again. A dropped download removes
+  its partial file only if its size and time, when known, did not change
+  since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
   it
@@ -165,12 +171,12 @@ keys are encrypted and unlocked with it.
   old key, then connecting again shows the fingerprint of the new one to
   confirm, unless `StrictHostKeyChecking` is `accept-new`, which takes
   it without asking, or `yes`, which refuses it: the warning says so, as
-  does the message once it is removed when no pattern line is left.
-  The host is resolved from the local configuration with `ssh -G`, so
-  only the lines matching it are removed. From a line also naming other
-  hosts only its name goes, with the addresses there when ssh checks the
-  one it reaches, with `CheckHostIP yes`, no proxy and a `HostName` that
-  is neither `localhost` nor a loopback address, which ssh never checks,
+  does the message once it is removed when no pattern line is left. The
+  host is resolved from the local configuration with `ssh -G`, so only
+  the lines matching it are removed. From a line also naming other hosts
+  only its name goes, with the addresses there when ssh checks the one
+  it reaches, with `CheckHostIP yes`, no proxy and a `HostName` that is
+  neither `localhost` nor a loopback address, which ssh never checks,
   nor another address unless a `HostKeyAlias` names the host off port
   22, as it would refuse a new key differing from that one, or ask each
   time, and a pattern line is left, as other hosts may match it, unlike
@@ -180,8 +186,10 @@ keys are encrypted and unlocked with it.
   the warning also says the address may keep the old key on another
   line, of its own, hashed for instance, or with another name of the
   same server, which nothing finds. Another name resolving to a loopback
-  address is taken as checked. With a `LogLevel` below `INFO` nothing is
-  offered, as the server could then print ssh's lines itself
+  address is taken as checked. Nothing is offered for a jump host's key,
+  nor for one in a file not directly in `~/.ssh`. With a `LogLevel`
+  below `INFO` nothing is offered, as the server could then print ssh's
+  lines itself
 - **Sessions** - several at once, kept alive by a foreground service and
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
@@ -271,10 +279,10 @@ There is no PIN fallback.
   name of another file there, `config` or `known_hosts` for instance: a
   key named otherwise, made in the local shell for instance, is listed
   with a note, stays out of the vault and stops exports until renamed.
-  Nor can a key be given a name starting with a dot, left out as hidden,
-  or ending in `.pub` or `-cert`, those of the files that go with a key.
-  A key that is a link stays in clear, the file it names would be left
-  behind.
+  Nor can a key be given a name starting with a dot, or ending in `.pub`
+  or `-cert`, those of the files that go with a key: one found named so,
+  but for `-cert`, is not listed. A key that is a link stays in clear,
+  the file it names would be left behind.
 - Connecting, the file browser, `sftp` and `scp` ask for the fingerprint
   whenever the vault holds keys, then `ssh-add` loads the keys through
   pipes into an agent started for that connection alone, so the
@@ -344,8 +352,9 @@ PEM form, and writes of a key only its PEM blocks, what ssh reads of it:
 any other line could make it a file ssh reads otherwise, a known_hosts
 the config names for one, as the key screen does with a key file. Of a
 public key or certificate only the first line shaped as ssh-keygen
-writes them is kept, past comments and blank lines, and the file is left
-out when it has none, the key then has none yet:
+writes them is kept, past comments and blank lines, before any private
+key, and the file is left out when it has none, the key then has none
+yet:
 
 - Append adds the `Host` blocks and keys whose names are not used yet,
   the `known_hosts` lines of hosts not known here yet, in `known_hosts`
@@ -353,33 +362,35 @@ out when it has none, the key then has none yet:
   hashed line, a pattern or a line of the other kind, key or
   `@cert-authority`, but not a `@revoked` line, as ssh would trust again
   an old key of one, removed here once changed, or a certificate a new
-  authority signed, hashed and `@revoked` lines as they are, but no key
-  or `@cert-authority` line with a wildcard in a name not negated, which
-  could match a host known here, and the font size if not set yet. Only
-  `Host` blocks naming a single host are taken: global options, `Match`
-  blocks and `Host` blocks with wildcards or several names are left out,
-  as they could change the hosts already there, and so is a block
-  holding an `Include`, whose file ssh reads for every host, one whose
-  name holds a `~` or `^` or is `.` or `..`, one whose `HostName`,
-  `User`, `HostKeyAlias` or `ProxyJump` holds a quote or another shell
-  character, but a `\` within a `User`, a blank, `#`, `*`, `?`, `!`,
-  `^`, `~`, a bracket in a `HostName` or `User`, or a `/` but that of an
-  `ssh://` jump host, is `.` or `..`, or has a jump user or host that is
-  one or starts with `-`, as the `Match exec` and `Include` lines here
-  may take these values when ssh checks the result, and a block named as
-  the `HostName` or a `ProxyJump` host of a host or a `Host` pattern
-  there, as ssh reads the block of a jump host for it, and that of its
-  `HostName` after a `Match final` or canonicalization. Every word of a
-  `ProxyJump` value counts, a user or a port too, as a shell splits it
-  for ssh, and no `Host` block comes in when such a value holds `$`, a
-  backquote, `~`, `*`, `?`, `{` or `}`, which the shell would expand, or
-  a word starting with `-`, which ssh would take as an option. A jump
-  host named with `%` tokens or escapes, or reached through
-  `ProxyCommand`, is not seen. ssh checks the result first, as when
-  saving one, and nothing is imported if it refuses it: a host relying
-  on a global `IgnoreUnknown` line left out would make it refuse them
-  all. A host added whose key has the name of one already there uses
-  that one, not the key of the file.
+  authority signed, hashed and `@revoked` lines and comments as they
+  are, but no key or `@cert-authority` line with a wildcard in a name
+  not negated, which could match a host known here, and the font size if
+  not set yet. Only `Host` blocks naming a single host are taken: global
+  options, `Match` blocks and `Host` blocks with wildcards or several
+  names are left out, as they could change the hosts already there, and
+  so is a block holding an `Include`, whose file ssh reads for every
+  host, one whose name holds a `~` or `^` or is `.` or `..`, one whose
+  `HostName`, `User`, `HostKeyAlias` or `ProxyJump` holds a quote or
+  another shell character, but a `\` within a `User`, a blank, `#`, `*`,
+  `?`, `!`, `^`, `~`, a bracket in a `HostName` or `User`, a `,` in a
+  `HostName` or `HostKeyAlias`, or a `/` but that of an `ssh://` jump
+  host, is `.` or `..`, starts with `-`, or has a jump user or host that
+  is `.` or `..`, or a jump user, host or port starting with `-`, as the
+  `Match exec` and `Include` lines here may take these values when ssh
+  checks the result, and a block named as the `HostName` or a
+  `ProxyJump` host of a host or a `Host` pattern there, as ssh reads the
+  block of a jump host for it, and that of its `HostName` after a
+  `Match final` or canonicalization, though not a name canonicalization
+  makes by adding a domain. Every word of a `ProxyJump` value counts, a
+  user or a port too, as a shell splits it for ssh, and no `Host` block
+  comes in when such a value holds `$`, a backquote, `~`, `*`, `?`, `{`
+  or `}`, which the shell would expand, or a word starting with `-`,
+  which ssh would take as an option. A jump host named with `%` tokens
+  or escapes, or reached through `ProxyCommand`, is not seen. ssh checks
+  the result first, as when saving one, and nothing is imported if it
+  refuses it: a host relying on a global `IgnoreUnknown` line left out
+  would make it refuse them all. A host added whose key has the name of
+  one already there uses that one, not the key of the file.
 - Replace puts the whole `~/.ssh/config`, `known_hosts`, the keys and
   the font size of the file in place of yours. They are written first,
   then what the file does not hold is removed, but for keys named in a
@@ -439,21 +450,24 @@ dialog, to `app/src/main/assets/licenses`.
 
 The core tests include a fuzz test feeding the terminal random text,
 controls and escape sequences, 200 runs by default. A failure names the
-seed that replays it. For a longer search:
+seed that replays it. The SFTP client tests run against
+`/usr/lib/openssh/sftp-server`, the Debian package
+`openssh-sftp-server`, and are skipped without it. For a longer search:
 
 ```sh
 RASSH_FUZZ_RUNS=5000 ./gradlew :core:test --tests '*TerminalFuzzTest' --rerun
 ```
 
-The workflow in `.github/workflows/build.yml` does the same on every push
-and keeps the APKs and the release app bundle as artifacts. A local
-release build is signed when `RASSH_KEYSTORE_FILE` names the keystore
-and the password and alias variables below are set. The workflow builds
-without the key. For pushes to `main` only, a job of its own, on another
-machine than the build and what it ran, signs the APK with `apksigner`
-and the bundle for Google Play with `jarsigner`, keeping them as the
-`rassh-release` and `rassh-bundle` artifacts. Those of other branches
-and of pull requests stay unsigned.
+The workflow in `.github/workflows/build.yml` does the same, with lint
+and the release build, on every push and pull request, and keeps the
+APKs and the release app bundle as artifacts. A local release build is
+signed when `RASSH_KEYSTORE_FILE` names the keystore and the password
+and alias variables below are set. The workflow builds without the key.
+For pushes to `main` of this repository only, a job of its own, on
+another machine than the build and what it ran, signs the APK with
+`apksigner` and the bundle for Google Play with `jarsigner`, keeping
+them as the `rassh-release` and `rassh-bundle` artifacts. Those of
+forks, other branches and pull requests stay unsigned.
 
 ## Releases
 
@@ -491,10 +505,11 @@ included, and new algorithms such as `mldsa44-ed25519` keys come with
 OpenSSH. Termux has the same programs, as a general shell with keys in
 plain files. ConnectBot and Termius can keep keys in the Keystore that
 never leave it, but only RSA or ECDSA ones, no Ed25519 and no
-post-quantum keys. rassh keeps Ed25519 and `mldsa44-ed25519` keys in a vault
-that is useless without the Keystore key and a fingerprint, so a copy of
-its files reveals nothing. They are decrypted only in memory, into the
-agent of the connection, until the login. JuiceSSH is no longer on Google Play.
+post-quantum keys. rassh keeps Ed25519 and `mldsa44-ed25519` keys in a
+vault that is useless without the Keystore key and a fingerprint, so a
+copy of its files reveals nothing. They are decrypted only in memory,
+into the agent of the connection, until the login or for 60 seconds at
+most. JuiceSSH is no longer on Google Play.
 
 ## Limitations
 
