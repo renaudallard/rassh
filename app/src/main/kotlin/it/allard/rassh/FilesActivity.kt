@@ -70,8 +70,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The remote file a download waits for its destination for. */
     private var downloading: String? = null
 
-    /* The remote files a download of several waits for its folder for. */
-    private var downloadingAll: ArrayList<String>? = null
+    /*
+     * The remote files a download of several waits for its folder for.
+     * Not saved with the screen, there may be too many: lost when the
+     * process is, they are asked for again.
+     */
+    private var downloadingAll: List<String>? = null
 
     /* The directory an upload waits for its files for. */
     private var uploading: String? = null
@@ -117,7 +121,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         cwd = savedInstanceState?.getString(STATE_PATH)
         home = savedInstanceState?.getString(STATE_HOME)
         downloading = savedInstanceState?.getString(STATE_DOWNLOAD)
-        downloadingAll = savedInstanceState?.getStringArrayList(STATE_DOWNLOAD_ALL)
         uploading = savedInstanceState?.getString(STATE_UPLOAD)
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { back() }
         binding.bind()
@@ -128,7 +131,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         outState.putString(STATE_PATH, cwd)
         outState.putString(STATE_HOME, home)
         outState.putString(STATE_DOWNLOAD, downloading)
-        outState.putStringArrayList(STATE_DOWNLOAD_ALL, downloadingAll)
         outState.putString(STATE_UPLOAD, uploading)
     }
 
@@ -483,10 +485,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun download(e: SftpEntry, dir: String) {
         client() ?: return
         downloading = path(dir, e.name)
-        val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(e.name.substringAfterLast('.', "").lowercase())
         pick(
             Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                .setType(type ?: "application/octet-stream")
+                .setType(mimeType(e.name))
                 .putExtra(Intent.EXTRA_TITLE, shownName(e.name)),
             REQUEST_DOWNLOAD)
     }
@@ -508,12 +509,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setMessage(resources.getQuantityString(R.plurals.download_many, picked.size, picked.size))
             .setPositiveButton(R.string.choose_folder) { _, _ ->
                 client() ?: return@setPositiveButton
-                downloadingAll = ArrayList(picked.map { path(dir, it.name) })
+                downloadingAll = picked.map { path(dir, it.name) }
                 pick(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_DOWNLOAD_ALL)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
+
+    /* What the picker and the provider make of a file, from its extension. */
+    private fun mimeType(name: String): String =
+        MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+            ?: "application/octet-stream"
 
     private fun upload() {
         uploading = cwd ?: return
@@ -529,7 +535,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK || data == null) return
+        if (resultCode != RESULT_OK || data == null) {
+            if (requestCode == REQUEST_DOWNLOAD_ALL) downloadingAll = null
+            return
+        }
         if (client() != null) {
             handleResult(requestCode, data)
         } else {
@@ -547,7 +556,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 saveTo(remote, uri)
             }
             REQUEST_DOWNLOAD_ALL -> {
-                val remotes = downloadingAll ?: return
+                val remotes = downloadingAll ?: return toast(getString(R.string.select_again))
                 val tree = data.data ?: return
                 downloadingAll = null
                 saveAll(remotes, tree)
@@ -622,40 +631,54 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /*
      * Download remotes into the folder tree, each in a new file the
      * provider names, after the next free name. What is not a regular
-     * file, a folder for one, is skipped. A failure removes the file it
-     * was writing, those done before stay.
+     * file, a folder for one, is skipped, what the server refuses, a file
+     * gone or unreadable, is said at the end. A failure removes the file
+     * it was writing, those done before stay. The right to the folder is
+     * kept while it runs, Android takes it back once the screen is gone.
      */
     private fun saveAll(remotes: List<String>, tree: Uri) {
         val c = client() ?: return
+        val kept = keepAccess(listOf(tree), true)
         var saved = 0
         var skipped = 0
+        val refused = mutableListOf<String>()
         transfer(getString(R.string.downloading_files), { progress, _, sized ->
-            val folder = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-            for (remote in remotes) {
-                val attrs = c.stat(remote)
-                if (!attrs.isFile) {
-                    skipped++
-                    continue
+            try {
+                val folder = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+                for (remote in remotes) {
+                    val name = shownName(remote.substringAfterLast('/'))
+                    try {
+                        val attrs = c.stat(remote)
+                        if (!attrs.isFile) {
+                            skipped++
+                            continue
+                        }
+                        sized(attrs.size ?: -1)
+                        val doc = DocumentsContract.createDocument(contentResolver, folder, mimeType(name), name)
+                            ?: throw IOException(getString(R.string.error_cannot_open))
+                        try {
+                            c.download(remote, {
+                                contentResolver.openOutputStream(doc, "wt")
+                                    ?: throw IOException(getString(R.string.error_cannot_open))
+                            }, 0, progress)
+                        } catch (e: Exception) {
+                            if (!isFileError(e)) throw e
+                            deleteDocument(doc)
+                            throw e
+                        }
+                        saved++
+                    } catch (e: SftpException) {
+                        refused.add(name + ": " + e.message)
+                    }
                 }
-                sized(attrs.size ?: -1)
-                val name = shownName(remote.substringAfterLast('/'))
-                val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
-                val doc = DocumentsContract.createDocument(contentResolver, folder, type ?: "application/octet-stream", name)
-                    ?: throw IOException(getString(R.string.error_cannot_open))
-                try {
-                    c.download(remote, {
-                        contentResolver.openOutputStream(doc, "wt") ?: throw IOException(getString(R.string.error_cannot_open))
-                    }, 0, progress)
-                } catch (e: Exception) {
-                    if (!isFileError(e)) throw e
-                    deleteDocument(doc)
-                    throw e
-                }
-                saved++
+            } finally {
+                if (kept) doneWith(listOf(tree), true)
             }
         }) {
-            val done = resources.getQuantityString(R.plurals.downloaded_many, saved, saved)
-            toast(if (skipped == 0) done else getString(R.string.skipped, done, skipped))
+            var said = resources.getQuantityString(R.plurals.downloaded_many, saved, saved)
+            if (skipped > 0) said = resources.getQuantityString(R.plurals.skipped, skipped, said, skipped)
+            if (refused.isEmpty()) toast(said)
+            else sayInFull(said + "\n\n" + getString(R.string.not_downloaded, refused.joinToString("\n")))
         }
     }
 
@@ -1241,7 +1264,6 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val STATE_HOME = "home"
         private const val STATE_DOWNLOAD = "download"
         private const val STATE_UPLOAD = "upload"
-        private const val STATE_DOWNLOAD_ALL = "download_all"
         private const val REQUEST_DOWNLOAD = 1
         private const val REQUEST_UPLOAD = 2
         private const val REQUEST_DOWNLOAD_ALL = 3

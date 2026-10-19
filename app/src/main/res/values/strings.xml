@@ -113,7 +113,8 @@
     <string name="choose_folder">Choose folder</string>
     <string name="not_a_file">Only files are downloaded</string>
     <string name="downloading_files">Downloading files</string>
-    <string name="skipped">%1$s, %2$d skipped as not files</string>
+    <string name="not_downloaded">Not downloaded:\n%1$s</string>
+    <string name="select_again">The browser was restarted meanwhile, select the files again</string>
     <string name="exists_already">%1$s exists already</string>
     <string name="error_file_name">Not a valid file name</string>
 
@@ -248,6 +249,10 @@
     <plurals name="download_many">
         <item quantity="one">Download %1$d entry into a folder you choose?</item>
         <item quantity="other">Download %1$d entries into a folder you choose? Folders among them are skipped, and a file whose name is taken there gets another one.\n\nUnlike a single file, these downloads cannot be resumed if the connection is lost: the files not done must be downloaded again.</item>
+    </plurals>
+    <plurals name="skipped">
+        <item quantity="one">%1$s, %2$d skipped as not a file</item>
+        <item quantity="other">%1$s, %2$d skipped as not files</item>
     </plurals>
     <plurals name="downloaded_many">
         <item quantity="one">%1$d file downloaded</item>
