@@ -276,13 +276,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun load(path: String, up: Boolean = false) {
         val c = client() ?: return
         val hidden = prefs.getBoolean(PREF_HIDDEN, false)
+        val sort = prefs.getInt(PREF_SORT, SORT_NAME)
         /* The rows are made on the worker too, a large folder would hold the screen. */
         run({
             val dir = c.realpath(path)
             /* Made for each listing, a format keeps the time zone it was made in. */
             val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
             val found = c.list(dir).map { Listed(it, label(it), describe(it.attrs, date)) }
-            Triple(dir, found, arrange(found, hidden))
+            Triple(dir, found, arrange(found, hidden, sort))
         }, { e ->
             failed(e)
             /* The folder shows empty with the reason, the status would otherwise stay on connecting. */
@@ -303,16 +304,41 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
     }
 
-    /* The entries to show, hidden ones left out unless asked for, as sftp's ls does, folders first. */
-    private fun arrange(found: List<Listed>, hidden: Boolean): List<Listed> =
-        (if (hidden) found else found.filter { !it.entry.name.startsWith(".") })
-            .sortedWith(compareBy({ !it.entry.attrs.isDirectory }, { it.entry.name.lowercase() }))
+    /*
+     * The entries to show, hidden ones left out unless asked for, as
+     * sftp's ls does, folders first, by name, by size, largest first, or
+     * by time, newest first. What the server does not tell comes last.
+     */
+    private fun arrange(found: List<Listed>, hidden: Boolean, sort: Int): List<Listed> {
+        val byName = compareBy<Listed> { it.entry.name.lowercase() }
+        val order = when (sort) {
+            SORT_SIZE -> compareByDescending<Listed> { if (it.entry.attrs.isDirectory) -1L else it.entry.attrs.size ?: -1L }
+                .then(byName)
+            SORT_TIME -> compareByDescending<Listed> { it.entry.attrs.mtime ?: Long.MIN_VALUE }.then(byName)
+            else -> byName
+        }
+        return (if (hidden) found else found.filter { !it.entry.name.startsWith(".") })
+            .sortedWith(compareBy<Listed> { !it.entry.attrs.isDirectory }.then(order))
+    }
 
     /* Arranged again on the worker, the listing may be large. */
     private fun rearrange() {
         val found = listing
         val hidden = prefs.getBoolean(PREF_HIDDEN, false)
-        run({ arrange(found, hidden) }) { if (listing === found) display(it) }
+        val sort = prefs.getInt(PREF_SORT, SORT_NAME)
+        run({ arrange(found, hidden, sort) }) { if (listing === found) display(it) }
+    }
+
+    private fun chooseSort() {
+        val names = arrayOf(getString(R.string.sort_name), getString(R.string.sort_size), getString(R.string.sort_time))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sort_by)
+            .setSingleChoiceItems(names, prefs.getInt(PREF_SORT, SORT_NAME)) { dialog, which ->
+                dialog.dismiss()
+                prefs.edit().putInt(PREF_SORT, which).apply()
+                rearrange()
+            }
+            .show()
     }
 
     private fun display(shown: List<Listed>) {
@@ -980,6 +1006,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_GO_TO, 2, R.string.go_to)
         menu.add(Menu.NONE, MENU_REFRESH, 2, R.string.refresh)
+        menu.add(Menu.NONE, MENU_SORT, 2, R.string.sort_by)
         menu.add(Menu.NONE, MENU_HIDDEN, 2, R.string.show_hidden)
             .setCheckable(true)
             .setChecked(prefs.getBoolean(PREF_HIDDEN, false))
@@ -995,6 +1022,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             MENU_NEW_FOLDER -> newFolder()
             MENU_GO_TO -> goTo()
             MENU_REFRESH -> cwd?.let { load(it) }
+            MENU_SORT -> chooseSort()
             MENU_HIDDEN -> {
                 item.isChecked = !item.isChecked
                 prefs.edit().putBoolean(PREF_HIDDEN, item.isChecked).apply()
@@ -1047,6 +1075,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_HIDDEN = 7
         private const val PREFS = "files"
         private const val PREF_HIDDEN = "hidden"
+        private const val PREF_SORT = "sort"
+        private const val MENU_SORT = 8
+        /* The places in the sort dialog, kept as they are stored. */
+        private const val SORT_NAME = 0
+        private const val SORT_SIZE = 1
+        private const val SORT_TIME = 2
         private const val PROGRESS_NANOS = 200_000_000L
         private const val PROGRESS_STEPS = 1000
         private const val BUFFER_SIZE = 65536

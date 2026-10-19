@@ -73,6 +73,10 @@
     <string name="files_empty">Empty folder</string>
     <string name="files_only_hidden">Only hidden files, shown from the menu</string>
     <string name="show_hidden">Show hidden files</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_size">Size, largest first</string>
+    <string name="sort_time">Date, newest first</string>
     <string name="files_not_connected">Not connected</string>
     <string name="files_failed">Failed: %1$s</string>
     <string name="download">Download</string>
