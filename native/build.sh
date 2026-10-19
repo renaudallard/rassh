@@ -115,6 +115,8 @@ build_abi()
 		make -j "$jobs" SSH_PROGRAM=ssh $PROGRAMS
 	)
 
+	# Only what this build makes: a build of other sources may have left more.
+	rm -rf "$jnilibs/$abi"
 	mkdir -p "$jnilibs/$abi"
 	"$cc" -shared -fPIC $hardening -Wall -Wextra "$ldflags" \
 	    -o "$jnilibs/$abi/librassh.so" "$native/pty.c"
