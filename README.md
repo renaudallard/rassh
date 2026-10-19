@@ -198,17 +198,17 @@ keys are encrypted and unlocked with it.
   opened, as do file browsers of the same host
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll
   regions, wide characters, DEC line drawing, bracketed paste, reverse
-  video, scrollback with a swipe, which sends the arrow keys to full
-  screen programs like vim or less, pinch to zoom, long press to select
-  and copy. A paste, also one from the keyboard's clipboard, turns
-  control characters other than tab and newline into spaces, more than
-  xterm does by default, so that it cannot send ^C or end a bracketed
-  paste. The keyboard is asked not to learn what is typed, passwords at
-  ssh or sudo prompts included, nor what is typed in the app's own
-  fields. A session ending inside a full screen program, a connection
-  lost in tmux for one, goes back to the main screen and its history,
-  followed by what the program's screen showed last, where ssh says why
-  it ended
+  video, scrollback with a swipe or a fling, the swipe sending the arrow
+  keys to full screen programs like vim or less, pinch to zoom, long
+  press to select and copy. A paste, also one from the keyboard's
+  clipboard, turns control characters other than tab and newline into
+  spaces, more than xterm does by default, so that it cannot send ^C or
+  end a bracketed paste. The keyboard is asked not to learn what is
+  typed, passwords at ssh or sudo prompts included, nor what is typed in
+  the app's own fields. A session ending inside a full screen program, a
+  connection lost in tmux for one, goes back to the main screen and its
+  history, followed by what the program's screen showed last, where ssh
+  says why it ended
 - **Theme** - light or dark like the phone, with its accent color, the
   terminal included. On the light background, the palette colors too
   pale to read on it, yellow or white for one, are darkened for text

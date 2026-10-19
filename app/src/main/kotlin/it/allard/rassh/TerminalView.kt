@@ -26,6 +26,7 @@ import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.widget.OverScroller
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import it.allard.rassh.terminal.KeyEncoder
@@ -50,6 +51,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     var session: Session? = null
         set(value) {
             field = value
+            stopFling()
             scrollOffset = 0
             deadAccent = 0
             clearSelection()
@@ -103,8 +105,51 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private var selectionOnAlt = false
     private var actionMode: ActionMode? = null
 
+    /* A fling through the history, stopped by the next touch. */
+    private val flinger = OverScroller(context)
+    private var flingY = 0
+    /* Whether it goes back into the history. */
+    private var flingBack = false
+    private val fling = object : Runnable {
+        override fun run() {
+            val t = session?.terminal ?: return
+            val (alt, history) = synchronized(t) { Pair(t.isAltScreen, t.historySize) }
+            /* A program may have switched screens meanwhile, scrolling would send it keys. */
+            if (alt || !flinger.computeScrollOffset()) {
+                flinger.forceFinished(true)
+                return
+            }
+            val y = flinger.currY
+            scrollLines((flingY - y).toFloat())
+            flingY = y
+            /* Nothing more to scroll at the end it goes to. */
+            if (if (flingBack) scrollOffset >= history else scrollOffset == 0) flinger.forceFinished(true)
+            else postOnAnimation(this)
+        }
+    }
+
+    private fun stopFling() {
+        flinger.forceFinished(true)
+        removeCallbacks(fling)
+    }
+
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
-        override fun onDown(e: MotionEvent): Boolean = true
+        override fun onDown(e: MotionEvent): Boolean {
+            stopFling()
+            return true
+        }
+
+        /* Not on the alternate screen, where scrolling sends cursor keys to the program. */
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
+            val t = session?.terminal ?: return false
+            if (synchronized(t) { t.isAltScreen }) return false
+            stopFling()
+            flingY = 0
+            flingBack = vy > 0
+            flinger.fling(0, 0, 0, vy.toInt(), 0, 0, Int.MIN_VALUE, Int.MAX_VALUE)
+            postOnAnimation(fling)
+            return true
+        }
 
         override fun onSingleTapUp(e: MotionEvent): Boolean {
             performClick()
@@ -373,6 +418,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     }
 
     override fun onDetachedFromWindow() {
+        stopFling()
         watchBack(false)
         super.onDetachedFromWindow()
     }
@@ -572,6 +618,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             if (s == "\r") onCloseRequest?.invoke()
             return true
         }
+        /* Typing goes back to the screen, a fling would take it away again. */
+        stopFling()
         if (scrollOffset != 0) {
             scrollOffset = 0
             invalidate()
