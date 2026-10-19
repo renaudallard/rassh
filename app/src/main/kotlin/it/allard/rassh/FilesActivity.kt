@@ -34,6 +34,7 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * A file browser on a server, speaking SFTP to "ssh -s host sftp" through
@@ -417,7 +418,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val name = shownName(remote.substringAfterLast('/'))
         /* Kept past this screen, it may be resumed after connecting again. */
         val kept = host != null && keepAccess(listOf(uri), true)
-        transfer(getString(R.string.downloading, name), { progress, stopped ->
+        transfer(getString(R.string.downloading, name), { progress, stopped, sized ->
             /* Truncated only once the remote file opened, and only known so once that open returned. */
             var opened = false
             var started: Resumable.Download? = null
@@ -427,6 +428,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (resumed != null && resumed.length >= 0 && wholeFile(uri) != Pair(resumed.length, resumed.modified))
                     throw IOException(getString(R.string.resume_changed))
                 val attrs = c.stat(remote)
+                sized(attrs.size ?: -1)
                 started = Resumable.Download(remote, uri, attrs.size ?: -1, attrs.mtime)
                 /* Changed on the server since, it is another file: downloaded again. */
                 if (resumed != null && attrs.size == resumed.size && attrs.mtime == resumed.mtime)
@@ -662,7 +664,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val from = resumed?.index ?: 0
         /* Kept past this screen, it may be resumed after connecting again. */
         val kept = host != null && keepAccess(uris, false)
-        transfer(getString(R.string.uploading, names.drop(from).joinToString(", ")), { progress, stopped ->
+        transfer(getString(R.string.uploading, names.drop(from).joinToString(", ")), { progress, stopped, sized ->
             var index = from
             /* The file at index once the server opened it, to go on with if it is the same then. */
             var length = -1L
@@ -683,6 +685,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     /* The stream closes afd, whatever fails. */
                     Hashing(afd.createInputStream()).also { hashing = it }.use { input ->
                         val file = wholeFile(afd)
+                        sized(file?.first ?: -1)
                         /* The same file as when cut short, its size and time first, then what it starts with. */
                         val same = resumed != null && index == resumed.index && file != null &&
                             file.first == resumed.length && file.second == resumed.modified &&
@@ -860,14 +863,20 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         toast(getString(R.string.files_failed, e.message))
     }
 
-    /* A transfer with a progress dialog that can stop it, which task tells with stopped(). */
-    private fun transfer(title: String, task: (progress: (Long) -> Boolean, stopped: () -> Boolean) -> Unit,
-        done: () -> Unit) {
+    /*
+     * A transfer with a progress dialog that can stop it, which task tells
+     * with stopped(). It gives the size of the file it copies with sized(),
+     * -1 when not known, the bar then only shows that it goes on.
+     */
+    private fun transfer(title: String,
+        task: (progress: (Long) -> Boolean, stopped: () -> Boolean, sized: (Long) -> Unit) -> Unit, done: () -> Unit) {
         val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
         bar.isIndeterminate = true
+        bar.max = PROGRESS_STEPS
         val count = TextView(this)
         /* Its own, a transfer slow to see it must not take the next one's. */
         val cancelled = AtomicBoolean()
+        val size = AtomicLong(-1)
         /*
          * Hung up from the terminal screen, Close session there, it is
          * stopped too, but not by this screen going away, swiped from the
@@ -905,10 +914,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 val now = System.nanoTime()
                 if (now - shown > PROGRESS_NANOS) {
                     shown = now
-                    runOnUiThread { count.text = Formatter.formatShortFileSize(this, bytes) }
+                    val total = size.get()
+                    runOnUiThread { showProgress(bar, count, bytes, total) }
                 }
                 !cancelled.get()
-            }, { cancelled.get() || s?.isClosed == true && !leaving })
+            }, { cancelled.get() || s?.isClosed == true && !leaving }, { size.set(it) })
         }) {
             dialog.dismiss()
             done()
@@ -921,6 +931,19 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (progressDialog === dialog) progressDialog = null
             }
         }
+    }
+
+    /* A file growing meanwhile may send more than its size said. */
+    private fun showProgress(bar: ProgressBar, count: TextView, bytes: Long, total: Long) {
+        val done = Formatter.formatShortFileSize(this, bytes)
+        if (total <= 0) {
+            bar.isIndeterminate = true
+            count.text = done
+            return
+        }
+        bar.isIndeterminate = false
+        bar.progress = (minOf(bytes, total) * PROGRESS_STEPS / total).toInt()
+        count.text = getString(R.string.transferred, done, Formatter.formatShortFileSize(this, total))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -984,6 +1007,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_CLOSE = 5
         private const val MENU_GO_TO = 6
         private const val PROGRESS_NANOS = 200_000_000L
+        private const val PROGRESS_STEPS = 1000
         private const val BUFFER_SIZE = 65536
 
         /* Line and paragraph separators, and the bidi controls. */

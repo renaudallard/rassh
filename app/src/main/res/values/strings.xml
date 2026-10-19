@@ -76,6 +76,7 @@
     <string name="downloaded">%1$s downloaded</string>
     <string name="upload">Upload</string>
     <string name="uploading">Uploading %1$s</string>
+    <string name="transferred">%1$s of %2$s</string>
     <string name="resume_title">Transfer cut short</string>
     <string name="resume_download">The connection was lost while downloading %1$s. Resume the download where it stopped?</string>
     <string name="resume_upload">The connection was lost while uploading %1$s. Resume the upload where it stopped?</string>

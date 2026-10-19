@@ -132,37 +132,38 @@ keys are encrypted and unlocked with it.
   jump host's ssh, which takes none of its options, follows its own
   `ControlMaster` setting. Tapping the path, or Go to folder in the
   menu, opens any folder, typed from the one shown, from `/`, or from
-  `~`, the folder the server started in. An upload first shows the names
-  the files get on the server, as the app they come from gives them,
-  those that exist there already and would be replaced too, one per
-  line, with `_` for a slash and for control, line break and bidi
-  characters, which could hide or disguise another name, and a name over
-  255 bytes, empty, `.` or `..` becomes `upload`, blanks around it
-  trimmed. Files that would get the same name are refused, to upload one
-  at a time. A transfer cut short by a lost connection, or by the
-  browser going away, swiped from the recent apps for one, is offered to
-  resume the next time the browser connects to that host, the last one
-  cut short there only. A download goes on if the file did not change on
-  the server and the one on the phone is a regular file it can append to
-  that did not change, its size and time checked. Changed on the phone,
-  it is left alone and the download stops, as it may be another file
-  now. An upload goes on if the file on the phone is a regular file that
-  did not change, its size, time and the SHA-256 of what was sent
-  checked, and the server holds no more than was sent, nor less than all
-  but its last 2 MiB. It writes again the last 2 MiB the server holds,
-  as some of the 64 requests of 32 KiB in flight may not have landed.
-  Otherwise the file starts again. A file of its name on the server that
-  the upload could not have left, and the files after it that exist
-  there by then, are replaced only once asked. A transfer stopped, also
-  by closing its session from the terminal screen, or refused by the
-  server is not offered: a download removes its partial file, an upload
-  the file it created if the connection still works, but not one a
-  resumed upload found there. Deleting or editing the host drops what
-  was cut short, as does a Replace import, saving it unchanged does not.
-  A transfer still running then and cut afterwards is offered again if
-  the host kept its name, or dropped when the app starts again. A
-  dropped download removes its partial file only if its size and time,
-  when known, did not change since it was cut
+  `~`, the folder the server started in. A transfer shows how much of
+  the file is copied, out of its size when the server or the phone tells
+  it. An upload first shows the names the files get on the server, as
+  the app they come from gives them, those that exist there already and
+  would be replaced too, one per line, with `_` for a slash and for
+  control, line break and bidi characters, which could hide or disguise
+  another name, and a name over 255 bytes, empty, `.` or `..` becomes
+  `upload`, blanks around it trimmed. Files that would get the same name
+  are refused, to upload one at a time. A transfer cut short by a lost
+  connection, or by the browser going away, swiped from the recent apps
+  for one, is offered to resume the next time the browser connects to
+  that host, the last one cut short there only. A download goes on if
+  the file did not change on the server and the one on the phone is a
+  regular file it can append to that did not change, its size and time
+  checked. Changed on the phone, it is left alone and the download
+  stops, as it may be another file now. An upload goes on if the file on
+  the phone is a regular file that did not change, its size, time and
+  the SHA-256 of what was sent checked, and the server holds no more
+  than was sent, nor less than all but its last 2 MiB. It writes again
+  the last 2 MiB the server holds, as some of the 64 requests of 32 KiB
+  in flight may not have landed. Otherwise the file starts again. A file
+  of its name on the server that the upload could not have left, and the
+  files after it that exist there by then, are replaced only once asked.
+  A transfer stopped, also by closing its session from the terminal
+  screen, or refused by the server is not offered: a download removes
+  its partial file, an upload the file it created if the connection
+  still works, but not one a resumed upload found there. Deleting or
+  editing the host drops what was cut short, as does a Replace import,
+  saving it unchanged does not. A transfer still running then and cut
+  afterwards is offered again if the host kept its name, or dropped when
+  the app starts again. A dropped download removes its partial file only
+  if its size and time, when known, did not change since it was cut
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
   it
