@@ -436,7 +436,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 c.download(remote, {
                     /* Only once it writes, a download failing before leaves the file and its record as they were. */
                     forgetDownloadsInto(uri, resumed)
-                    (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri"))
+                    (append?.first ?: contentResolver.openOutputStream(uri, "wt") ?: throw IOException(getString(R.string.error_cannot_open)))
                         .also { opened = true }
                 }, append?.second ?: 0, progress)
                 /* Forgotten while still claimed: a host edited meanwhile would drop the record and the file. */
@@ -681,7 +681,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     verified = false
                     start = -1
                     val afd = contentResolver.openAssetFileDescriptor(uris[index], "r")
-                        ?: throw IOException("cannot open ${uris[index]}")
+                        ?: throw IOException(getString(R.string.error_cannot_open))
                     /* The stream closes afd, whatever fails. */
                     Hashing(afd.createInputStream()).also { hashing = it }.use { input ->
                         val file = wholeFile(afd)

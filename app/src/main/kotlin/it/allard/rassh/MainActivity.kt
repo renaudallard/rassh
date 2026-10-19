@@ -530,7 +530,7 @@ class MainActivity : Activity(), SessionService.Listener {
 
     private fun sftp(host: String) {
         withStorage { cwd ->
-            launch(Launch("sftp $host", paths.sftp, listOf("sftp") + NO_COMMAND + remote(host), cwd, host))
+            launch(Launch(getString(R.string.sftp_title, host), paths.sftp, listOf("sftp") + NO_COMMAND + remote(host), cwd, host))
         }
     }
 
@@ -559,7 +559,7 @@ class MainActivity : Activity(), SessionService.Listener {
                     if (recursive.isChecked) argv.add("-r")
                     argv.add(from.text.toString().trim())
                     argv.add(to.text.toString().trim())
-                    launch(Launch("scp $host", paths.scp, argv, cwd, host))
+                    launch(Launch(getString(R.string.scp_title, host), paths.scp, argv, cwd, host))
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .show()

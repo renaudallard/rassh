@@ -94,7 +94,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                 var opened = false
                 val error = try {
                     val sealed = Backup.seal(pass, items)
-                    val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("cannot open $uri")
+                    val out = contentResolver.openOutputStream(uri, "wt") ?: throw IOException(getString(R.string.error_cannot_open))
                     opened = true
                     out.use { it.write(sealed) }
                     null
@@ -194,9 +194,9 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
             var here: KnownHere? = null
             var refused: Pair<String, String>? = null
             val error = try {
-                val input = contentResolver.openInputStream(uri) ?: throw IOException("cannot open $uri")
+                val input = contentResolver.openInputStream(uri) ?: throw IOException(getString(R.string.error_cannot_open))
                 val sealed = input.use { it.readNBytes(MAX_EXPORT_SIZE + 1) }
-                if (sealed.size > MAX_EXPORT_SIZE) throw IOException("file too large")
+                if (sealed.size > MAX_EXPORT_SIZE) throw IOException(getString(R.string.error_too_large))
                 val opened = checked(Backup.open(sealed, pass))
                 try {
                     /* ssh may run Match exec, not on the UI thread. */

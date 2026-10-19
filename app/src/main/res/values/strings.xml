@@ -29,6 +29,8 @@
     <string name="config_checking">Checking with ssh</string>
     <string name="config_check_failed">Cannot check the configuration: %1$s</string>
     <string name="sftp">sftp</string>
+    <string name="sftp_title">sftp %1$s</string>
+    <string name="scp_title">scp %1$s</string>
     <string name="scp">scp</string>
     <string name="scp_from">From</string>
     <string name="scp_to">To</string>
@@ -65,7 +67,7 @@
     <string name="host_key_remove_failed">Cannot remove the old key: %1$s</string>
 
     <!-- File browser -->
-    <string name="files">Files</string>
+    <string name="files">Browse files</string>
     <string name="files_title">files %1$s</string>
     <string name="files_connecting">Connecting</string>
     <string name="files_empty">Empty folder</string>
@@ -234,5 +236,8 @@
     <string name="no_share">No app can share on this phone</string>
     <string name="about_text">rassh %1$s\n%2$s</string>
     <string name="cancel">Cancel</string>
+    <string name="error_cannot_open">cannot open the file</string>
+    <string name="error_too_large">the file is too large</string>
+    <string name="error_not_pem">not a private key in PEM form</string>
     <string name="stopping">Stopping, Back disconnects</string>
 </resources>

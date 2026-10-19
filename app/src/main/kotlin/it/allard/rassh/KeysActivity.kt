@@ -259,11 +259,11 @@ class KeysActivity : Activity() {
                 var key: ByteArray? = null
                 val failed = try {
                     val read = contentResolver.openInputStream(uri)?.use { Keys.read(it) }
-                        ?: throw IOException("cannot open $uri")
+                        ?: throw IOException(getString(R.string.error_cannot_open))
                     try {
-                        if (read.size > Keys.MAX_SIZE) throw IOException("file too large")
+                        if (read.size > Keys.MAX_SIZE) throw IOException(getString(R.string.error_too_large))
                         /* Its PEM blocks alone, as an import of an export keeps them. */
-                        key = Keys.pemOnly(read) ?: throw IOException("not a private key in PEM form")
+                        key = Keys.pemOnly(read) ?: throw IOException(getString(R.string.error_not_pem))
                     } finally {
                         read.fill(0)
                     }
@@ -278,7 +278,7 @@ class KeysActivity : Activity() {
                  */
                 runOnUiThread {
                     val error = try {
-                        if (failed == null) storeKey(n, key ?: throw IOException("cannot open $uri"))
+                        if (failed == null) storeKey(n, key ?: throw IOException(getString(R.string.error_cannot_open)))
                         failed
                     } catch (e: ErrnoException) {
                         e.message
