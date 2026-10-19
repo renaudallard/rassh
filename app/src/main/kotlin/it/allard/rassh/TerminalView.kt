@@ -133,8 +133,12 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         removeCallbacks(fling)
     }
 
+    /* A touch that stopped a fling is no tap: it neither shows the keyboard nor clears a selection. */
+    private var stoppedFling = false
+
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean {
+            stoppedFling = !flinger.isFinished
             stopFling()
             return true
         }
@@ -152,7 +156,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
 
         override fun onSingleTapUp(e: MotionEvent): Boolean {
-            performClick()
+            if (!stoppedFling) performClick()
             return true
         }
 
