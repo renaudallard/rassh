@@ -125,17 +125,20 @@ class KeysActivity : Activity() {
         val sealed = vaultNames()
         keys = (sealed + Keys.plaintext(paths.sshDir) + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
-            val pub = Keys.publicKey(paths.sshDir, name)
+            /* The line ssh loads, past comments: type, key and comment. */
+            val words = Keys.publicKey(paths.sshDir, name)
+                ?.let { Keys.publicLine(it.toByteArray())?.toString(Charsets.UTF_8)?.trim()?.split(' ', '\t') }
+                ?.filter { it.isNotEmpty() }
             val about = when {
                 /* Named as early versions allowed, a key of the vault is in it already. */
                 !Keys.isValidName(name) -> getString(
                     if (name in sealed) R.string.key_name_not_allowed_sealed else R.string.key_name_not_allowed)
-                pub != null -> pub.split(' ').let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }.trim()
+                words != null -> (listOf(words[0]) + words.drop(2)).joinToString(" ")
                 else -> getString(R.string.public_key_missing)
             }
             /* The fingerprint ssh shows when a server takes or refuses the key, and where the key is kept. */
             val stored = getString(if (name in sealed) R.string.key_in_vault else R.string.key_in_clear)
-            name to listOfNotNull(about, pub?.let { Keys.fingerprint(it) }, stored).joinToString("\n")
+            name to listOfNotNull(about, words?.let { Keys.fingerprint(it[1]) }, stored).joinToString("\n")
         }
     }
 

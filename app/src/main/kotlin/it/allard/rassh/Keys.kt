@@ -272,10 +272,10 @@ object Keys {
         }
     }
 
-    /* The SHA-256 fingerprint of a public key line, as ssh-keygen -l shows it, or null. */
-    fun fingerprint(pub: String): String? {
+    /* The SHA-256 fingerprint of a public key in base64, as ssh-keygen -l shows it, or null. */
+    fun fingerprint(key: String): String? {
         val blob = try {
-            Base64.getDecoder().decode(pub.split(' ', '\t').filter { it.isNotEmpty() }.getOrNull(1) ?: return null)
+            Base64.getDecoder().decode(key)
         } catch (_: IllegalArgumentException) {
             return null
         }
