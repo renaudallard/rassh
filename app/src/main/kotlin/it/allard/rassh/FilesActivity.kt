@@ -994,9 +994,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 val c = client() ?: return@setPositiveButton
                 run({
                     picked.mapNotNull { e ->
-                        val p = path(dir, e.name)
                         try {
-                            if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p)
+                            remove(c, e, dir)
                             null
                         } catch (x: SftpException) {
                             shownName(e.name) + ": " + x.message
@@ -1022,8 +1021,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 shownName(e.name)))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val c = client() ?: return@setPositiveButton
-                val p = path(dir, e.name)
-                run({ if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p) }) { load(dir) }
+                run({ remove(c, e, dir) }) { load(dir) }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -1057,6 +1055,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun remove(c: SftpClient, e: SftpEntry, dir: String) {
+        val p = path(dir, e.name)
+        if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p)
     }
 
     private fun newFolder() {
