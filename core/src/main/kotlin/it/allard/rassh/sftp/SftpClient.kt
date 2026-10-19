@@ -420,8 +420,13 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun statusOf(r: Reply): SftpException {
         expect(r, FXP_STATUS)
         val code = r.body.u32()
-        /* Only shown, never sent back, see shownName(). */
-        val message = shownName(decodeName(r.body.bytes()))
+        /*
+         * Only shown, never sent back, see shownName(). Cut short: a whole
+         * packet of it, for each file refused, would fill the memory.
+         */
+        var message = shownName(decodeName(r.body.bytes()))
+        if (message.length > MAX_MESSAGE)
+            message = message.take(if (message[MAX_MESSAGE - 1].isHighSurrogate()) MAX_MESSAGE - 1 else MAX_MESSAGE)
         return SftpException(code, message.ifEmpty { "error $code" })
     }
 
@@ -555,6 +560,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         fun mayHold(size: Long, known: Long): Boolean = known >= 0 && size <= known && size >= known - IN_FLIGHT
         /* OpenSSH's limit, a READ reply of CHUNK fits easily. */
         private const val MAX_PACKET = 256 * 1024
+        private const val MAX_MESSAGE = 256
         private const val MAX_ENTRIES = 200_000
         private const val MAX_NAME = 4096
         private const val MAX_CHARS = 16L * 1024 * 1024

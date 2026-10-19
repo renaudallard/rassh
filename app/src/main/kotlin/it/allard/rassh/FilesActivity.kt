@@ -524,6 +524,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .show()
     }
 
+    /* The first lines of a list, one per entry of a selection that may be large, for a dialog. */
+    private fun listed(lines: List<String>): String {
+        if (lines.size <= MAX_LISTED) return lines.joinToString("\n")
+        val more = lines.size - MAX_LISTED
+        return (lines.take(MAX_LISTED) + resources.getQuantityString(R.plurals.and_more, more, more)).joinToString("\n")
+    }
+
     /* What the picker and the provider make of a file, from its extension. */
     private fun mimeType(name: String): String =
         MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
@@ -703,7 +710,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             var said = resources.getQuantityString(R.plurals.downloaded_many, saved, saved)
             if (skipped > 0) said = resources.getQuantityString(R.plurals.skipped, skipped, said, skipped)
             val more = listOfNotNull(
-                if (refused.isEmpty()) null else getString(R.string.not_downloaded, refused.joinToString("\n")),
+                if (refused.isEmpty()) null else getString(R.string.not_downloaded, listed(refused)),
                 failure?.let { getString(R.string.files_failed, it) })
             if (more.isEmpty()) toast(said) else sayInFull((listOf(said) + more).joinToString("\n\n"))
         }
@@ -1033,7 +1040,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     }
                 }, true) {
                     load(dir)
-                    if (refused.isNotEmpty()) sayInFull(getString(R.string.not_deleted, refused.joinToString("\n")))
+                    if (refused.isNotEmpty()) sayInFull(getString(R.string.not_deleted, listed(refused)))
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -1320,6 +1327,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val SORT_TIME = 2
         private const val PROGRESS_NANOS = 200_000_000L
         private const val PROGRESS_STEPS = 1000
+        private const val MAX_LISTED = 20
         private const val BUFFER_SIZE = 65536
 
         /* Line and paragraph separators, and the bidi controls. */

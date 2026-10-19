@@ -256,6 +256,10 @@
         <item quantity="one">%1$s, %2$d skipped as not a file</item>
         <item quantity="other">%1$s, %2$d skipped as not files</item>
     </plurals>
+    <plurals name="and_more">
+        <item quantity="one">and %1$d more</item>
+        <item quantity="other">and %1$d more</item>
+    </plurals>
     <plurals name="downloaded_many">
         <item quantity="one">%1$d file downloaded</item>
         <item quantity="other">%1$d files downloaded</item>

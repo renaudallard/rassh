@@ -37,6 +37,23 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun longErrorIsCut() {
+        val fake = FakeServer { type, id, _ ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                else -> FakeServer.packet(101) {
+                    writeInt(id)
+                    writeInt(SftpException.PERMISSION_DENIED)
+                    /* The pair of a character outside the BMP across the cut. */
+                    with(FakeServer) { string("x".repeat(255) + "\uD83D\uDE00" + "y".repeat(200_000)) }
+                }
+            }
+        }
+        val e = assertFailsWith<SftpException> { SftpClient(fake.clientIn, fake.clientOut).stat("/f") }
+        assertEquals("x".repeat(255), e.message)
+    }
+
+    @Test(timeout = TIMEOUT)
     fun connectionLostIsBroken() {
         /* The version, then nothing more: ssh gone. */
         val version = byteArrayOf(0, 0, 0, 5, 2, 0, 0, 0, 3)
