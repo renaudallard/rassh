@@ -323,6 +323,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             listing = found
             pathView.text = shownName(dir)
             display(shown)
+            /* Changed while listing, with nothing listed yet to arrange again then. */
+            if (hidden != prefs.getBoolean(PREF_HIDDEN, false) || sort != prefs.getInt(PREF_SORT, SORT_NAME)) rearrange()
         }
     }
 
