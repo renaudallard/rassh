@@ -120,7 +120,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 return
             }
             val y = flinger.currY
-            scrollLines((flingY - y).toFloat())
+            scrollLines((flingY - y).toFloat(), false)
             flingY = y
             /* Nothing more to scroll at the end it goes to. */
             if (if (flingBack) scrollOffset >= history else scrollOffset == 0) flinger.forceFinished(true)
@@ -542,7 +542,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         return true
     }
 
-    private fun scrollLines(dy: Float) {
+    /* Through the history, or with keys on the alternate screen, which a fling never sends. */
+    private fun scrollLines(dy: Float, keys: Boolean = true) {
         val t = session?.terminal ?: return
         scrollRemainder += dy
         val lines = (scrollRemainder / cellHeight).toInt()
@@ -550,6 +551,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         scrollRemainder -= lines * cellHeight
         val (alt, history) = synchronized(t) { Pair(t.isAltScreen, t.historySize) }
         if (alt) {
+            if (!keys) return
             /* Full screen programs scroll with the cursor keys. */
             repeat(abs(lines)) { sendKey(if (lines > 0) Key.DOWN else Key.UP, 0) }
         } else {
@@ -612,14 +614,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private fun send(s: String): Boolean {
         /* Anything sent, a special key or text from the soft keyboard, ends a dead key. */
         deadAccent = 0
+        /* Typing goes back to the screen, a fling would take it away again. */
+        stopFling()
         val session = session ?: return true
         if (!session.isRunning) {
             /* Enter alone, a paste holding a newline must not close the session. */
             if (s == "\r") onCloseRequest?.invoke()
             return true
         }
-        /* Typing goes back to the screen, a fling would take it away again. */
-        stopFling()
         if (scrollOffset != 0) {
             scrollOffset = 0
             invalidate()
