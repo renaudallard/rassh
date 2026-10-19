@@ -524,11 +524,26 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .show()
     }
 
-    /* The first lines of a list, one per entry of a selection that may be large, for a dialog. */
-    private fun listed(lines: List<String>): String {
-        if (lines.size <= MAX_LISTED) return lines.joinToString("\n")
-        val more = lines.size - MAX_LISTED
-        return (lines.take(MAX_LISTED) + resources.getQuantityString(R.plurals.and_more, more, more)).joinToString("\n")
+    /*
+     * The entries of a selection refused, one line each: the first ones
+     * only, and how many more, a large selection must not keep them all.
+     * Added to on the worker, read once it is done.
+     */
+    private class Refusals {
+        val lines = mutableListOf<String>()
+        var more = 0
+
+        fun add(line: String) {
+            if (lines.size < MAX_LISTED) lines.add(line) else more++
+        }
+
+        fun isEmpty(): Boolean = lines.isEmpty()
+    }
+
+    private fun listed(refused: Refusals): String {
+        val more = refused.more
+        return (refused.lines + if (more > 0) listOf(resources.getQuantityString(R.plurals.and_more, more, more))
+            else emptyList()).joinToString("\n")
     }
 
     /* What the picker and the provider make of a file, from its extension. */
@@ -657,7 +672,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val kept = keepAccess(listOf(tree), true)
         var saved = 0
         var skipped = 0
-        val refused = mutableListOf<String>()
+        val refused = Refusals()
         /* Why it ended before the last file, null when done or stopped. */
         var failure: String? = null
         transfer(getString(R.string.downloading_files), { progress, stopped, sized ->
@@ -1026,7 +1041,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setMessage(resources.getQuantityString(R.plurals.delete_many, picked.size, picked.size))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val c = client() ?: return@setPositiveButton
-                val refused = mutableListOf<String>()
+                val refused = Refusals()
                 /* As a transfer: one request each, which may take long and should be seen and stopped. */
                 transfer(getString(R.string.deleting), { progress, _, sized ->
                     sized(picked.size.toLong())
@@ -1040,7 +1055,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                     }
                 }, true) {
                     load(dir)
-                    if (refused.isNotEmpty()) sayInFull(getString(R.string.not_deleted, listed(refused)))
+                    if (!refused.isEmpty()) sayInFull(getString(R.string.not_deleted, listed(refused)))
                 }
             }
             .setNegativeButton(R.string.cancel, null)
