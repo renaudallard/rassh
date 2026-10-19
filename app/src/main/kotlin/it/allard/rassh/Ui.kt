@@ -31,6 +31,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import java.io.IOException
@@ -102,6 +103,20 @@ fun Context.toast(message: String) {
 fun Activity.sayInFull(message: String) {
     if (isDestroyed) applicationContext.toast(message)
     else AlertDialog.Builder(this).setMessage(message).setPositiveButton(android.R.string.ok, null).show()
+}
+
+/*
+ * A dialog telling that title runs, to dismiss once it ends, closed with
+ * the screen as well. Back closes it, what runs goes on and still says
+ * how it ended.
+ */
+fun Activity.busy(title: Int): AlertDialog {
+    val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
+    bar.isIndeterminate = true
+    val dialog = AlertDialog.Builder(this).setTitle(title).setView(dialogLayout(bar)).show()
+    dialog.setCanceledOnTouchOutside(false)
+    dismissWithScreen(dialog) {}
+    return dialog
 }
 
 /* Open the document picker, which a phone may have disabled. */

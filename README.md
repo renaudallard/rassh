@@ -339,15 +339,16 @@ session, or force-stop the app, before connecting.
 
 ## Moving to another phone
 
-Export, in the menu, writes `~/.ssh/config` with its hosts, `known_hosts`,
-the keys of `~/.ssh` with their public keys and certificates, and the
-font size to a file sealed with a passphrase of at least 12
-characters, with AES-256-GCM under a key derived by PBKDF2-HMAC-SHA256
-with 600,000 iterations. Taking the keys out of the vault for it takes
-a fingerprint, but in the file they are only behind the passphrase:
-anyone getting the file can try passphrases offline, choose a long
-one. Android backup stays off, since the vault cannot leave the phone
-that made it. Files read through `Include` and keys kept outside
+Export, in the menu, writes `~/.ssh/config` with its hosts,
+`known_hosts`, the keys of `~/.ssh` with their public keys and
+certificates, and the font size to a file sealed with a passphrase of at
+least 12 characters, with AES-256-GCM under a key derived by
+PBKDF2-HMAC-SHA256 with 600,000 iterations, a dialog showing meanwhile,
+as while an import reads the file. Taking the keys out of the vault for
+it takes a fingerprint, but in the file they are only behind the
+passphrase: anyone getting the file can try passphrases offline, choose
+a long one. Android backup stays off, since the vault cannot leave the
+phone that made it. Files read through `Include` and keys kept outside
 `~/.ssh` are not exported. A key named as early versions or the local
 shell allowed, with an `@` for instance, must be renamed first, and an
 export stops at a key holding no private key in PEM form, a lone

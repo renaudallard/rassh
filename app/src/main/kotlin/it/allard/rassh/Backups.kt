@@ -87,6 +87,8 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                 sayInFull(getString(R.string.export_failed, e.message))
                 return
             }
+            /* Sealing takes a while, the passphrase is stretched for it. */
+            val dialog = busy(R.string.exporting)
             thread(name = "export") {
                 /* Truncated once opened, the file replaced is lost then and goes as well. */
                 var opened = false
@@ -105,6 +107,7 @@ fun Activity.exportTo(uri: Uri, paths: Paths, vault: Vault) {
                     pass.fill('\u0000')
                 }
                 runOnUiThread {
+                    if (dialog.isShowing) dialog.dismiss()
                     toast(if (error == null) getString(R.string.exported) else getString(R.string.export_failed, error))
                 }
             }
@@ -183,6 +186,7 @@ fun Activity.importFrom(uri: Uri, paths: Paths, vault: Vault, inUse: () -> List<
 private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: Boolean, inUse: () -> List<String>,
     done: () -> Unit) {
     askPassphrase(R.string.import_, false) { pass ->
+        val dialog = busy(R.string.importing)
         /* In the thread, a provider may have to download the file first. */
         thread(name = "import") {
             var items: List<Backup.Item>? = null
@@ -198,7 +202,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                     /* ssh may run Match exec, not on the UI thread. */
                     if (!replace && opened.any { it.type == Backup.FILE && it.name == CONFIG }) {
                         /* Two ssh -G for each host, its names reached and the check: a long config takes a while. */
-                        runOnUiThread { toast(getString(R.string.config_checking)) }
+                        runOnUiThread { if (dialog.isShowing) dialog.setTitle(R.string.config_checking) }
                         merged = merge(paths, opened)?.also {
                             refused = configRefusal(paths, it.text, it.names, it.read, it.added)
                         }
@@ -220,6 +224,7 @@ private fun Activity.readExport(uri: Uri, paths: Paths, vault: Vault, replace: B
                 pass.fill('\u0000')
             }
             runOnUiThread {
+                if (dialog.isShowing) dialog.dismiss()
                 val opened = items
                 val refusal = refused
                 if (opened == null) {
