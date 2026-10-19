@@ -249,7 +249,7 @@
     </plurals>
     <plurals name="download_many">
         <item quantity="one">Download %1$d entry into a folder you choose?</item>
-        <item quantity="other">Download %1$d entries into a folder you choose? Folders among them are skipped, and a file whose name is taken there gets another one.\n\nUnlike a single file, these downloads cannot be resumed if the connection is lost: the files not done must be downloaded again.</item>
+        <item quantity="other">Download %1$d entries into a folder you choose? What is not a regular file among them, a folder for one, is skipped, and a file whose name is taken there gets another one.\n\nUnlike a single file, these downloads cannot be resumed if the connection is lost: the files not done must be downloaded again.</item>
     </plurals>
     <plurals name="skipped">
         <item quantity="one">%1$s, %2$d skipped as not a file</item>
