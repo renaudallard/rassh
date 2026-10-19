@@ -360,7 +360,6 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
     }
     vault.replaceAll(key, keys.filter { it.name in sealed }.map { it.name to it.data })
     for (item in publicKeys) paths.writePrivate(File(dir, item.name), item.data)
-    useKeyNames(paths, sealed.toList())
     val clear = keys.map { it.name }.toSet() - sealed
     val names = keys.map { it.name }
     for (item in keys) {
@@ -383,7 +382,22 @@ private fun Context.replaceAll(paths: Paths, vault: Vault, key: ByteArray?, item
         if (name !in files) File(dir, name).delete()
     if (items.none { it.type == Backup.SETTING && it.name == TerminalView.PREF_FONT_SIZE })
         getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE).edit().remove(TerminalView.PREF_FONT_SIZE).apply()
+    keyNamesAfter(paths, sealed.toList())
     return Pair(hostCount(paths), keys.size)
+}
+
+/*
+ * Name the vault keys in IdentityFile lines, see useKeyNames(), once the
+ * import is written: failing then, on a full disk for one, it must not
+ * say the import failed, nor stop it halfway. The main screen does it
+ * again at its next focus.
+ */
+private fun keyNamesAfter(paths: Paths, names: List<String>) {
+    try {
+        useKeyNames(paths, names)
+    } catch (_: IOException) {
+    } catch (_: ErrnoException) {
+    }
 }
 
 /*
@@ -481,7 +495,7 @@ private fun Context.append(paths: Paths, vault: Vault, key: ByteArray?, items: L
     val prefs = getSharedPreferences(TerminalView.PREFS, Context.MODE_PRIVATE)
     for (item in items.filter { it.type == Backup.SETTING })
         if (!prefs.contains(item.name)) putSetting(item)
-    useKeyNames(paths, keys.filter { sealable(items, it, seal) }.map { it.name })
+    keyNamesAfter(paths, keys.filter { sealable(items, it, seal) }.map { it.name })
     return Pair(hosts, keys.size)
 }
 
