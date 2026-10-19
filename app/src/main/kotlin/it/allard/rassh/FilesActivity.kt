@@ -1059,7 +1059,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                  */
                 val typed = field.text.toString()
                 if (typed == shown) return@setPositiveButton
-                val to = if (typed.startsWith(shown)) dir + typed.removePrefix(shown) else typed.trim()
+                val to = if (typed.startsWith(shown)) dir + typed.removePrefix(shown).trimEnd() else typed.trim()
                 val start = home ?: dir
                 when {
                     to.isBlank() -> {}
