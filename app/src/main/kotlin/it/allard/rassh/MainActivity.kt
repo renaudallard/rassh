@@ -79,7 +79,7 @@ class MainActivity : Activity(), SessionService.Listener {
     private var heldY = 0f
     private val binding = ServiceBinding(this) {
         it.addListener(this)
-        invalidateOptionsMenu()
+        sessionsChanged()
     }
 
     /* The touch listener of the list only watches, the list still takes clicks. */
@@ -247,6 +247,7 @@ class MainActivity : Activity(), SessionService.Listener {
 
     override fun sessionsChanged() {
         invalidateOptionsMenu()
+        adapter.items = rows()
     }
 
     private fun loadHosts() {
@@ -259,7 +260,7 @@ class MainActivity : Activity(), SessionService.Listener {
         held = -1
         stale = false
         adapter.held = -1
-        adapter.items = hosts.map { it.name to summary(it) }
+        adapter.items = rows()
     }
 
     /*
@@ -319,7 +320,7 @@ class MainActivity : Activity(), SessionService.Listener {
         hosts = hosts.toMutableList().apply { add(to, removeAt(held)) }
         held = to
         adapter.held = to
-        adapter.items = hosts.map { it.name to summary(it) }
+        adapter.items = rows()
     }
 
     private val scroll = object : Runnable {
@@ -358,6 +359,12 @@ class MainActivity : Activity(), SessionService.Listener {
         loadHosts()
     }
 
+    /* A host with a session running to it says so. */
+    private fun rows(): List<Pair<String, String>> {
+        val open = binding.service?.sessions.orEmpty().filter { it.isRunning }.mapNotNull { it.server }.toSet()
+        return hosts.map { it.name to if (it.name in open) getString(R.string.host_open, summary(it)) else summary(it) }
+    }
+
     private fun summary(h: Host): String = buildString {
         if (h.user.isNotEmpty()) append(h.user).append('@')
         append(h.hostName.ifEmpty { h.name })
@@ -391,16 +398,22 @@ class MainActivity : Activity(), SessionService.Listener {
             get() = server == null
     }
 
-    /* Start l, asking first when a session to the same server runs already. */
+    /* Start l, asking first when a session to the same server runs already, which it may go back to. */
     private fun launch(l: Launch) {
         val service = binding.service ?: return
-        if (l.browse || service.sessions.none { it.isRunning && it.server == l.server }) {
+        val running = if (l.browse) null else service.sessions.lastOrNull { it.isRunning && it.server == l.server }
+        if (running == null) {
             open(service, l)
             return
         }
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.second_session, l.server))
             .setPositiveButton(R.string.open_session) { _, _ -> open(service, l) }
+            .setNeutralButton(R.string.switch_session) { _, _ ->
+                /* Closed meanwhile, from its notification for one, the terminal screen shows another. */
+                if (running in service.sessions)
+                    startActivity(Intent(this, TerminalActivity::class.java).forSession(running))
+            }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
