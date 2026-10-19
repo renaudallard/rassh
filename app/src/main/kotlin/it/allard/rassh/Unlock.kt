@@ -203,10 +203,14 @@ fun Activity.protectKeys(paths: Paths, vault: Vault, dismissed: () -> Unit, done
         toast(getString(R.string.vault_error, e.message))
         return done(false)
     }
-    /* Not a link: deleting it would leave the key it names in clear. */
+    /*
+     * Not a link: deleting it would leave the key it names in clear. Nor
+     * one whose public key ssh cannot load, which could no longer be made
+     * from the key once in the vault.
+     */
     val (taken, fresh) = Keys.plaintext(paths.sshDir).filter {
         val file = File(paths.sshDir, it)
-        Keys.publicKey(paths.sshDir, it) != null && file.length() <= Keys.MAX_SIZE &&
+        Keys.hasPublicLine(paths.sshDir, it) && file.length() <= Keys.MAX_SIZE &&
             !Files.isSymbolicLink(file.toPath())
     }.partition { it in stored }
     val pending = taken + fresh.take(maxOf(Keys.MAX_COUNT - stored.size, 0))

@@ -272,6 +272,10 @@ object Keys {
         }
     }
 
+    /* Whether the public key next to a private key holds a line ssh loads, see publicLine(). */
+    fun hasPublicLine(dir: File, name: String): Boolean =
+        publicKey(dir, name)?.let { publicLine(it.toByteArray()) } != null
+
     /* The SHA-256 fingerprint of a public key in base64, as ssh-keygen -l shows it, or null. */
     fun fingerprint(key: String): String? {
         val blob = try {

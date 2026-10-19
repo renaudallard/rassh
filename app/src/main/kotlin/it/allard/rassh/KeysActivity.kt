@@ -187,7 +187,7 @@ class KeysActivity : Activity() {
      * clear. Keys in clear with their public key are on their way there.
      */
     private fun vaultFull(): Boolean {
-        val waiting = Keys.plaintext(paths.sshDir).count { Keys.publicKey(paths.sshDir, it) != null }
+        val waiting = Keys.plaintext(paths.sshDir).count { Keys.hasPublicLine(paths.sshDir, it) }
         if (vaultNames().size + waiting < Keys.MAX_COUNT) return false
         toast(getString(R.string.vault_full, Keys.MAX_COUNT))
         return true
@@ -354,11 +354,10 @@ class KeysActivity : Activity() {
     private fun showKey(name: String) {
         val pub = Keys.publicKey(paths.sshDir, name)
         val actions = mutableListOf<Pair<Int, () -> Unit>>()
-        if (pub == null) {
-            /* ssh-keygen reads the key from its file, a key in the vault has none. */
-            if (File(paths.sshDir, name).isFile)
-                actions.add(R.string.derive_public_key to { derivePublicKey(name) })
-        } else {
+        /* Also in place of one ssh cannot load. ssh-keygen reads the key from its file, a key in the vault has none. */
+        if (!Keys.hasPublicLine(paths.sshDir, name) && File(paths.sshDir, name).isFile)
+            actions.add(R.string.derive_public_key to { derivePublicKey(name) })
+        if (pub != null) {
             actions.add(R.string.show_public_key to { showPublicKey(name, pub) })
             actions.add(R.string.share_public_key to {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pub)
