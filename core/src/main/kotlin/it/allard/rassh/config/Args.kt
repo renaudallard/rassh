@@ -5,7 +5,8 @@ object Args {
      * Split a command line in words as sh does. Spaces, tabs and
      * newlines separate words, single and double quotes group them, a
      * backslash escapes the next character outside quotes and only
-     * " \ $ ` within double quotes. A backslash at the end stays.
+     * " \ $ ` within double quotes. A backslash at the end stays. A #
+     * starting a word comments out the rest of the line.
      * Returns null on unbalanced quotes.
      */
     fun split(s: String): List<String>? {
@@ -31,6 +32,7 @@ object Args {
                     quote = c
                     inWord = true
                 }
+                c == '#' && !inWord -> while (i < s.length && s[i] != '\n') i++
                 c == ' ' || c == '\t' || c == '\n' -> if (inWord) {
                     words.add(word.toString())
                     word.setLength(0)

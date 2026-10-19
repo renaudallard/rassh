@@ -21,6 +21,14 @@ class ArgsTest {
     }
 
     @Test
+    fun dropsComments() {
+        assertEquals(listOf("web"), Args.split("web # prod"))
+        assertEquals(listOf("a#b", "#c"), Args.split("a#b '#c'"))
+        assertEquals(listOf("a", "b"), Args.split("a #x 'y\nb"))
+        assertEquals(listOf("a", "#"), Args.split("a \\#"))
+    }
+
+    @Test
     fun rejectsUnbalanced() {
         assertNull(Args.split("'open"))
         assertNull(Args.split("\"open"))
