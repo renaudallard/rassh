@@ -410,9 +410,11 @@ class MainActivity : Activity(), SessionService.Listener {
             .setMessage(getString(R.string.second_session, l.server))
             .setPositiveButton(R.string.open_session) { _, _ -> open(service, l) }
             .setNeutralButton(R.string.switch_session) { _, _ ->
-                /* Closed meanwhile, from its notification for one, the terminal screen shows another. */
+                /* Ended meanwhile, it shows why. Closed, from the terminal screen for one, it is said. */
                 if (running in service.sessions)
                     startActivity(Intent(this, TerminalActivity::class.java).forSession(running))
+                else
+                    toast(getString(R.string.session_gone))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
