@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.system.ErrnoException
 import android.system.Os
@@ -69,6 +70,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The remote file a download waits for its destination for. */
     private var downloading: String? = null
 
+    /* The remote files a download of several waits for its folder for. */
+    private var downloadingAll: ArrayList<String>? = null
+
     /* The directory an upload waits for its files for. */
     private var uploading: String? = null
 
@@ -107,6 +111,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         cwd = savedInstanceState?.getString(STATE_PATH)
         home = savedInstanceState?.getString(STATE_HOME)
         downloading = savedInstanceState?.getString(STATE_DOWNLOAD)
+        downloadingAll = savedInstanceState?.getStringArrayList(STATE_DOWNLOAD_ALL)
         uploading = savedInstanceState?.getString(STATE_UPLOAD)
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { back() }
         binding.bind()
@@ -117,6 +122,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         outState.putString(STATE_PATH, cwd)
         outState.putString(STATE_HOME, home)
         outState.putString(STATE_DOWNLOAD, downloading)
+        outState.putStringArrayList(STATE_DOWNLOAD_ALL, downloadingAll)
         outState.putString(STATE_UPLOAD, uploading)
     }
 
@@ -355,6 +361,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private val selecting = object : AbsListView.MultiChoiceModeListener {
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
             selection = mode
+            menu.add(Menu.NONE, SELECT_DOWNLOAD, 0, R.string.download)
             menu.add(Menu.NONE, SELECT_RENAME, 0, R.string.rename)
             menu.add(Menu.NONE, SELECT_DELETE, 1, R.string.delete)
             menu.add(Menu.NONE, SELECT_ALL, 2, R.string.select_all)
@@ -382,6 +389,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             val dir = cwd
             mode.finish()
             when (item.itemId) {
+                SELECT_DOWNLOAD -> downloadAll(picked, dir ?: return true)
                 SELECT_RENAME -> picked.singleOrNull()?.let { rename(it, dir ?: return true) }
                 SELECT_DELETE -> deleteAll(picked, dir ?: return true)
             }
@@ -470,6 +478,30 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             REQUEST_DOWNLOAD)
     }
 
+    /*
+     * One file goes as from its actions, and may be resumed. Several go
+     * into a folder picked once, without a record to resume them: said
+     * before, as the folders among them, which are skipped.
+     */
+    private fun downloadAll(picked: List<SftpEntry>, dir: String) {
+        val c = client() ?: return
+        val one = picked.singleOrNull()
+        if (one != null) {
+            val p = path(dir, one.name)
+            run({ c.stat(p) }) { if (it.isFile) download(one, dir) else toast(getString(R.string.not_a_file)) }
+            return
+        }
+        AlertDialog.Builder(this)
+            .setMessage(resources.getQuantityString(R.plurals.download_many, picked.size, picked.size))
+            .setPositiveButton(R.string.choose_folder) { _, _ ->
+                client() ?: return@setPositiveButton
+                downloadingAll = ArrayList(picked.map { path(dir, it.name) })
+                pick(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_DOWNLOAD_ALL)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun upload() {
         uploading = cwd ?: return
         pick(
@@ -500,6 +532,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 val uri = data.data ?: return
                 downloading = null
                 saveTo(remote, uri)
+            }
+            REQUEST_DOWNLOAD_ALL -> {
+                val remotes = downloadingAll ?: return
+                val tree = data.data ?: return
+                downloadingAll = null
+                saveAll(remotes, tree)
             }
             REQUEST_UPLOAD -> {
                 val dir = uploading ?: return
@@ -566,6 +604,46 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (host != null && resumed != null) unclaimResumable(host)
             }
         }) { toast(getString(R.string.downloaded, name)) }
+    }
+
+    /*
+     * Download remotes into the folder tree, each in a new file the
+     * provider names, after the next free name. What is not a regular
+     * file, a folder for one, is skipped. A failure removes the file it
+     * was writing, those done before stay.
+     */
+    private fun saveAll(remotes: List<String>, tree: Uri) {
+        val c = client() ?: return
+        var saved = 0
+        var skipped = 0
+        transfer(getString(R.string.downloading_files), { progress, _, sized ->
+            val folder = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+            for (remote in remotes) {
+                val attrs = c.stat(remote)
+                if (!attrs.isFile) {
+                    skipped++
+                    continue
+                }
+                sized(attrs.size ?: -1)
+                val name = shownName(remote.substringAfterLast('/'))
+                val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+                val doc = DocumentsContract.createDocument(contentResolver, folder, type ?: "application/octet-stream", name)
+                    ?: throw IOException(getString(R.string.error_cannot_open))
+                try {
+                    c.download(remote, {
+                        contentResolver.openOutputStream(doc, "wt") ?: throw IOException(getString(R.string.error_cannot_open))
+                    }, 0, progress)
+                } catch (e: Exception) {
+                    if (!isFileError(e)) throw e
+                    deleteDocument(doc)
+                    throw e
+                }
+                saved++
+            }
+        }) {
+            val done = resources.getQuantityString(R.plurals.downloaded_many, saved, saved)
+            toast(if (skipped == 0) done else getString(R.string.skipped, done, skipped))
+        }
     }
 
     /*
@@ -1146,8 +1224,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val STATE_HOME = "home"
         private const val STATE_DOWNLOAD = "download"
         private const val STATE_UPLOAD = "upload"
+        private const val STATE_DOWNLOAD_ALL = "download_all"
         private const val REQUEST_DOWNLOAD = 1
         private const val REQUEST_UPLOAD = 2
+        private const val REQUEST_DOWNLOAD_ALL = 3
         private const val MENU_UPLOAD = 1
         private const val MENU_NEW_FOLDER = 2
         private const val MENU_REFRESH = 3
@@ -1162,6 +1242,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val SELECT_RENAME = 1
         private const val SELECT_DELETE = 2
         private const val SELECT_ALL = 3
+        private const val SELECT_DOWNLOAD = 4
         /* The places in the sort dialog, kept as they are stored. */
         private const val SORT_NAME = 0
         private const val SORT_SIZE = 1

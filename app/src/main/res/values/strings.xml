@@ -109,6 +109,10 @@
     <string name="delete_folder">Delete the folder %1$s? Only an empty one can be deleted.</string>
     <string name="not_deleted">Not deleted:\n%1$s</string>
     <string name="select_all">Select all</string>
+    <string name="choose_folder">Choose folder</string>
+    <string name="not_a_file">Only files are downloaded</string>
+    <string name="downloading_files">Downloading files</string>
+    <string name="skipped">%1$s, %2$d skipped as not files</string>
     <string name="exists_already">%1$s exists already</string>
     <string name="error_file_name">Not a valid file name</string>
 
@@ -239,6 +243,14 @@
     <plurals name="delete_many">
         <item quantity="one">Delete %1$d item? Folders are only deleted when empty.</item>
         <item quantity="other">Delete %1$d items? Folders are only deleted when empty.</item>
+    </plurals>
+    <plurals name="download_many">
+        <item quantity="one">Download %1$d entry into a folder you choose?</item>
+        <item quantity="other">Download %1$d entries into a folder you choose? Folders among them are skipped, and a file whose name is taken there gets another one.\n\nUnlike a single file, these downloads cannot be resumed if the connection is lost: the files not done must be downloaded again.</item>
+    </plurals>
+    <plurals name="downloaded_many">
+        <item quantity="one">%1$d file downloaded</item>
+        <item quantity="other">%1$d files downloaded</item>
     </plurals>
     <plurals name="sessions_open">
         <item quantity="one">%1$d session open</item>
