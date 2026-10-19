@@ -660,8 +660,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                             continue
                         }
                         sized(attrs.size ?: -1)
-                        val doc = DocumentsContract.createDocument(contentResolver, folder, mimeType(name), name)
-                            ?: throw IOException(getString(R.string.error_cannot_open))
+                        /*
+                         * An app answering the folder picker with no document
+                         * provider behind it gives no reply, which Android
+                         * reads as a NullPointerException, which would end the app.
+                         */
+                        val doc = try {
+                            DocumentsContract.createDocument(contentResolver, folder, mimeType(name), name)
+                        } catch (_: NullPointerException) {
+                            null
+                        } ?: throw IOException(getString(R.string.error_cannot_open))
                         try {
                             c.download(remote, {
                                 contentResolver.openOutputStream(doc, "wt")
