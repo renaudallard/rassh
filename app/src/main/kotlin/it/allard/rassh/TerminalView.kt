@@ -21,6 +21,7 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowInsets
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
@@ -35,6 +36,7 @@ import it.allard.rassh.terminal.Terminal
 import it.allard.rassh.terminal.TerminalRow
 import it.allard.rassh.terminal.TextStyle
 import kotlin.math.abs
+import kotlin.math.hypot
 
 /** Draws the terminal of a session and sends it keys and touches. */
 class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs),
@@ -61,6 +63,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var fontSize = prefs.getFloat(PREF_FONT_SIZE, DEFAULT_FONT_SIZE)
     /* A bundled font, OEM themes may replace even Typeface.MONOSPACE. */
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -137,6 +140,13 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private var stoppedFling = false
     /* Nor is a pinch, once a finger is lifted, a fling for the one left. */
     private var pinched = false
+    /*
+     * A tap right after the one stopping a fling makes a double tap of
+     * them, still a tap if it lifts where it went down.
+     */
+    private var tapAfterFling = false
+    private var tapX = 0f
+    private var tapY = 0f
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean {
@@ -163,9 +173,20 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             return true
         }
 
-        /* A tap right after the one stopping a fling makes a double tap of them, it is a tap still. */
-        override fun onDoubleTap(e: MotionEvent): Boolean {
-            if (stoppedFling) performClick()
+        /*
+         * Called for the second touch of a double tap before onDown(), which
+         * still tells about the first. A long press takes its lift, see
+         * onTouchEvent(), and a quick scale its moves.
+         */
+        override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    tapAfterFling = stoppedFling
+                    tapX = e.x
+                    tapY = e.y
+                }
+                MotionEvent.ACTION_UP -> if (tapAfterFling && hypot(e.x - tapX, e.y - tapY) <= touchSlop) performClick()
+            }
             return true
         }
 
