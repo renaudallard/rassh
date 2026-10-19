@@ -592,23 +592,41 @@ class MainActivity : Activity(), SessionService.Listener {
         return menu
     }
 
-    /* Asked once ssh tells which hosts jump through it, see jumpingThrough(). ssh may run Match exec, not on the UI thread. */
+    /*
+     * Asked once ssh tells which hosts jump through it, see
+     * jumpingThrough(), one at a time. ssh may run Match exec, not on the
+     * UI thread. A long config takes a while, which is said then.
+     */
     private fun deleteHost(name: String) {
+        if (checkingJumps) return
+        checkingJumps = true
+        list.postDelayed(slowCheck, SLOW_CHECK)
         thread(name = "check-jumps") {
+            var failed: String? = null
             val through = try {
                 jumpingThrough(paths, paths.textOf(paths.config), name)
-            } catch (_: IOException) {
-                /* The delete reads the file again, and says it fails then. */
+            } catch (e: IOException) {
+                failed = e.message
                 emptyList()
             }
-            runOnUiThread { if (!isDestroyed) confirmDelete(name, through) }
+            runOnUiThread {
+                checkingJumps = false
+                list.removeCallbacks(slowCheck)
+                if (!isDestroyed) confirmDelete(name, through, failed)
+            }
         }
     }
 
-    private fun confirmDelete(name: String, through: List<String>) {
+    private var checkingJumps = false
+    private val slowCheck = Runnable { toast(getString(R.string.config_checking)) }
+
+    /* Asked anyway when the check could not run, saying so. */
+    private fun confirmDelete(name: String, through: List<String>, failed: String?) {
+        var message = if (through.isEmpty()) getString(R.string.delete_host, name)
+            else getString(R.string.jump_delete, name, shownHosts(through))
+        if (failed != null) message += "\n\n" + getString(R.string.config_check_failed, failed)
         AlertDialog.Builder(this)
-            .setMessage(if (through.isEmpty()) getString(R.string.delete_host, name)
-                else getString(R.string.jump_delete, name, shownHosts(through)))
+            .setMessage(message)
             .setPositiveButton(R.string.delete) { _, _ ->
                 try {
                     val config = SshConfig.parse(paths.textOf(paths.config))
@@ -774,6 +792,8 @@ class MainActivity : Activity(), SessionService.Listener {
         private const val REQUEST_IMPORT = 2
         /* How far the list scrolls on each frame while a host is held near its edge, in dp. */
         private const val SCROLL_STEP = 8
+        /* When the check before a delete is said to run, in ms. */
+        private const val SLOW_CHECK = 500L
         private const val PRIVACY_URL = "https://github.com/renaudallard/rassh/blob/main/PRIVACY.md"
     }
 }
