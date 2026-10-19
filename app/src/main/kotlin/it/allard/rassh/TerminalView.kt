@@ -163,6 +163,12 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             return true
         }
 
+        /* A tap right after the one stopping a fling makes a double tap of them, it is a tap still. */
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            if (stoppedFling) performClick()
+            return true
+        }
+
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
             scrollLines(dy)
             return true
