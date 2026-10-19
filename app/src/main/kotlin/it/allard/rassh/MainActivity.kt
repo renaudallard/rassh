@@ -645,7 +645,7 @@ class MainActivity : Activity(), SessionService.Listener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_ADD, 0, R.string.add_host)
-            .setIcon(R.drawable.ic_add_host)
+            .setIcon(R.drawable.ic_add)
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         /* In the menu, where it is found once the notification is gone. */
         if (binding.service?.sessions?.isNotEmpty() == true)

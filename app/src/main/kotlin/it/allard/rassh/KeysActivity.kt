@@ -478,7 +478,11 @@ class KeysActivity : Activity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_GENERATE, 0, R.string.generate_key)
+            .setIcon(R.drawable.ic_add)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_IMPORT, 1, R.string.import_key)
+            .setIcon(R.drawable.ic_import)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         return true
     }
 

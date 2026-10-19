@@ -948,7 +948,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_UPLOAD, 0, R.string.upload)
+            .setIcon(R.drawable.ic_upload)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_NEW_FOLDER, 1, R.string.new_folder)
+            .setIcon(R.drawable.ic_new_folder)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_GO_TO, 2, R.string.go_to)
         menu.add(Menu.NONE, MENU_REFRESH, 2, R.string.refresh)
         menu.add(Menu.NONE, MENU_TERMINAL, 3, R.string.show_terminal)
