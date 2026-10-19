@@ -119,7 +119,9 @@ keys are encrypted and unlocked with it.
   block for one, uses that agent instead and gets no vault key
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
-  key, show, copy or share public keys. OpenSSH 10.6 renamed the
+  key, show, copy or share public keys. Each key is listed with its
+  type, comment and SHA-256 fingerprint, as ssh prints it, and whether
+  it is encrypted in the vault or in clear. OpenSSH 10.6 renamed the
   experimental `ssh-mldsa44-ed25519@openssh.com` keys, mldsa44-ed25519
   keys made with older versions of rassh no longer load and must be
   generated again

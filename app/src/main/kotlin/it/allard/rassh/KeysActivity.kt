@@ -126,13 +126,16 @@ class KeysActivity : Activity() {
         keys = (sealed + Keys.plaintext(paths.sshDir) + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
             val pub = Keys.publicKey(paths.sshDir, name)
-            name to when {
+            val about = when {
                 /* Named as early versions allowed, a key of the vault is in it already. */
                 !Keys.isValidName(name) -> getString(
                     if (name in sealed) R.string.key_name_not_allowed_sealed else R.string.key_name_not_allowed)
                 pub != null -> pub.split(' ').let { (it.getOrNull(0) ?: "") + " " + (it.getOrNull(2) ?: "") }.trim()
                 else -> getString(R.string.public_key_missing)
             }
+            /* The fingerprint ssh shows when a server takes or refuses the key, and where the key is kept. */
+            val stored = getString(if (name in sealed) R.string.key_in_vault else R.string.key_in_clear)
+            name to listOfNotNull(about, pub?.let { Keys.fingerprint(it) }, stored).joinToString("\n")
         }
     }
 

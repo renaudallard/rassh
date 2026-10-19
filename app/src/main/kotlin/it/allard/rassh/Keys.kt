@@ -3,6 +3,8 @@ package it.allard.rassh
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.security.MessageDigest
+import java.util.Base64
 
 /** Private keys, in the vault or in clear in ~/.ssh until moved there. */
 object Keys {
@@ -268,5 +270,16 @@ object Keys {
         } catch (_: IOException) {
             null
         }
+    }
+
+    /* The SHA-256 fingerprint of a public key line, as ssh-keygen -l shows it, or null. */
+    fun fingerprint(pub: String): String? {
+        val blob = try {
+            Base64.getDecoder().decode(pub.split(' ', '\t').filter { it.isNotEmpty() }.getOrNull(1) ?: return null)
+        } catch (_: IllegalArgumentException) {
+            return null
+        }
+        val hash = MessageDigest.getInstance("SHA-256").digest(blob)
+        return "SHA256:" + Base64.getEncoder().withoutPadding().encodeToString(hash)
     }
 }
