@@ -371,16 +371,20 @@ class HostActivity : Activity() {
         }
         /* The host saved first, ssh's message is most likely about it. */
         val names = checkedNames(config, listOf(n))
+        /* Its old name stays in the ProxyJump of other hosts, see jumpingThrough(). */
+        val renamed = original?.takeIf { !equalsAscii(it, n) }
         checking = true
         /* One ssh -G for each host, a long config takes a while. */
         actionBar?.setSubtitle(R.string.config_checking)
         /* ssh may run Match exec, not on the UI thread. */
         thread(name = "check-config") {
             var refused: Pair<String, String>? = null
+            var through = emptyList<String>()
             /* Not ssh's verdict, the check itself could not run. */
             var failed: String? = null
             try {
                 refused = configRefusal(paths, text, names, read, listOf(n))
+                if (refused == null && renamed != null) through = jumpingThrough(paths, read, renamed)
             } catch (e: IOException) {
                 failed = e.message
             }
@@ -400,30 +404,43 @@ class HostActivity : Activity() {
                         .show()
                     return@runOnUiThread
                 }
-                try {
-                    /* Written meanwhile, by an import finishing for one, it would be lost. */
-                    if (paths.textOf(paths.config) != read) {
-                        toast(getString(R.string.config_changed))
-                        return@runOnUiThread
-                    }
-                    paths.ensureSshDir()
-                    paths.writeText(paths.config, text)
-                    /*
-                     * Edited, the host may be another server: a transfer cut short
-                     * there is not resumed. Saved unchanged, it still is.
-                     */
-                    val edited = n != original || signature(SshConfig.parse(text).find(n)) != loaded
-                    if (edited) original?.let { thread(name = "drop-resume") { applicationContext.dropResumable(it) } }
-                } catch (e: IOException) {
-                    toast(getString(R.string.config_failed, e.message))
-                    return@runOnUiThread
-                } catch (e: ErrnoException) {
-                    toast(getString(R.string.config_failed, e.message))
+                if (through.isNotEmpty()) {
+                    AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.jump_rename, renamed, through.joinToString(", ")))
+                        .setPositiveButton(R.string.rename) { _, _ -> write(text, read, n) }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
                     return@runOnUiThread
                 }
-                finish()
+                write(text, read, n)
             }
         }
+    }
+
+    /* Write text, the config with host n saved, unless the file changed since it was read. */
+    private fun write(text: String, read: String, n: String) {
+        try {
+            /* Written meanwhile, by an import finishing for one, it would be lost. */
+            if (paths.textOf(paths.config) != read) {
+                toast(getString(R.string.config_changed))
+                return
+            }
+            paths.ensureSshDir()
+            paths.writeText(paths.config, text)
+            /*
+             * Edited, the host may be another server: a transfer cut short
+             * there is not resumed. Saved unchanged, it still is.
+             */
+            val edited = n != original || signature(SshConfig.parse(text).find(n)) != loaded
+            if (edited) original?.let { thread(name = "drop-resume") { applicationContext.dropResumable(it) } }
+        } catch (e: IOException) {
+            toast(getString(R.string.config_failed, e.message))
+            return
+        } catch (e: ErrnoException) {
+            toast(getString(R.string.config_failed, e.message))
+            return
+        }
+        finish()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

@@ -590,9 +590,23 @@ class MainActivity : Activity(), SessionService.Listener {
         return menu
     }
 
+    /* Asked once ssh tells which hosts jump through it, see jumpingThrough(). ssh may run Match exec, not on the UI thread. */
     private fun deleteHost(name: String) {
+        thread(name = "check-jumps") {
+            val through = try {
+                jumpingThrough(paths, paths.textOf(paths.config), name)
+            } catch (_: IOException) {
+                /* The delete reads the file again, and says it fails then. */
+                emptyList()
+            }
+            runOnUiThread { if (!isDestroyed) confirmDelete(name, through) }
+        }
+    }
+
+    private fun confirmDelete(name: String, through: List<String>) {
         AlertDialog.Builder(this)
-            .setMessage(getString(R.string.delete_host, name))
+            .setMessage(if (through.isEmpty()) getString(R.string.delete_host, name)
+                else getString(R.string.jump_delete, name, through.joinToString(", ")))
             .setPositiveButton(R.string.delete) { _, _ ->
                 try {
                     val config = SshConfig.parse(paths.textOf(paths.config))
