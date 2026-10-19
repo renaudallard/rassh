@@ -379,6 +379,8 @@ class MainActivity : Activity(), SessionService.Listener {
             toast(getString(R.string.invalid_arguments))
             return
         }
+        /* Only a comment: nothing to give ssh, as for an empty line. */
+        if (args.isEmpty()) return
         launch(Launch(text, paths.ssh, SSH + args, paths.home.path, text))
     }
 
