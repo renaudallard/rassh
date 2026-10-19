@@ -108,6 +108,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         /* A long press starts a selection, a tap then adds to it or takes from it. */
         list.choiceMode = ListView.CHOICE_MODE_MULTIPLE_MODAL
         list.setMultiChoiceModeListener(selecting)
+        /*
+         * Nor kept in the saved state: the positions are those of a
+         * listing a recreated browser does not have, and a large one
+         * would not fit.
+         */
+        list.isSaveEnabled = false
         cwd = savedInstanceState?.getString(STATE_PATH)
         home = savedInstanceState?.getString(STATE_HOME)
         downloading = savedInstanceState?.getString(STATE_DOWNLOAD)
@@ -378,10 +384,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             return true
         }
 
+        /* Its menu only changes around one, Select all in a large folder calls this for each entry. */
         override fun onItemCheckedStateChanged(mode: ActionMode, position: Int, id: Long, checked: Boolean) {
             val n = list.checkedItemCount
             mode.title = resources.getQuantityString(R.plurals.selected, n, n)
-            mode.invalidate()
+            if (n <= 2) mode.invalidate()
         }
 
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
@@ -393,6 +400,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             val picked = entries.filterIndexed { i, _ -> checked[i] }
             val dir = cwd
             mode.finish()
+            if (picked.isEmpty()) return true
             when (item.itemId) {
                 SELECT_DOWNLOAD -> downloadAll(picked, dir ?: return true)
                 SELECT_RENAME -> picked.singleOrNull()?.let { rename(it, dir ?: return true) }
