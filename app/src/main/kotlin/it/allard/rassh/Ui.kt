@@ -113,7 +113,10 @@ fun Activity.sayInFull(message: String) {
 fun Activity.busy(title: Int): AlertDialog {
     val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
     bar.isIndeterminate = true
-    val dialog = AlertDialog.Builder(this).setTitle(title).setView(dialogLayout(bar)).show()
+    val dialog = AlertDialog.Builder(this).setTitle(title).setView(dialogLayout(bar)).create()
+    /* A fingerprint prompt outlives a screen recreated meanwhile, as by a theme change: none to show it on. */
+    if (isDestroyed || isFinishing) return dialog
+    dialog.show()
     dialog.setCanceledOnTouchOutside(false)
     dismissWithScreen(dialog) {}
     return dialog
