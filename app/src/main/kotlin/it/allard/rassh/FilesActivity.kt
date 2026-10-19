@@ -332,12 +332,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .sortedWith(compareBy<Listed> { !it.entry.attrs.isDirectory }.then(order))
     }
 
-    /* Arranged again on the worker, the listing may be large. */
+    /*
+     * Arranged again on the worker, the listing may be large. Nothing
+     * listed leaves the status as it is, connecting or why it failed. A
+     * listing coming meanwhile was arranged as asked before, it is again.
+     */
     private fun rearrange() {
         val found = listing
+        if (found.isEmpty()) return
         val hidden = prefs.getBoolean(PREF_HIDDEN, false)
         val sort = prefs.getInt(PREF_SORT, SORT_NAME)
-        run({ arrange(found, hidden, sort) }) { if (listing === found) display(it) }
+        run({ arrange(found, hidden, sort) }) { if (listing === found) display(it) else rearrange() }
     }
 
     private fun chooseSort() {
