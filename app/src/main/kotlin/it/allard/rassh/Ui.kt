@@ -161,7 +161,7 @@ class ServiceBinding(
 
 /** A list of title and subtitle pairs. */
 class TwoLineAdapter(private val context: Context) : BaseAdapter() {
-    var items: List<Pair<String, String>> = emptyList()
+    var items: List<Pair<String, CharSequence>> = emptyList()
         set(value) {
             field = value
             notifyDataSetChanged()
@@ -169,7 +169,7 @@ class TwoLineAdapter(private val context: Context) : BaseAdapter() {
 
     override fun getCount(): Int = items.size
 
-    override fun getItem(position: Int): Pair<String, String> = items[position]
+    override fun getItem(position: Int): Pair<String, CharSequence> = items[position]
 
     override fun getItemId(position: Int): Long = position.toLong()
 

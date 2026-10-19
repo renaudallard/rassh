@@ -10,6 +10,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
 import android.system.ErrnoException
 import android.view.Menu
 import android.view.MenuItem
@@ -136,9 +139,20 @@ class KeysActivity : Activity() {
                 words != null -> (listOf(words[0]) + words.drop(2)).joinToString(" ")
                 else -> getString(R.string.public_key_missing)
             }
-            /* The fingerprint ssh shows when a server takes or refuses the key, and where the key is kept. */
-            val stored = getString(if (name in sealed) R.string.key_in_vault else R.string.key_in_clear)
-            name to listOfNotNull(about, words?.let { Keys.fingerprint(it[1]) }, stored).joinToString("\n")
+            /*
+             * The fingerprint ssh shows when a server takes or refuses the
+             * key, a little smaller to fit on one line, and where the key
+             * is kept.
+             */
+            val text = SpannableStringBuilder(about)
+            words?.let { Keys.fingerprint(it[1]) }?.let {
+                text.append('\n')
+                val start = text.length
+                text.append(it)
+                text.setSpan(RelativeSizeSpan(FINGERPRINT_SIZE), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            text.append('\n').append(getString(if (name in sealed) R.string.key_in_vault else R.string.key_in_clear))
+            name to text
         }
     }
 
@@ -508,6 +522,7 @@ class KeysActivity : Activity() {
         private const val MENU_GENERATE = 1
         private const val MENU_IMPORT = 2
         private const val REQUEST_IMPORT = 1
+        private const val FINGERPRINT_SIZE = 0.85f
         private val KEY_TYPES = listOf("ed25519", "ecdsa", "rsa", "mldsa44-ed25519")
     }
 }
