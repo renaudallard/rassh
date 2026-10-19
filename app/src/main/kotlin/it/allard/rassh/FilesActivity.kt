@@ -641,8 +641,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * provider names, after the next free name. What is not a regular
      * file, a folder for one, is skipped, what the server refuses, a file
      * gone or unreadable, is said at the end. A failure removes the file
-     * it was writing, those done before stay. The right to the folder is
-     * kept while it runs, Android takes it back once the screen is gone.
+     * it was writing, those done before stay, and what was saved is said
+     * as well when stopped or cut. The right to the folder is kept while
+     * it runs, Android takes it back once the screen is gone.
      */
     private fun saveAll(remotes: List<String>, tree: Uri) {
         val c = client() ?: return
@@ -650,10 +651,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         var saved = 0
         var skipped = 0
         val refused = mutableListOf<String>()
-        transfer(getString(R.string.downloading_files), { progress, _, sized ->
+        /* Why it ended before the last file, null when done or stopped. */
+        var failure: String? = null
+        transfer(getString(R.string.downloading_files), { progress, stopped, sized ->
             try {
                 val folder = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
                 for (remote in remotes) {
+                    /* An empty file is copied without a progress call, which is where a stop is seen otherwise. */
+                    if (stopped()) break
                     val name = shownName(remote.substringAfterLast('/'))
                     try {
                         val attrs = c.stat(remote)
@@ -687,14 +692,20 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         refused.add(name + ": " + e.message)
                     }
                 }
+            } catch (e: Exception) {
+                /* Stopped, or the connection or the folder failed. */
+                if (!isFileError(e)) throw e
+                if (e !is SftpCancelledException) failure = e.message
             } finally {
                 if (kept) doneWith(listOf(tree), true)
             }
         }) {
             var said = resources.getQuantityString(R.plurals.downloaded_many, saved, saved)
             if (skipped > 0) said = resources.getQuantityString(R.plurals.skipped, skipped, said, skipped)
-            if (refused.isEmpty()) toast(said)
-            else sayInFull(said + "\n\n" + getString(R.string.not_downloaded, refused.joinToString("\n")))
+            val more = listOfNotNull(
+                if (refused.isEmpty()) null else getString(R.string.not_downloaded, refused.joinToString("\n")),
+                failure?.let { getString(R.string.files_failed, it) })
+            if (more.isEmpty()) toast(said) else sayInFull((listOf(said) + more).joinToString("\n\n"))
         }
     }
 
