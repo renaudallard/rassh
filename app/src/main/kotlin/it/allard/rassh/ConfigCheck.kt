@@ -96,26 +96,33 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String>? 
     }
 
 /*
- * The other hosts of text, as their names are, whose ProxyJump goes
- * through the host name: renamed or deleted, ssh would take name for a
- * host name there, without its block. ssh -G writes each hop as
- * [user@]host[:port], an IPv6 address in brackets, and matches names
+ * The other hosts of text, as their names and patterns are, and one no
+ * Host line names, whose ProxyJump goes through the host name: renamed
+ * or deleted, ssh would take name for a host name there, without its
+ * block. ssh -G writes a hop as [user@]host[:port], an IPv6 address in
+ * brackets, the last one turned so from an ssh:// URI, the others as
+ * they were written, blanks around commas too. It matches names
  * lowercased.
  */
 @Throws(IOException::class)
 fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
     withConfigFile(paths, text) { file ->
-        SshConfig.parse(text).names.filter { !equalsAscii(it, name) }.filter { other ->
+        val config = SshConfig.parse(text)
+        (checkedNames(config, emptyList()) + config.patterns).filter { !equalsAscii(it, name) }.filter { other ->
             dump(paths, file, other).first.split('\n').any { line ->
                 val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: return@any false
                 key == "proxyjump" && value.split(',').any { hop ->
-                    val host = hop.substringAfterLast('@')
+                    val host = hop.trim().removePrefix("ssh://").substringAfterLast('@').substringBefore('/')
                     equalsAscii(if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
                         else host.substringBefore(':'), name)
                 }
             }
         }
     }
+
+/* Hosts as jumpingThrough() gives them, for a message. */
+fun Context.shownHosts(names: List<String>): String =
+    names.joinToString(", ") { if (it == UNLISTED) getString(R.string.config_unlisted) else it }
 
 private val JUMP_SEPARATORS = Regex("""[\s,;&|<>()`$@:/\[\]]+""")
 private val BRACKETED = Regex("""\[([^\]]*)]""")

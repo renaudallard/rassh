@@ -406,7 +406,7 @@ class HostActivity : Activity() {
                 }
                 if (through.isNotEmpty()) {
                     AlertDialog.Builder(this)
-                        .setMessage(getString(R.string.jump_rename, renamed, through.joinToString(", ")))
+                        .setMessage(getString(R.string.jump_rename, renamed, shownHosts(through)))
                         .setPositiveButton(R.string.rename) { _, _ -> write(text, read, n) }
                         .setNegativeButton(R.string.cancel, null)
                         .show()

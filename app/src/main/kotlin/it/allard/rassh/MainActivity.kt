@@ -606,7 +606,7 @@ class MainActivity : Activity(), SessionService.Listener {
     private fun confirmDelete(name: String, through: List<String>) {
         AlertDialog.Builder(this)
             .setMessage(if (through.isEmpty()) getString(R.string.delete_host, name)
-                else getString(R.string.jump_delete, name, through.joinToString(", ")))
+                else getString(R.string.jump_delete, name, shownHosts(through)))
             .setPositiveButton(R.string.delete) { _, _ ->
                 try {
                     val config = SshConfig.parse(paths.textOf(paths.config))
