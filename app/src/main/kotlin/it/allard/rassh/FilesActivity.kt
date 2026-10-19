@@ -53,7 +53,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The screen is going away, read by transfers, see transfer(). */
     @Volatile
     private var leaving = false
+    /* The folder listed, and the entries shown of it. */
+    private var listing: List<Listed> = emptyList()
     private var entries: List<SftpEntry> = emptyList()
+    private val prefs by lazy { getSharedPreferences(PREFS, MODE_PRIVATE) }
     /* Whether a folder was listed, the status says connecting until then. */
     private var listed = false
 
@@ -266,35 +269,57 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         if (!show) window.insetsController?.hide(WindowInsets.Type.ime())
     }
 
+    /* An entry listed, with the lines of its row. */
+    private class Listed(val entry: SftpEntry, val label: String, val about: String)
+
     /* up for the parent folder, entered even when it cannot be listed, Back must not get stuck below it. */
     private fun load(path: String, up: Boolean = false) {
         val c = client() ?: return
+        val hidden = prefs.getBoolean(PREF_HIDDEN, false)
         /* The rows are made on the worker too, a large folder would hold the screen. */
         run({
             val dir = c.realpath(path)
-            val found = c.list(dir).sortedWith(compareBy({ !it.attrs.isDirectory }, { it.name.lowercase() }))
             /* Made for each listing, a format keeps the time zone it was made in. */
             val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-            Triple(dir, found, found.map { Pair(label(it), describe(it.attrs, date)) })
+            val found = c.list(dir).map { Listed(it, label(it), describe(it.attrs, date)) }
+            Triple(dir, found, arrange(found, hidden))
         }, { e ->
             failed(e)
             /* The folder shows empty with the reason, the status would otherwise stay on connecting. */
             if (client() != null && (!listed || up)) {
                 cwd = path
+                listing = emptyList()
                 entries = emptyList()
                 pathView.text = shownName(path)
                 status.text = getString(R.string.files_failed, e.message)
                 adapter.items = emptyList()
             }
-        }) { (dir, found, rows) ->
+        }) { (dir, found, shown) ->
             listed = true
             cwd = dir
-            entries = found
+            listing = found
             pathView.text = shownName(dir)
-            status.setText(R.string.files_empty)
-            adapter.items = rows
-            list.setSelection(0)
+            display(shown)
         }
+    }
+
+    /* The entries to show, hidden ones left out unless asked for, as sftp's ls does, folders first. */
+    private fun arrange(found: List<Listed>, hidden: Boolean): List<Listed> =
+        (if (hidden) found else found.filter { !it.entry.name.startsWith(".") })
+            .sortedWith(compareBy({ !it.entry.attrs.isDirectory }, { it.entry.name.lowercase() }))
+
+    /* Arranged again on the worker, the listing may be large. */
+    private fun rearrange() {
+        val found = listing
+        val hidden = prefs.getBoolean(PREF_HIDDEN, false)
+        run({ arrange(found, hidden) }) { if (listing === found) display(it) }
+    }
+
+    private fun display(shown: List<Listed>) {
+        entries = shown.map { it.entry }
+        status.setText(if (shown.isEmpty() && listing.isNotEmpty()) R.string.files_only_hidden else R.string.files_empty)
+        adapter.items = shown.map { Pair(it.label, it.about) }
+        list.setSelection(0)
     }
 
     private fun label(e: SftpEntry): String = when {
@@ -955,6 +980,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(Menu.NONE, MENU_GO_TO, 2, R.string.go_to)
         menu.add(Menu.NONE, MENU_REFRESH, 2, R.string.refresh)
+        menu.add(Menu.NONE, MENU_HIDDEN, 2, R.string.show_hidden)
+            .setCheckable(true)
+            .setChecked(prefs.getBoolean(PREF_HIDDEN, false))
         menu.add(Menu.NONE, MENU_TERMINAL, 3, R.string.show_terminal)
         /* Back may only queue a listing a stalled or hostile server never answers. */
         menu.add(Menu.NONE, MENU_CLOSE, 4, R.string.close_session)
@@ -967,6 +995,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             MENU_NEW_FOLDER -> newFolder()
             MENU_GO_TO -> goTo()
             MENU_REFRESH -> cwd?.let { load(it) }
+            MENU_HIDDEN -> {
+                item.isChecked = !item.isChecked
+                prefs.edit().putBoolean(PREF_HIDDEN, item.isChecked).apply()
+                rearrange()
+            }
             MENU_TERMINAL -> showTerminal(terminal.visibility != View.VISIBLE)
             MENU_CLOSE -> finish()
             else -> return super.onOptionsItemSelected(item)
@@ -989,6 +1022,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
         if (!s.isRunning) {
             status.setText(R.string.files_not_connected)
+            listing = emptyList()
             entries = emptyList()
             adapter.items = emptyList()
             showTerminal(true)
@@ -1010,6 +1044,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_TERMINAL = 4
         private const val MENU_CLOSE = 5
         private const val MENU_GO_TO = 6
+        private const val MENU_HIDDEN = 7
+        private const val PREFS = "files"
+        private const val PREF_HIDDEN = "hidden"
         private const val PROGRESS_NANOS = 200_000_000L
         private const val PROGRESS_STEPS = 1000
         private const val BUFFER_SIZE = 65536
