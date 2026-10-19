@@ -167,6 +167,7 @@
     <string name="show_public_key">Show public key</string>
     <string name="share_public_key">Share public key</string>
     <string name="public_key_missing">No public key</string>
+    <string name="public_key_unreadable">Public key unreadable, no key line ssh would load</string>
     <string name="key_in_vault">Encrypted in the vault</string>
     <string name="key_in_clear">In clear</string>
     <string name="key_name_not_allowed">Name not allowed, rename it to move it into the vault and export it</string>

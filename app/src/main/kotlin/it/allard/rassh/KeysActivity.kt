@@ -129,14 +129,16 @@ class KeysActivity : Activity() {
         keys = (sealed + Keys.plaintext(paths.sshDir) + Keys.misnamed(paths.sshDir)).distinct().sorted()
         adapter.items = keys.map { name ->
             /* The line ssh loads, past comments: type, key and comment. */
-            val words = Keys.publicKey(paths.sshDir, name)
-                ?.let { Keys.publicLine(it.toByteArray())?.toString(Charsets.UTF_8)?.trim()?.split(' ', '\t') }
+            val pub = Keys.publicKey(paths.sshDir, name)
+            val words = pub?.let { Keys.publicLine(it.toByteArray())?.toString(Charsets.UTF_8)?.trim()?.split(' ', '\t') }
                 ?.filter { it.isNotEmpty() }
             val about = when {
                 /* Named as early versions allowed, a key of the vault is in it already. */
                 !Keys.isValidName(name) -> getString(
                     if (name in sealed) R.string.key_name_not_allowed_sealed else R.string.key_name_not_allowed)
                 words != null -> (listOf(words[0]) + words.drop(2)).joinToString(" ")
+                /* Edited by hand, its menu still shows it as it is. */
+                pub != null -> getString(R.string.public_key_unreadable)
                 else -> getString(R.string.public_key_missing)
             }
             /*
