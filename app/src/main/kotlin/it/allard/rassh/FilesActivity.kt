@@ -1003,12 +1003,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setTitle(R.string.go_to)
             .setView(dialogLayout(field))
             .setPositiveButton(R.string.go) { _, _ ->
-                /* Unchanged as shown: a name that is not UTF-8 would get U+FFFD for good. */
-                if (field.text.toString() == shown) return@setPositiveButton
-                val to = field.text.toString().trim()
+                /*
+                 * Unchanged as shown, or only added to: a name that is not
+                 * UTF-8 would get U+FFFD for good, the folder shown is kept.
+                 */
+                val typed = field.text.toString()
+                if (typed == shown) return@setPositiveButton
+                val to = if (typed.startsWith(shown)) dir + typed.removePrefix(shown) else typed.trim()
                 val start = home ?: dir
                 when {
-                    to.isEmpty() -> {}
+                    to.isBlank() -> {}
                     to == "~" -> load(start)
                     to.startsWith("~/") -> load(path(start, to.substring(2)))
                     to.startsWith("/") -> load(to)
