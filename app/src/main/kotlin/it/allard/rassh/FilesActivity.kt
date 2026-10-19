@@ -10,11 +10,13 @@ import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import android.text.format.Formatter
+import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.MimeTypeMap
+import android.widget.AbsListView
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -79,6 +81,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /* The dialog of the transfer running, closed with the screen. */
     private var progressDialog: AlertDialog? = null
 
+    /* The selection of entries, ended whenever the list changes. */
+    private var selection: ActionMode? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hideOverlays()
@@ -96,10 +101,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         list.adapter = adapter
         list.emptyView = status
         list.setOnItemClickListener { _, _, position, _ -> open(entries[position]) }
-        list.setOnItemLongClickListener { _, _, position, _ ->
-            open(entries[position], false)
-            true
-        }
+        /* A long press starts a selection, a tap then adds to it or takes from it. */
+        list.choiceMode = ListView.CHOICE_MODE_MULTIPLE_MODAL
+        list.setMultiChoiceModeListener(selecting)
         cwd = savedInstanceState?.getString(STATE_PATH)
         home = savedInstanceState?.getString(STATE_HOME)
         downloading = savedInstanceState?.getString(STATE_DOWNLOAD)
@@ -288,6 +292,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             failed(e)
             /* The folder shows empty with the reason, the status would otherwise stay on connecting. */
             if (client() != null && (!listed || up)) {
+                endSelection()
                 cwd = path
                 listing = emptyList()
                 entries = emptyList()
@@ -341,7 +346,55 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .show()
     }
 
+    /* The rows go, the positions selected would be those of other entries. */
+    private fun endSelection() {
+        selection?.finish()
+        list.clearChoices()
+    }
+
+    private val selecting = object : AbsListView.MultiChoiceModeListener {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            selection = mode
+            menu.add(Menu.NONE, SELECT_RENAME, 0, R.string.rename)
+            menu.add(Menu.NONE, SELECT_DELETE, 1, R.string.delete)
+            menu.add(Menu.NONE, SELECT_ALL, 2, R.string.select_all)
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+            menu.findItem(SELECT_RENAME)?.isVisible = list.checkedItemCount == 1
+            return true
+        }
+
+        override fun onItemCheckedStateChanged(mode: ActionMode, position: Int, id: Long, checked: Boolean) {
+            val n = list.checkedItemCount
+            mode.title = resources.getQuantityString(R.plurals.selected, n, n)
+            mode.invalidate()
+        }
+
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            if (item.itemId == SELECT_ALL) {
+                for (i in 0 until adapter.count) list.setItemChecked(i, true)
+                return true
+            }
+            val checked = list.checkedItemPositions
+            val picked = entries.filterIndexed { i, _ -> checked[i] }
+            val dir = cwd
+            mode.finish()
+            when (item.itemId) {
+                SELECT_RENAME -> picked.singleOrNull()?.let { rename(it, dir ?: return true) }
+                SELECT_DELETE -> deleteAll(picked, dir ?: return true)
+            }
+            return true
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode) {
+            if (selection === mode) selection = null
+        }
+    }
+
     private fun display(shown: List<Listed>) {
+        endSelection()
         entries = shown.map { it.entry }
         status.setText(if (shown.isEmpty() && listing.isNotEmpty()) R.string.files_only_hidden else R.string.files_empty)
         adapter.items = shown.map { Pair(it.label, it.about) }
@@ -365,20 +418,18 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private fun path(dir: String, name: String): String = if (dir == "/") "/$name" else "$dir/$name"
 
     /*
-     * A directory is entered, a link followed when it leads to one, with
-     * enter, else the actions are offered. A link is looked up first, its
-     * target may be a file to download.
+     * A directory is entered, a link followed when it leads to one, else
+     * the actions are offered. A link is looked up first, its target may
+     * be a file to download. A dangling one is renamed or deleted from a
+     * selection.
      */
-    private fun open(e: SftpEntry, enter: Boolean = true) {
+    private fun open(e: SftpEntry) {
         val c = client() ?: return
         val dir = cwd ?: return
         val p = path(dir, e.name)
         when {
-            enter && e.attrs.isDirectory -> load(p)
-            /* A dangling link still gets its actions, but downloading, on a long press. */
-            e.attrs.isLink -> run({ c.stat(p) }, { if (enter) failed(it) else actions(e, dir, false) }) {
-                if (enter && it.isDirectory) load(p) else actions(e, dir, it.isFile)
-            }
+            e.attrs.isDirectory -> load(p)
+            e.attrs.isLink -> run({ c.stat(p) }) { if (it.isDirectory) load(p) else actions(e, dir, it.isFile) }
             else -> actions(e, dir)
         }
     }
@@ -819,6 +870,36 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
     }
 
+    /* One at a time, what the server refuses is said once all were tried. */
+    private fun deleteAll(picked: List<SftpEntry>, dir: String) {
+        if (picked.size < 2) return picked.forEach { delete(it, dir) }
+        client() ?: return
+        AlertDialog.Builder(this)
+            .setMessage(resources.getQuantityString(R.plurals.delete_many, picked.size, picked.size))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                val c = client() ?: return@setPositiveButton
+                run({
+                    picked.mapNotNull { e ->
+                        val p = path(dir, e.name)
+                        try {
+                            if (e.attrs.isDirectory) c.rmdir(p) else c.remove(p)
+                            null
+                        } catch (x: SftpException) {
+                            shownName(e.name) + ": " + x.message
+                        }
+                    }
+                }, {
+                    failed(it)
+                    load(dir)
+                }) { refused ->
+                    load(dir)
+                    if (refused.isNotEmpty()) sayInFull(getString(R.string.not_deleted, refused.joinToString("\n")))
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun delete(e: SftpEntry, dir: String) {
         client() ?: return
         AlertDialog.Builder(this)
@@ -1049,6 +1130,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             return
         }
         if (!s.isRunning) {
+            endSelection()
             status.setText(R.string.files_not_connected)
             listing = emptyList()
             entries = emptyList()
@@ -1077,6 +1159,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val PREF_HIDDEN = "hidden"
         private const val PREF_SORT = "sort"
         private const val MENU_SORT = 8
+        private const val SELECT_RENAME = 1
+        private const val SELECT_DELETE = 2
+        private const val SELECT_ALL = 3
         /* The places in the sort dialog, kept as they are stored. */
         private const val SORT_NAME = 0
         private const val SORT_SIZE = 1
