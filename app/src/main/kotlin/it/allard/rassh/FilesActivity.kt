@@ -21,6 +21,7 @@ import android.widget.AbsListView
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import it.allard.rassh.sftp.SftpAttrs
 import it.allard.rassh.sftp.SftpCancelledException
@@ -91,6 +92,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
 
     /* The selection of entries, ended whenever the list changes. */
     private var selection: ActionMode? = null
+    /* Back ends a selection first, as it would otherwise go up a folder or leave, see back(). */
+    private val endOnBack = OnBackInvokedCallback { selection?.finish() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -374,6 +377,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private val selecting = object : AbsListView.MultiChoiceModeListener {
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
             selection = mode
+            /* The latest callback of a priority comes first. */
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, endOnBack)
             menu.add(Menu.NONE, SELECT_DOWNLOAD, 0, R.string.download)
             menu.add(Menu.NONE, SELECT_RENAME, 0, R.string.rename)
             menu.add(Menu.NONE, SELECT_DELETE, 1, R.string.delete)
@@ -412,6 +417,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
+            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(endOnBack)
             if (selection === mode) selection = null
         }
     }
