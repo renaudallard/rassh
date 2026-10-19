@@ -109,6 +109,7 @@
     <string name="delete_file">Delete %1$s?</string>
     <string name="delete_folder">Delete the folder %1$s? Only an empty one can be deleted.</string>
     <string name="not_deleted">Not deleted:\n%1$s</string>
+    <string name="deleting">Deleting</string>
     <string name="select_all">Select all</string>
     <string name="choose_folder">Choose folder</string>
     <string name="not_a_file">Only files are downloaded</string>

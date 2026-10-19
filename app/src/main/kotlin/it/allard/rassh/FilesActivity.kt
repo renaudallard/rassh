@@ -1006,19 +1006,19 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .setMessage(resources.getQuantityString(R.plurals.delete_many, picked.size, picked.size))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val c = client() ?: return@setPositiveButton
-                run({
-                    picked.mapNotNull { e ->
+                val refused = mutableListOf<String>()
+                /* As a transfer: one request each, which may take long and should be seen and stopped. */
+                transfer(getString(R.string.deleting), { progress, _, sized ->
+                    sized(picked.size.toLong())
+                    for ((i, e) in picked.withIndex()) {
+                        if (!progress(i.toLong())) break
                         try {
                             remove(c, e, dir)
-                            null
                         } catch (x: SftpException) {
-                            shownName(e.name) + ": " + x.message
+                            refused.add(shownName(e.name) + ": " + x.message)
                         }
                     }
-                }, {
-                    failed(it)
-                    load(dir)
-                }) { refused ->
+                }, true) {
                     load(dir)
                     if (refused.isNotEmpty()) sayInFull(getString(R.string.not_deleted, refused.joinToString("\n")))
                 }
@@ -1133,10 +1133,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     /*
      * A transfer with a progress dialog that can stop it, which task tells
      * with stopped(). It gives the size of the file it copies with sized(),
-     * -1 when not known, the bar then only shows that it goes on.
+     * -1 when not known, the bar then only shows that it goes on. Entries
+     * are counted instead of bytes with counting.
      */
     private fun transfer(title: String,
-        task: (progress: (Long) -> Boolean, stopped: () -> Boolean, sized: (Long) -> Unit) -> Unit, done: () -> Unit) {
+        task: (progress: (Long) -> Boolean, stopped: () -> Boolean, sized: (Long) -> Unit) -> Unit,
+        counting: Boolean = false, done: () -> Unit) {
         val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
         bar.isIndeterminate = true
         bar.max = PROGRESS_STEPS
@@ -1182,7 +1184,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 if (now - shown > PROGRESS_NANOS) {
                     shown = now
                     val total = size.get()
-                    runOnUiThread { showProgress(bar, count, bytes, total) }
+                    runOnUiThread { showProgress(bar, count, bytes, total, counting) }
                 }
                 !cancelled.get()
             }, { cancelled.get() || s?.isClosed == true && !leaving }, { size.set(it) })
@@ -1201,16 +1203,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     /* A file growing meanwhile may send more than its size said. */
-    private fun showProgress(bar: ProgressBar, count: TextView, bytes: Long, total: Long) {
-        val done = Formatter.formatShortFileSize(this, bytes)
+    private fun showProgress(bar: ProgressBar, count: TextView, bytes: Long, total: Long, counting: Boolean) {
+        val shown = { n: Long -> if (counting) n.toString() else Formatter.formatShortFileSize(this, n) }
         if (total <= 0) {
             bar.isIndeterminate = true
-            count.text = done
+            count.text = shown(bytes)
             return
         }
         bar.isIndeterminate = false
         bar.progress = (minOf(bytes, total) * PROGRESS_STEPS / total).toInt()
-        count.text = getString(R.string.transferred, done, Formatter.formatShortFileSize(this, total))
+        count.text = getString(R.string.transferred, shown(bytes), shown(total))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
