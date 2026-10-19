@@ -210,7 +210,10 @@ keys are encrypted and unlocked with it.
   followed by what the program's screen showed last, where ssh says why
   it ended
 - **Theme** - light or dark like the phone, with its accent color, the
-  terminal included. Dark is true black, which turns OLED pixels off
+  terminal included. On the light background, the palette colors too
+  pale to read on it, yellow or white for one, are darkened for text
+  drawn on the screen's own background. Dark is true black, which turns
+  OLED pixels off
 - **Font** - DejaVu Sans Mono bundled, since some vendor themes swap the
   system monospace font for a proportional one
 - **Hardware keyboards** - Esc, Tab and Shift-Tab, arrows, Home, End,

@@ -75,6 +75,13 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private val background = context.themeColor(android.R.attr.colorBackground)
     private var defaultFg = foreground
     private var defaultBg = background
+    /*
+     * xterm's palette is made for a dark background: on a light one, the
+     * colors too pale to read on it are darkened, for text on the screen's
+     * own background only.
+     */
+    private val onLight = Color.luminance(background) > 0.5f
+    private val readable = if (onLight) IntArray(256) { darkened(PALETTE[it], background) } else PALETTE
     private val selectionColor = context.themeColor(android.R.attr.colorAccent) and 0xffffff or SELECTION_ALPHA
 
     /* Lines scrolled back into the history. */
@@ -188,7 +195,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun drawRun(canvas: Canvas, row: TerminalRow, from: Int, to: Int, style: Long, top: Float) {
         val flags = TextStyle.flags(style)
-        var fg = color(TextStyle.fg(style), defaultFg)
+        val plain = flags and TextStyle.INVERSE == 0 && TextStyle.bg(style) == TextStyle.COLOR_DEFAULT &&
+            defaultBg == background
+        var fg = color(TextStyle.fg(style), defaultFg, if (plain) readable else PALETTE)
         var bg = color(TextStyle.bg(style), defaultBg)
         if (flags and TextStyle.INVERSE != 0) {
             val tmp = fg
@@ -265,10 +274,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         paint.isStrikeThruText = flags and TextStyle.STRIKETHROUGH != 0
     }
 
-    private fun color(c: Int, default: Int): Int = when {
+    private fun color(c: Int, default: Int, palette: IntArray = PALETTE): Int = when {
         c == TextStyle.COLOR_DEFAULT -> default
         c and TextStyle.COLOR_RGB != 0 -> Color.BLACK or (c and 0xffffff)
-        else -> PALETTE[c and 0xff]
+        else -> palette[c and 0xff]
     }
 
     /* The cell size is in pixels, a new display size changes it. */
@@ -700,6 +709,19 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         private const val ITALIC_SKEW = -0.25f
         private const val MENU_COPY = 1
         private const val MENU_PASTE = 2
+        /* The contrast WCAG asks of text, 4.5:1. */
+        private const val MIN_CONTRAST = 4.5f
+        private const val DARKEN = 0.9f
+
+        /* c, darkened until it reads on background. */
+        private fun darkened(c: Int, background: Int): Int {
+            val bg = Color.luminance(background) + 0.05f
+            var color = c
+            while ((bg / (Color.luminance(color) + 0.05f)) < MIN_CONTRAST && color != Color.BLACK)
+                color = Color.rgb((Color.red(color) * DARKEN).toInt(), (Color.green(color) * DARKEN).toInt(),
+                    (Color.blue(color) * DARKEN).toInt())
+            return color
+        }
 
         private val KEYS = mapOf(
             KeyEvent.KEYCODE_DPAD_UP to Key.UP,
