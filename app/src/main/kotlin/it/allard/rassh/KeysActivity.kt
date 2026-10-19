@@ -356,7 +356,7 @@ class KeysActivity : Activity() {
         val actions = mutableListOf<Pair<Int, () -> Unit>>()
         /* Also in place of one ssh cannot load. ssh-keygen reads the key from its file, a key in the vault has none. */
         if (!Keys.hasPublicLine(paths.sshDir, name) && File(paths.sshDir, name).isFile)
-            actions.add(R.string.derive_public_key to { derivePublicKey(name) })
+            actions.add(R.string.derive_public_key to { if (pub == null) derivePublicKey(name) else replacePublicKey(name) })
         if (pub != null) {
             actions.add(R.string.show_public_key to { showPublicKey(name, pub) })
             actions.add(R.string.share_public_key to {
@@ -374,6 +374,15 @@ class KeysActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle(name)
             .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
+            .show()
+    }
+
+    /* The file is not ssh's, another format of the same key may be what the user wants kept. */
+    private fun replacePublicKey(name: String) {
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.replace_public_key, name))
+            .setPositiveButton(R.string.replace) { _, _ -> derivePublicKey(name) }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
