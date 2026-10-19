@@ -135,10 +135,13 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     /* A touch that stopped a fling is no tap: it neither shows the keyboard nor clears a selection. */
     private var stoppedFling = false
+    /* Nor is a pinch, once a finger is lifted, a fling for the one left. */
+    private var pinched = false
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean {
             stoppedFling = !flinger.isFinished
+            pinched = false
             stopFling()
             return true
         }
@@ -146,7 +149,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         /* Not on the alternate screen, where scrolling sends cursor keys to the program. */
         override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
             val t = session?.terminal ?: return false
-            if (synchronized(t) { t.isAltScreen }) return false
+            if (pinched || synchronized(t) { t.isAltScreen }) return false
             stopFling()
             flingY = 0
             flingBack = vy > 0
@@ -184,6 +187,11 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     })
 
     private val scaler = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScaleBegin(d: ScaleGestureDetector): Boolean {
+            pinched = true
+            return true
+        }
+
         override fun onScale(d: ScaleGestureDetector): Boolean {
             setFontSize(fontSize * d.scaleFactor)
             return true
