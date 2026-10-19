@@ -83,6 +83,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         setActionBar(findViewById(R.id.toolbar))
         list = findViewById(R.id.files)
         pathView = findViewById(R.id.path)
+        pathView.setOnClickListener { goTo() }
         status = findViewById(R.id.status)
         terminal = findViewById(R.id.terminal)
         /* "press Enter to close" once ssh is gone, as in the terminal screen. */
@@ -779,6 +780,32 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             .show()
     }
 
+    /* A folder typed in, from the one shown, ~ being the one the server started in. */
+    private fun goTo() {
+        client() ?: return
+        val dir = cwd ?: return
+        val shown = shownName(dir)
+        val field = pathField(shown)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.go_to)
+            .setView(dialogLayout(field))
+            .setPositiveButton(R.string.go) { _, _ ->
+                /* Unchanged as shown: a name that is not UTF-8 would get U+FFFD for good. */
+                if (field.text.toString() == shown) return@setPositiveButton
+                val to = field.text.toString().trim()
+                val start = home ?: dir
+                when {
+                    to.isEmpty() -> {}
+                    to == "~" -> load(start)
+                    to.startsWith("~/") -> load(path(start, to.substring(2)))
+                    to.startsWith("/") -> load(to)
+                    else -> load(path(dir, to))
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun newFolder() {
         client() ?: return
         val dir = cwd ?: return
@@ -899,6 +926,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(Menu.NONE, MENU_UPLOAD, 0, R.string.upload)
         menu.add(Menu.NONE, MENU_NEW_FOLDER, 1, R.string.new_folder)
+        menu.add(Menu.NONE, MENU_GO_TO, 2, R.string.go_to)
         menu.add(Menu.NONE, MENU_REFRESH, 2, R.string.refresh)
         menu.add(Menu.NONE, MENU_TERMINAL, 3, R.string.show_terminal)
         /* Back may only queue a listing a stalled or hostile server never answers. */
@@ -910,6 +938,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         when (item.itemId) {
             MENU_UPLOAD -> if (client() != null) upload()
             MENU_NEW_FOLDER -> newFolder()
+            MENU_GO_TO -> goTo()
             MENU_REFRESH -> cwd?.let { load(it) }
             MENU_TERMINAL -> showTerminal(terminal.visibility != View.VISIBLE)
             MENU_CLOSE -> finish()
@@ -953,6 +982,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val MENU_REFRESH = 3
         private const val MENU_TERMINAL = 4
         private const val MENU_CLOSE = 5
+        private const val MENU_GO_TO = 6
         private const val PROGRESS_NANOS = 200_000_000L
         private const val BUFFER_SIZE = 65536
 

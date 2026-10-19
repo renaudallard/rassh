@@ -91,6 +91,8 @@
     <string name="replace_named">These exist on the server already and are replaced, a transfer stopped halfway leaves them cut short:\n%1$s</string>
     <string name="upload_same_name">Some of the files have the same name, upload them one at a time</string>
     <string name="new_folder">New folder</string>
+    <string name="go_to">Go to folder</string>
+    <string name="go">Go</string>
     <string name="create">Create</string>
     <string name="refresh">Refresh</string>
     <string name="show_terminal">Terminal</string>
