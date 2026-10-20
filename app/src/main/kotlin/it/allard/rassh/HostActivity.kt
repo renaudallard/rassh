@@ -139,8 +139,12 @@ class HostActivity : Activity() {
             hostName.setText(host.hostName)
             user.setText(host.user)
             port.setText(host.port)
-            /* The IdentitiesOnly line of a host with a key belongs to the checkbox. */
-            val restrict = host.identityFile.isNotEmpty() && host.other.any { isOnlyLine(it) }
+            /*
+             * The IdentitiesOnly line of a host with a key belongs to the
+             * checkbox, unless another one is there too: ssh takes the first.
+             */
+            val restrict = host.identityFile.isNotEmpty() && host.other.any { isOnlyLine(it) } &&
+                host.other.all { keyword(it) != "identitiesonly" || isOnlyLine(it) }
             only.isChecked = restrict
             local.setText(host.localForwards.joinToString("\n"))
             remote.setText(host.remoteForwards.joinToString("\n"))
