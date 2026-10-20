@@ -1350,14 +1350,21 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         private const val UNSHOWN = "\u2028\u2029\u061c\u200e\u200f" +
             "\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069"
 
-        /* Permissions as ls -l shows them. */
+        /* Permissions as ls -l shows them, a FIFO, socket or device and the setuid, setgid and sticky bits too. */
         fun mode(p: Int): String {
             val type = when (p and SftpAttrs.S_IFMT) {
                 SftpAttrs.S_IFDIR -> 'd'
                 SftpAttrs.S_IFLNK -> 'l'
+                0x1000 -> 'p'
+                0x2000 -> 'c'
+                0x6000 -> 'b'
+                0xc000 -> 's'
                 else -> '-'
             }
-            return type + (0 until 9).map { if (p and (0x100 shr it) != 0) "rwx"[it % 3] else '-' }.joinToString("")
+            val bits = CharArray(9) { if (p and (0x100 shr it) != 0) "rwx"[it % 3] else '-' }
+            for ((i, bit, c) in listOf(Triple(2, 0x800, 's'), Triple(5, 0x400, 's'), Triple(8, 0x200, 't')))
+                if (p and bit != 0) bits[i] = if (bits[i] == 'x') c else c.uppercaseChar()
+            return type + String(bits)
         }
     }
 }
