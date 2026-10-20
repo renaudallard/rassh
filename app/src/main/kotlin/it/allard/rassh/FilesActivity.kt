@@ -513,8 +513,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             run({ c.stat(p) }) { if (it.isFile) download(one, dir) else toast(getString(R.string.not_a_file)) }
             return
         }
+        /* Not a plural: two entries or more come here, and Russian for one takes 21 as one. */
         AlertDialog.Builder(this)
-            .setMessage(resources.getQuantityString(R.plurals.download_many, picked.size, picked.size))
+            .setMessage(getString(R.string.download_many, picked.size))
             .setPositiveButton(R.string.choose_folder) { _, _ ->
                 client() ?: return@setPositiveButton
                 downloadingAll = picked.map { path(dir, it.name) }
