@@ -224,7 +224,7 @@
     <string name="export_failed">Cannot export: %1$s</string>
     <string name="export_not_key">%1$s holds no private key in PEM form an import takes: delete it, or fix it in the local shell if it is in clear</string>
     <string name="export_bad_name">rename the key %1$s first, its name is not allowed</string>
-    <string name="exported">Hosts, keys and font size exported</string>
+    <string name="exported">Hosts, known hosts, keys and font size exported</string>
     <string name="exporting">Exporting</string>
     <string name="importing">Importing</string>
     <string name="passphrase">Passphrase</string>

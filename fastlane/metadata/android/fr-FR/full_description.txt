@@ -28,7 +28,7 @@ SHELL LOCAL
 • Le shell et le toybox d'Android, avec les programmes OpenSSH en tête du PATH, et l'accès à vos fichiers avec l'accès à tous les fichiers
 
 CHANGER DE TÉLÉPHONE
-• Hôtes, clés et réglages exportés dans un seul fichier chiffré par une phrase de passe
+• Hôtes, clés et taille de police exportés dans un seul fichier chiffré par une phrase de passe
 
 CONFIDENTIALITÉ
 Pas de publicité, pas de statistiques, pas de pistage. rassh ne se connecte qu'aux serveurs que vous choisissez.

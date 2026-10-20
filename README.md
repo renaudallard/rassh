@@ -185,8 +185,9 @@ keys are encrypted and unlocked with it.
 - **sftp and scp** - from the menu of a saved host, working from shared
   storage with All files access, from the app's private directory without
   it
-- **Export and import** - hosts, keys and settings in one file sealed with
-  a passphrase, see [Moving to another phone](#moving-to-another-phone)
+- **Export and import** - hosts, known host keys, keys and font size in
+  one file sealed with a passphrase, see [Moving to another
+  phone](#moving-to-another-phone)
 - **Changed host keys** - when `ssh`, `sftp` or the file browser is
   refused by a server whose key changed, a warning offers to remove the
   old key, then connecting again shows the fingerprint of the new one to
