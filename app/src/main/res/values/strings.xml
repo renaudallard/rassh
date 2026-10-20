@@ -224,14 +224,14 @@
     <string name="export_failed">Cannot export: %1$s</string>
     <string name="export_not_key">%1$s holds no private key in PEM form an import takes: delete it, or fix it in the local shell if it is in clear</string>
     <string name="export_bad_name">rename the key %1$s first, its name is not allowed</string>
-    <string name="exported">Hosts, keys and settings exported</string>
+    <string name="exported">Hosts, keys and font size exported</string>
     <string name="exporting">Exporting</string>
     <string name="importing">Importing</string>
     <string name="passphrase">Passphrase</string>
     <string name="passphrase_again">Passphrase again</string>
     <string name="passphrase_short">At least %1$d characters</string>
     <string name="passphrase_mismatch">The passphrases differ</string>
-    <string name="import_question">Append adds the hosts and keys whose names are not used yet, the known hosts not known here yet and the settings not set. Replace puts the whole configuration, known hosts, keys and settings of the file in place of yours.</string>
+    <string name="import_question">Append adds the hosts and keys whose names are not used yet, the known hosts not known here yet and the font size if not set. Replace puts the whole configuration, known hosts, keys and font size of the file in place of yours.</string>
     <string name="import_append">Append</string>
     <string name="import_replace">Replace</string>
     <string name="import_reason">Store the imported keys</string>

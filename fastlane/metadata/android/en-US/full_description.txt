@@ -28,7 +28,7 @@ LOCAL SHELL
 • Android's own shell and toybox, with the OpenSSH programs first in PATH, and access to your files with All files access
 
 MOVING TO ANOTHER PHONE
-• Hosts, keys and settings exported in one file encrypted with a passphrase
+• Hosts, keys and font size exported in one file encrypted with a passphrase
 
 PRIVACY
 No ads, no analytics, no tracking. rassh connects only to the servers you choose.

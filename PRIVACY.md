@@ -36,8 +36,9 @@ in shared storage only when you run a command. Without it, sftp and scp
 only reach the app's private directory. The file browser uses the system
 file picker.
 
-An export holds your hosts, keys and settings, encrypted with a passphrase
-you choose, and is saved only where you put it.
+An export holds your hosts, known host keys, keys and font size,
+encrypted with a passphrase you choose, and is saved only where you put
+it.
 
 ## Permissions
 
