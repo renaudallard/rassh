@@ -178,7 +178,7 @@ class KeysActivity : Activity() {
         /* Old keys may have such a name, new ones not: the public key of x-cert is the certificate of x. */
         !Keys.isValidName(name) || name.endsWith("-cert") -> getString(R.string.error_key_name)
         Keys.isTaken(paths.sshDir, name, vaultNames()) -> getString(R.string.error_key_exists)
-        binding.service?.keysInUse?.contains(name) == true -> getString(R.string.error_key_exists)
+        binding.service?.keysInUse?.contains(name) == true -> getString(R.string.error_key_busy)
         else -> null
     }
 
