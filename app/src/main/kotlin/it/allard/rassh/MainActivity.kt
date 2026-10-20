@@ -375,7 +375,7 @@ class MainActivity : Activity(), SessionService.Listener {
         val line = quick.text.toString()
         val text = line.trim()
         if (text.isEmpty()) return
-        /* A backslash ending it continues the line break trimmed after it, as in sh. */
+        /* A backslash ending it joins the line break trimmed after it, blanks between too, unlike sh. */
         val continued = text.endsWith('\\') && '\n' in line.substring(line.trimEnd().length)
         val args = Args.split(if (continued) text + "\n" else text)
         if (args == null) {
