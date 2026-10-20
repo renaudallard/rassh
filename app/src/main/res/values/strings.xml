@@ -28,8 +28,8 @@
     <string name="config_unlisted">hosts no Host line names</string>
     <string name="config_checking">Checking with ssh</string>
     <string name="config_check_failed">Cannot check the configuration: %1$s</string>
-    <string name="jump_rename">%1$s is the jump host of %2$s. Renamed, ssh would take %1$s for a host name there, without its settings. Rename it anyway?</string>
-    <string name="jump_delete">Delete host %1$s? It is the jump host of %2$s, where ssh would then take %1$s for a host name, without its settings.</string>
+    <string name="jump_rename">%2$s may jump through %1$s. Renamed, ssh would take %1$s for a host name there, without its settings. Rename it anyway?</string>
+    <string name="jump_delete">Delete host %1$s? %2$s may jump through it, where ssh would then take %1$s for a host name, without its settings.</string>
     <string name="sftp">sftp</string>
     <string name="sftp_title">sftp %1$s</string>
     <string name="scp_title">scp %1$s</string>

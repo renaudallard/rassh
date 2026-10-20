@@ -60,42 +60,43 @@ keys are encrypted and unlocked with it.
   ending its host name, user, port or identity file line. Further `Host`
   blocks of the same name only change with it: renaming the host renames
   them, deleting it deletes them. Renaming or deleting a host other
-  hosts reach through `ProxyJump` asks first, naming them, as ssh would
-  then take its name for a plain host name there, without its block. ssh
-  checks the file before it is saved, for each host its `Host` lines
-  name and for a name they do not, like those of quick connect, since
-  one bad line would stop them all: ssh reads every block, and an option
-  a host's own `IgnoreUnknown` lets pass stops the others. Another host
-  ssh refused already does not stop the change. A file changed during
-  that check is not overwritten, nor a host changed or deleted elsewhere
-  since its editor opened it. A config or `known_hosts` that is not
-  UTF-8 is never rewritten: saving, deleting or moving a host, renaming
-  a key, removing a changed host key or an Append import then stops with
-  a message. One that is a link is rewritten in the file it names, and
-  one linking to what the app cannot reach, a storage card removed for
-  one, is neither read nor written, but a changed host key is only
-  offered for removal from a `known_hosts` in `~/.ssh`. Neither is read
-  when over 1 MiB, which could take all the memory of the app, nor made
-  so large by the app, an import or a save for one, nor is a vault over
-  16 MiB. A host with more than 16384 characters in one of the editor's
-  fields, its other options for one, is edited in the local shell, the
-  fields being that large at most. A checkbox attaches to the last tmux
-  session or starts one, with `RemoteCommand tmux a || tmux` and
-  `RequestTTY yes`. Another, under the identity file, makes `ssh` use
-  only that key, and those other blocks such as `Host *` name, with
-  `IdentitiesOnly yes`, without trying the other keys of the agent when
-  the server refuses it. Common options, such as `ServerAliveInterval`,
-  `Compression`, `StrictHostKeyChecking` or `LogLevel`, have a list of
-  values each. Left at Default, an option writes no line, and the value
-  shown next to Default is what `ssh -G` gives the saved host without
-  it, from its other options, `Host *` blocks or ssh itself. A long
-  press on a host opens its menu, dragging it then to another row moves
-  its block in the file, but only past the blocks of other saved hosts:
-  ssh takes the first value it finds, past a `Host *` or `Match` block
-  the host would get other options. Nor does it move when its block or
-  one it would pass has an `IgnoreUnknown` or `Include` line, as ssh
-  skips an option it does not know only after an `IgnoreUnknown` line
-  naming it, which an included file may hold
+  hosts may reach through `ProxyJump` asks first, naming them, as ssh
+  would then take its name for a plain host name there, without its
+  block, every word of their `ProxyJump` values counting. ssh checks the
+  file before it is saved, for each host its `Host` lines name and for a
+  name they do not, like those of quick connect, since one bad line
+  would stop them all: ssh reads every block, and an option a host's own
+  `IgnoreUnknown` lets pass stops the others. Another host ssh refused
+  already does not stop the change. A file changed during that check is
+  not overwritten, nor a host changed or deleted elsewhere since its
+  editor opened it. A config or `known_hosts` that is not UTF-8 is never
+  rewritten: saving, deleting or moving a host, renaming a key, removing
+  a changed host key or an Append import then stops with a message. One
+  that is a link is rewritten in the file it names, and one linking to
+  what the app cannot reach, a storage card removed for one, is neither
+  read nor written, but a changed host key is only offered for removal
+  from a `known_hosts` in `~/.ssh`. Neither is read when over 1 MiB,
+  which could take all the memory of the app, nor made so large by the
+  app, an import or a save for one, nor is a vault over 16 MiB. A host
+  with more than 16384 characters in one of the editor's fields, its
+  other options for one, is edited in the local shell, the fields being
+  that large at most. A checkbox attaches to the last tmux session or
+  starts one, with `RemoteCommand tmux a || tmux` and `RequestTTY yes`.
+  Another, under the identity file, makes `ssh` use only that key, and
+  those other blocks such as `Host *` name, with `IdentitiesOnly yes`,
+  without trying the other keys of the agent when the server refuses it.
+  Common options, such as `ServerAliveInterval`, `Compression`,
+  `StrictHostKeyChecking` or `LogLevel`, have a list of values each.
+  Left at Default, an option writes no line, and the value shown next to
+  Default is what `ssh -G` gives the saved host without it, from its
+  other options, `Host *` blocks or ssh itself. A long press on a host
+  opens its menu, dragging it then to another row moves its block in the
+  file, but only past the blocks of other saved hosts: ssh takes the
+  first value it finds, past a `Host *` or `Match` block the host would
+  get other options. Nor does it move when its block or one it would
+  pass has an `IgnoreUnknown` or `Include` line, as ssh skips an option
+  it does not know only after an `IgnoreUnknown` line naming it, which
+  an included file may hold
 - **Quick connect** - plain `ssh` arguments, e.g.
   `-p 2222 me@example.org` or `-J jump host`, split into words and
   quoted as sh does, a `#` starting a word commenting out the rest
