@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.os.SystemClock
 import android.text.InputType
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -43,6 +44,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     ExtraKeysView.Listener {
     var extraKeys: ExtraKeysView? = null
     var onCloseRequest: (() -> Unit)? = null
+    /* When Enter closed an ended session, see send(). */
+    private var closedAt = Long.MIN_VALUE
 
     /* The accent of a dead key waiting for the next key, see onKeyDown(). */
     private var deadAccent = 0
@@ -658,9 +661,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val session = session ?: return true
         if (!session.isRunning) {
             /* Enter alone, a paste holding a newline must not close the session. */
-            if (s == "\r") onCloseRequest?.invoke()
+            if (s == "\r") {
+                closedAt = SystemClock.uptimeMillis()
+                onCloseRequest?.invoke()
+            }
             return true
         }
+        /* The second Enter of a quick double one is not for the session shown after the close. */
+        if (closedAt > SystemClock.uptimeMillis() - ViewConfiguration.getDoubleTapTimeout()) return true
         if (scrollOffset != 0) {
             scrollOffset = 0
             invalidate()
@@ -721,6 +729,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (session == null) return super.onKeyDown(keyCode, event)
+        /* Its repeats, a key held since it closed a session, see send(). */
+        if (event.downTime <= closedAt && (KEYS[keyCode] != null || event.unicodeChar != 0)) return true
         var mods = 0
         if (event.isShiftPressed) mods = mods or KeyEncoder.SHIFT
         if (event.isAltPressed) mods = mods or KeyEncoder.ALT
