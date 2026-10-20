@@ -1,0 +1,8 @@
+- A second Enter after a session ends no longer reaches the next one
+- A latched CTRL or ALT no longer carries over to another session
+- Renaming or deleting a jump host warns in more cases, as ssh reads ProxyJump
+- Quick connect joins lines ending in a backslash, as sh does
+- File browser shows FIFOs, devices and setuid, setgid, sticky bits
+- Agent cleanup no longer follows a link into another folder
+- The key-only box follows ssh with several IdentitiesOnly lines
+- Many fixes
