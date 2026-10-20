@@ -729,8 +729,12 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (session == null) return super.onKeyDown(keyCode, event)
-        /* Its repeats, a key held since it closed a session, see send(). */
-        if (event.downTime <= closedAt && (KEYS[keyCode] != null || event.unicodeChar != 0)) return true
+        /*
+         * The repeats of a key held since it closed a session, see send().
+         * Not a first press: a keyboard may leave its down time at 0.
+         */
+        if (event.repeatCount > 0 && event.downTime <= closedAt && (KEYS[keyCode] != null || event.unicodeChar != 0))
+            return true
         var mods = 0
         if (event.isShiftPressed) mods = mods or KeyEncoder.SHIFT
         if (event.isAltPressed) mods = mods or KeyEncoder.ALT
