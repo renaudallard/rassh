@@ -122,12 +122,12 @@ keys are encrypted and unlocked with it.
   block for one, uses that agent instead and gets no vault key
 - **Key management** - generate ed25519, ecdsa, rsa or mldsa44-ed25519
   keys, import, rename or delete private keys, create a missing public
-  key, show, copy or share public keys. Each key is listed with whether
-  it is encrypted in the vault or in clear and, from its public key, its
-  type, comment and SHA-256 fingerprint, as ssh prints it. OpenSSH 10.6
-  renamed the experimental `ssh-mldsa44-ed25519@openssh.com` keys,
-  mldsa44-ed25519 keys made with older versions of rassh no longer load
-  and must be generated again
+  key or one ssh cannot load, show, copy or share public keys. Each key
+  is listed with whether it is encrypted in the vault or in clear and,
+  from its public key, its type, comment and SHA-256 fingerprint, as ssh
+  prints it. OpenSSH 10.6 renamed the experimental
+  `ssh-mldsa44-ed25519@openssh.com` keys, mldsa44-ed25519 keys made with
+  older versions of rassh no longer load and must be generated again
 - **File browser** - Browse files in the menu of a saved host: browse,
   download, upload, rename, delete files and empty folders and create
   folders over SFTP, through `ssh`, so the host's options, jump hosts
