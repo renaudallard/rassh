@@ -372,9 +372,11 @@ class MainActivity : Activity(), SessionService.Listener {
     }
 
     private fun quickConnect() {
-        val text = quick.text.toString().trim()
+        val line = quick.text.toString()
+        val text = line.trim()
         if (text.isEmpty()) return
-        val args = Args.split(text)
+        /* Not a line break, which a backslash before it continues, as in sh. */
+        val args = Args.split(line.trim { it != '\n' && it.isWhitespace() })
         if (args == null) {
             toast(getString(R.string.invalid_arguments))
             return
