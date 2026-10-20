@@ -97,15 +97,12 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String>? 
 
 /*
  * The other hosts of text, as their names and patterns are, and one no
- * Host line names, whose ProxyJump goes through the host name: renamed
+ * Host line names, whose ProxyJump may go through the host name: renamed
  * or deleted, ssh would take name for a host name there, without its
- * block. ssh -G writes a hop as [user@]host[:port], an IPv6 address in
- * brackets, the last one turned so from an ssh:// URI, the others as
- * they were written, blanks around commas too, with the quotes and
- * backslashes the shell drops and the trailing dot ssh drops from a URI.
- * Its Host lines match names as typed, and lowercased in a final pass,
- * which Match final or CanonicalizeHostname bring: a hop is taken as
- * typed or lowercased.
+ * block. Its words count as jumpNames() takes them, the shell splitting
+ * the value ssh -G prints, as typed or lowercased: ssh matches Host
+ * lines lowercased again in a final pass, which Match final or
+ * CanonicalizeHostname bring. One the shell would expand counts too.
  */
 @Throws(IOException::class)
 fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
@@ -114,14 +111,8 @@ fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
         (checkedNames(config, emptyList()) + config.patterns).filter { it != name }.filter { other ->
             dump(paths, file, other).first.split('\n').any { line ->
                 val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: return@any false
-                key == "proxyjump" && value.split(',').any { hop ->
-                    val written = hop.trim().filter { it !in "\"'\\" }
-                    val host = written.removePrefix("ssh://").substringAfterLast('@').substringBefore('/')
-                    val bare = if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
-                        else host.substringBefore(':')
-                    val hostName = if (written.startsWith("ssh://")) bare.removeSuffix(".") else bare
-                    hostName == name || lowerAscii(hostName) == name
-                }
+                key == "proxyjump" &&
+                    jumpNames(value).let { words -> words == null || words.any { it == name || lowerAscii(it) == name } }
             }
         }
     }
