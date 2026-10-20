@@ -215,10 +215,10 @@ keys are encrypted and unlocked with it.
   reached from its notification or from Sessions in the main menu.
   Opening a second one to the same saved host, with `ssh`, `sftp` or
   `scp`, or with the same quick connect text, asks first, offering to go
-  back to the latest one, and a saved host with a session running says
-  so in the list. Sessions reaching the same server, local shells
-  included, show when they were opened, as do file browsers of the same
-  host
+  back to the latest one, and a saved host with an `ssh`, `sftp` or
+  `scp` session running says so in the list. Sessions reaching the same
+  server, local shells included, show when they were opened, as do file
+  browsers of the same host
 - **Terminal** - 256 and 24 bit colors, alternate screen, scroll
   regions, wide characters, DEC line drawing, bracketed paste, reverse
   video, scrollback with a swipe or a fling, the swipe sending the arrow
