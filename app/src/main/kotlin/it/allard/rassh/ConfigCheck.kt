@@ -101,9 +101,11 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String>? 
  * or deleted, ssh would take name for a host name there, without its
  * block. ssh -G writes a hop as [user@]host[:port], an IPv6 address in
  * brackets, the last one turned so from an ssh:// URI, the others as
- * they were written, blanks around commas too. Its Host lines match
- * names as typed, and lowercased in a final pass, which Match final or
- * CanonicalizeHostname bring: a hop is taken as typed or lowercased.
+ * they were written, blanks around commas too, with the quotes and
+ * backslashes the shell drops and the trailing dot ssh drops from a URI.
+ * Its Host lines match names as typed, and lowercased in a final pass,
+ * which Match final or CanonicalizeHostname bring: a hop is taken as
+ * typed or lowercased.
  */
 @Throws(IOException::class)
 fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
@@ -113,9 +115,11 @@ fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
             dump(paths, file, other).first.split('\n').any { line ->
                 val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: return@any false
                 key == "proxyjump" && value.split(',').any { hop ->
-                    val host = hop.trim().removePrefix("ssh://").substringAfterLast('@').substringBefore('/')
-                    val hostName = if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
+                    val written = hop.trim().filter { it !in "\"'\\" }
+                    val host = written.removePrefix("ssh://").substringAfterLast('@').substringBefore('/')
+                    val bare = if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
                         else host.substringBefore(':')
+                    val hostName = if (written.startsWith("ssh://")) bare.removeSuffix(".") else bare
                     hostName == name || lowerAscii(hostName) == name
                 }
             }
