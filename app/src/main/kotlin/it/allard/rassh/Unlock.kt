@@ -415,12 +415,13 @@ fun clearAgents(paths: Paths) {
  * ssh-add, at a Close session during a passphrase for one, but not those
  * of a shell still running, named by its pid. They hold links only,
  * removed one by one: following them would reach the descriptors of
- * this process.
+ * this process. One that is a link itself goes alone, listed through it
+ * would empty the directory it points to.
  */
 fun removeKeyLinks(paths: Paths) {
     for (dir in paths.tmp.listFiles().orEmpty().filter { KEY_LINKS.matches(it.name) }) {
         if (File("/proc/" + dir.name.removePrefix("keys.")).exists()) continue
-        dir.listFiles().orEmpty().forEach { it.delete() }
+        if (!Files.isSymbolicLink(dir.toPath())) dir.listFiles().orEmpty().forEach { it.delete() }
         dir.delete()
     }
 }
