@@ -1,0 +1,9 @@
+- File browser: go to any folder, sort by name, size or date, hidden files, select entries to download into a folder or delete, progress against the file size
+- Keys list shows fingerprints and whether a key is in the vault
+- Light theme: pale terminal colors are darkened
+- Scrollback can be flung
+- Go back to a session already open, hosts with one are marked
+- Renaming or deleting a jump host warns first
+- Quick connect takes # as a comment
+- arm64 only
+- Many fixes
