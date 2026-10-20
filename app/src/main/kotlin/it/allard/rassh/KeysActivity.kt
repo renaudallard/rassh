@@ -312,8 +312,8 @@ class KeysActivity : Activity() {
                             else getString(R.string.import_no_public, n))
                         return@runOnUiThread
                     }
-                    /* Android refuses to start the session from the background. */
-                    if (error != null) toast(getString(R.string.import_failed, error))
+                    /* Android refuses to start the session from the background. A toast would cut the error short. */
+                    if (error != null) sayInFull(getString(R.string.import_failed, error))
                     else if (resumed) derivePublicKey(n)
                     else deriveLater.add(n)
                 }
