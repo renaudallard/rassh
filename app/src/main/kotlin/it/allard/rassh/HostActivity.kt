@@ -371,8 +371,8 @@ class HostActivity : Activity() {
         }
         /* The host saved first, ssh's message is most likely about it. */
         val names = checkedNames(config, listOf(n))
-        /* Its old name stays in the ProxyJump of other hosts, see jumpingThrough(). */
-        val renamed = original?.takeIf { !equalsAscii(it, n) }
+        /* Its old name stays in the ProxyJump of other hosts, see jumpingThrough(), web for Web too. */
+        val renamed = original?.takeIf { it != n }
         checking = true
         /* One ssh -G for each host, a long config takes a while. */
         actionBar?.setSubtitle(R.string.config_checking)

@@ -2,7 +2,6 @@ package it.allard.rassh
 
 import android.content.Context
 import it.allard.rassh.config.SshConfig
-import it.allard.rassh.config.equalsAscii
 import java.io.File
 import java.io.IOException
 
@@ -101,20 +100,20 @@ fun reachedNames(paths: Paths, text: String, names: List<String>): Set<String>? 
  * or deleted, ssh would take name for a host name there, without its
  * block. ssh -G writes a hop as [user@]host[:port], an IPv6 address in
  * brackets, the last one turned so from an ssh:// URI, the others as
- * they were written, blanks around commas too. It matches names
- * lowercased.
+ * they were written, blanks around commas too. Its Host lines match
+ * names as typed, so a hop of another case is another name.
  */
 @Throws(IOException::class)
 fun jumpingThrough(paths: Paths, text: String, name: String): List<String> =
     withConfigFile(paths, text) { file ->
         val config = SshConfig.parse(text)
-        (checkedNames(config, emptyList()) + config.patterns).filter { !equalsAscii(it, name) }.filter { other ->
+        (checkedNames(config, emptyList()) + config.patterns).filter { it != name }.filter { other ->
             dump(paths, file, other).first.split('\n').any { line ->
                 val (key, value) = line.trim().split(' ', limit = 2).takeIf { it.size == 2 } ?: return@any false
                 key == "proxyjump" && value.split(',').any { hop ->
                     val host = hop.trim().removePrefix("ssh://").substringAfterLast('@').substringBefore('/')
-                    equalsAscii(if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
-                        else host.substringBefore(':'), name)
+                    (if (host.startsWith("[")) host.substringAfter('[').substringBefore(']')
+                        else host.substringBefore(':')) == name
                 }
             }
         }
