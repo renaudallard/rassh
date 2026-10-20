@@ -334,8 +334,8 @@ class KeysActivity : Activity() {
         } catch (_: IOException) {
             emptyList()
         }
-        if (Keys.isTaken(paths.sshDir, n, stored) || binding.service?.keysInUse?.contains(n) == true)
-            throw IOException(getString(R.string.error_key_exists))
+        if (Keys.isTaken(paths.sshDir, n, stored)) throw IOException(getString(R.string.error_key_exists))
+        if (binding.service?.keysInUse?.contains(n) == true) throw IOException(getString(R.string.error_key_busy))
         paths.writePrivate(File(paths.sshDir, n), key)
     }
 
