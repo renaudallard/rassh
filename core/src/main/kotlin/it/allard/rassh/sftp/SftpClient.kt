@@ -35,6 +35,10 @@ class SftpAttrs(
         const val S_IFDIR = 0x4000
         const val S_IFLNK = 0xa000
         const val S_IFREG = 0x8000
+        const val S_IFIFO = 0x1000
+        const val S_IFCHR = 0x2000
+        const val S_IFBLK = 0x6000
+        const val S_IFSOCK = 0xc000
     }
 }
 

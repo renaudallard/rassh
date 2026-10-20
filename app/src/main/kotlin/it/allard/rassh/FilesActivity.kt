@@ -1353,13 +1353,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         /* Permissions as ls -l shows them, a FIFO, socket or device and the setuid, setgid and sticky bits too. */
         fun mode(p: Int): String {
             val type = when (p and SftpAttrs.S_IFMT) {
+                SftpAttrs.S_IFREG -> '-'
                 SftpAttrs.S_IFDIR -> 'd'
                 SftpAttrs.S_IFLNK -> 'l'
-                0x1000 -> 'p'
-                0x2000 -> 'c'
-                0x6000 -> 'b'
-                0xc000 -> 's'
-                else -> '-'
+                SftpAttrs.S_IFIFO -> 'p'
+                SftpAttrs.S_IFCHR -> 'c'
+                SftpAttrs.S_IFBLK -> 'b'
+                SftpAttrs.S_IFSOCK -> 's'
+                else -> '?'
             }
             val bits = CharArray(9) { if (p and (0x100 shr it) != 0) "rwx"[it % 3] else '-' }
             for ((i, bit, c) in listOf(Triple(2, 0x800, 's'), Triple(5, 0x400, 's'), Triple(8, 0x200, 't')))
