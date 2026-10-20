@@ -58,7 +58,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             field = value
             stopFling()
             scrollOffset = 0
+            /* A dead key or a latched CTRL or ALT was for the session before. */
             deadAccent = 0
+            extraKeys?.consumeModifiers()
             clearSelection()
             lastHistoryAdded = value?.terminal?.let { synchronized(it) { it.historyAdded } } ?: 0
             resizeTerminal()
