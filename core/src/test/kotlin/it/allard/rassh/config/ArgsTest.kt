@@ -21,6 +21,16 @@ class ArgsTest {
     }
 
     @Test
+    fun joinsContinuedLines() {
+        assertEquals(listOf("ab"), Args.split("a\\\nb"))
+        assertEquals(listOf("a", "b"), Args.split("a \\\nb"))
+        assertEquals(listOf("ab"), Args.split("\"a\\\nb\""))
+        assertEquals(listOf("a\\\nb"), Args.split("'a\\\nb'"))
+        assertEquals(emptyList(), Args.split("\\\n"))
+        assertEquals(listOf("a"), Args.split("a\\\n"))
+    }
+
+    @Test
     fun dropsComments() {
         assertEquals(listOf("web"), Args.split("web # prod"))
         assertEquals(listOf("a#b", "#c"), Args.split("a#b '#c'"))
