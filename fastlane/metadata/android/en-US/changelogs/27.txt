@@ -1,0 +1,7 @@
+- A storage app can no longer make a download or export overwrite the app's own files
+- An upload no longer replaces a file made on the server after it was confirmed
+- Renaming a file onto a name in use is refused on every server
+- Saving a host keeps a forward starting with = as ssh reads it
+- A few format characters and fillers take the width glibc gives them
+- Clearer upload, resume and import messages
+- Many fixes
