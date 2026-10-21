@@ -20,5 +20,12 @@ class WcWidthTest {
         assertEquals(2, WcWidth.width(0xff21))
         assertEquals(1, WcWidth.width(0x2500))
         assertEquals(1, WcWidth.width(0x10ffff))
+        /* As glibc counts them. */
+        assertEquals(1, WcWidth.width(0x600))
+        assertEquals(1, WcWidth.width(0xfffb))
+        assertEquals(0, WcWidth.width(0x200d))
+        assertEquals(0, WcWidth.width(0x3164))
+        assertEquals(0, WcWidth.width(0xffa0))
+        assertEquals(2, WcWidth.width(0x3248))
     }
 }
