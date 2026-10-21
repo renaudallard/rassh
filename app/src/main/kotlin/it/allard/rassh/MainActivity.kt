@@ -352,7 +352,7 @@ class MainActivity : Activity(), SessionService.Listener {
         try {
             val config = SshConfig.parse(paths.textOf(paths.config))
             if (config.move(name, to)) paths.writeText(paths.config, config.toString())
-            else toast(getString(R.string.move_refused, name))
+            else sayInFull(getString(R.string.move_refused, name))
         } catch (e: IOException) {
             toast(getString(R.string.config_failed, e.message))
         }
@@ -678,7 +678,7 @@ class MainActivity : Activity(), SessionService.Listener {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)))
         } catch (e: ActivityNotFoundException) {
-            toast(getString(R.string.no_browser, PRIVACY_URL))
+            sayInFull(getString(R.string.no_browser, PRIVACY_URL))
         }
     }
 
