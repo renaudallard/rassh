@@ -564,6 +564,12 @@ most. JuiceSSH is no longer on Google Play.
   task, one rassh was opened from or a public key was shared to, can
   later start another one over rassh's, a fake prompt for one. From
   Android 15 the app asks Android to refuse that
+- Android kills the programs apps start once more than 32 run on the
+  phone, those of apps in the background first, then the oldest: with
+  many sessions open, the oldest end with status 137. Android 14 and
+  later lift the limit with Disable child process restrictions in the
+  developer options, Android 13 with `adb shell settings put global
+  settings_enable_monitor_phantom_procs false`
 
 ## License
 
