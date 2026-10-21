@@ -376,8 +376,9 @@ a long one. Android backup stays off, since the vault cannot leave the
 phone that made it. Files read through `Include` and keys kept outside
 `~/.ssh` are not exported. A key named as early versions or the local
 shell allowed, with an `@` for instance, must be renamed first, and an
-export stops at a key holding no private key in PEM form, a lone
-certificate for one, naming it, as no import would take either.
+export stops at a key holding no private key in PEM form, naming it, as
+no import would take it. A certificate or public key without its private
+key is left out.
 
 Import on the other phone first asks whether to append or replace, then
 reads the file, refusing it when one of its keys holds no private key in
