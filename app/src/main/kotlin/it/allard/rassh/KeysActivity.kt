@@ -233,7 +233,7 @@ class KeysActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         val uri = data?.data
-        if (requestCode == REQUEST_IMPORT && resultCode == RESULT_OK && uri != null)
+        if (requestCode == REQUEST_IMPORT && resultCode == RESULT_OK && uri != null && onlyDocuments(data))
             importKey(uri)
     }
 

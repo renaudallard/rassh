@@ -722,7 +722,7 @@ class MainActivity : Activity(), SessionService.Listener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         val uri = data?.data
-        if (resultCode != RESULT_OK || uri == null) return
+        if (resultCode != RESULT_OK || uri == null || !onlyDocuments(data)) return
         when (requestCode) {
             REQUEST_EXPORT -> exportTo(uri, paths, vault)
             /*

@@ -6,6 +6,7 @@ import android.app.Application
 import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
@@ -129,6 +130,21 @@ fun Activity.pick(intent: Intent, request: Int) {
     } catch (_: ActivityNotFoundException) {
         toast(getString(R.string.no_picker))
     }
+}
+
+/*
+ * A document provider may answer the picker or createDocument() with a
+ * file: Uri, which the app would open with its own rights, onto its own
+ * files: only content: ones are opened.
+ */
+fun isDocument(uri: Uri): Boolean = uri.scheme == ContentResolver.SCHEME_CONTENT
+
+/* Whether all the Uris a picker returned are documents, saying so when not. */
+fun Context.onlyDocuments(data: Intent): Boolean {
+    val picked = data.clipData?.let { c -> (0 until c.itemCount).map { c.getItemAt(it).uri } }.orEmpty()
+    if ((listOfNotNull(data.data) + picked).all(::isDocument)) return true
+    toast(getString(R.string.not_document))
+    return false
 }
 
 /** A binding to the session service, connected is called once it is up. */

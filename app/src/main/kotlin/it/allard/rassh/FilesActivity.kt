@@ -566,7 +566,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK || data == null) {
+        if (resultCode != RESULT_OK || data == null || !onlyDocuments(data)) {
             if (requestCode == REQUEST_DOWNLOAD_ALL) downloadingAll = null
             return
         }
@@ -699,7 +699,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                             DocumentsContract.createDocument(contentResolver, folder, mimeType(name), name)
                         } catch (_: NullPointerException) {
                             null
-                        } ?: throw IOException(getString(R.string.error_cannot_open))
+                        }?.takeIf(::isDocument) ?: throw IOException(getString(R.string.error_cannot_open))
                         try {
                             c.download(remote, {
                                 contentResolver.openOutputStream(doc, "wt")
