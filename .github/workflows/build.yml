@@ -111,6 +111,18 @@ jobs:
               -keypass:env RASSH_KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 \
               signed/app-release.aab "$RASSH_KEY_ALIAS"
 
+      # Another key in the secrets would publish a release that updates
+      # no install and that F-Droid refuses.
+      - name: Check the signer
+        run: |
+          cert=0c3c763d093d0536e7b46c56fa89eb695d9f16c2ec0723ebaf20822b852046fc
+          apk=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs signed/app-release.apk |
+              sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p')
+          aab=$(keytool -printcert -jarfile signed/app-release.aab |
+              sed -n 's/^[[:space:]]*SHA256: //p' | tr -d : | tr A-F a-f)
+          test "$apk" = "$cert" && test "$aab" = "$cert" ||
+              { echo "signed with $apk and $aab, not $cert"; exit 1; }
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rassh-release

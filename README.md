@@ -512,7 +512,9 @@ characters at most.
 Release APKs are signed with the key held in the repository secrets
 `RASSH_KEYSTORE` (base64 PKCS12 keystore), `RASSH_KEYSTORE_PASSWORD`,
 `RASSH_KEY_ALIAS` and `RASSH_KEY_PASSWORD`. Android only installs an
-update signed with the same key, so keep a copy of the keystore.
+update signed with the same key, so keep a copy of the keystore. The
+signing job stops when the APK or the bundle carries another certificate
+than the one the workflow names.
 
 ## Compared with other clients
 
