@@ -343,8 +343,9 @@ class SshConfig private constructor(
 
     private fun render(host: Host): List<String> {
         val lines = mutableListOf<String>()
+        /* ssh takes one = after the keyword as a separator, a value starting with one needs another before it. */
         fun add(key: String, value: String) {
-            if (value.isNotEmpty()) lines.add("$INDENT$key $value")
+            if (value.isNotEmpty()) lines.add("$INDENT$key " + if (value.startsWith("=")) "= $value" else value)
         }
         add("HostName", quote(host.hostName))
         add("User", quote(host.user))

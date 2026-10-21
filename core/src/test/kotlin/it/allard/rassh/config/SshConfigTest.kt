@@ -582,4 +582,14 @@ class SshConfigTest {
         for (bad in listOf("a@b", "ssh://x", "-v", "a;b", "a\$b", "a`b", "a|b", "a(b", "a{b", "a\\b", "a b", "a\tb"))
             assertFalse(Host.isValidName(bad), bad)
     }
+
+    @Test
+    fun forwardStartingWithEqualsKept() {
+        val config = SshConfig.parse("Host a\n    LocalForward ==localhost:1082 h:82\n")
+        val a = config.find("a")!!
+        assertEquals(listOf("=localhost:1082 h:82"), a.localForwards)
+        config.put("a", a)
+        assertTrue("\n    LocalForward = =localhost:1082 h:82\n" in config.toString())
+        assertEquals(a, SshConfig.parse(config.toString()).find("a"))
+    }
 }
