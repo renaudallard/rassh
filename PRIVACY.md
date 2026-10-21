@@ -43,7 +43,8 @@ it.
 ## Permissions
 
 - Internet and local network: connecting to your servers
-- Notifications and foreground service: keeping sessions open
+- Foreground service: keeping sessions open
+- Notifications: showing the notification of the open sessions
 - Biometric: unlocking your keys
 - Hide overlays: hiding the windows of apps allowed to display over
   other apps while rassh shows
