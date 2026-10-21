@@ -150,7 +150,8 @@ keys are encrypted and unlocked with it.
   one, and listing at the end the files the server refused, delete
   several entries at once, counted in a dialog that can stop it, or
   rename one, which is how a folder, a link to one or a dangling link is
-  renamed or deleted. Unlike a single file, such a download is not
+  renamed or deleted. A rename to a name in use is refused, unless only
+  its case changes. Unlike a single file, such a download is not
   offered to resume once cut, as it says before starting. A transfer
   shows how much of the file is copied, out of its size when the server
   or the phone tells it. An upload first shows the names the files get

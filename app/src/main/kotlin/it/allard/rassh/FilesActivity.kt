@@ -1036,7 +1036,16 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             }
             dialog.dismiss()
             val c = client() ?: return@setOnClickListener
-            run({ c.rename(path(dir, e.name), path(dir, to)) }) { load(dir) }
+            run({
+                /*
+                 * Some servers replace what has the name, sftp-server
+                 * refuses. A server ignoring case finds the entry itself
+                 * under a name changed in case only.
+                 */
+                if (!to.equals(e.name, true) && exists(c, path(dir, to)))
+                    throw IOException(getString(R.string.exists_already, to))
+                c.rename(path(dir, e.name), path(dir, to))
+            }) { load(dir) }
         }
     }
 
