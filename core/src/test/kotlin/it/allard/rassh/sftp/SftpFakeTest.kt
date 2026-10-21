@@ -309,6 +309,37 @@ class SftpFakeTest {
     }
 
     @Test(timeout = TIMEOUT)
+    fun fileMadeMeanwhileKept() {
+        /* Gone at the lstat, made by another before the open, which the exclusive open refuses. */
+        var flags = 0
+        var removed = false
+        val fake = FakeServer { type, id, packet ->
+            when (type) {
+                1 -> FakeServer.packet(2) { writeInt(3) }
+                3 -> {
+                    val b = java.nio.ByteBuffer.wrap(packet, 5, packet.size - 5)
+                    b.position(b.position() + 4 + b.getInt())
+                    flags = b.getInt()
+                    FakeServer.packet(101) { writeInt(id); writeInt(4); with(FakeServer) { string("Failure"); string("") } }
+                }
+                else -> FakeServer.packet(101) {
+                    if (type == 13) removed = true
+                    writeInt(id)
+                    writeInt(if (type == 7) SftpException.NO_SUCH_FILE else 0)
+                    with(FakeServer) {
+                        string("")
+                        string("")
+                    }
+                }
+            }
+        }
+        val client = SftpClient(fake.clientIn, fake.clientOut)
+        assertFailsWith<SftpException> { client.upload(java.io.ByteArrayInputStream(ByteArray(10)), "/f", false) }
+        assertEquals(0x20, flags and 0x20)
+        assertTrue(!removed)
+    }
+
+    @Test(timeout = TIMEOUT)
     fun longPathRefused() {
         val fake = FakeServer { type, id, _ ->
             when (type) {

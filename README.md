@@ -159,7 +159,9 @@ keys are encrypted and unlocked with it.
   slash and for control, line break and bidi characters, which could
   hide or disguise another name, and a name over 255 bytes, empty, `.`
   or `..` becomes `upload`, blanks around it trimmed. Files that would
-  get the same name are refused, to upload one at a time. A transfer cut
+  get the same name are refused, to upload one at a time. A file not
+  shown as replaced, made on the server since or one of the upload on a
+  server that ignores case, stops the upload instead. A transfer cut
   short by a lost connection, or by the browser going away, swiped from
   the recent apps for one, is offered to resume the next time the
   browser connects to that host, the last one cut short there only. A

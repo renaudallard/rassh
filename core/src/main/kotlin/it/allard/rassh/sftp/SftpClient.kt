@@ -240,13 +240,14 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
      * links. A stopped upload of a new file removes it, one replacing a
      * file leaves it cut short, as one through a link, even a dangling
      * one. Only a regular file is replaced: the server opening a FIFO
-     * would wait for a reader and answer nothing more. progress works as
-     * in download().
+     * would wait for a reader and answer nothing more. Unless replace,
+     * nothing is replaced, not even a file made since it was looked for.
+     * progress works as in download().
      */
     @Synchronized
     @Throws(IOException::class)
-    fun upload(input: InputStream, path: String, progress: (Long) -> Boolean = { true }) {
-        put(input, path, progress, -1)
+    fun upload(input: InputStream, path: String, replace: Boolean = true, progress: (Long) -> Boolean = { true }) {
+        put(input, path, progress, -1, replace)
     }
 
     /**
@@ -261,11 +262,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Synchronized
     @Throws(IOException::class)
     fun resumeUpload(input: InputStream, length: Long, sent: Long, path: String, progress: (Long) -> Boolean = { true }) {
-        put(input, path, progress, minOf(length, sent))
+        put(input, path, progress, minOf(length, sent), true)
     }
 
     /* As upload(), resumed when known, the bytes of input the server may have, is not -1. */
-    private fun put(input: InputStream, path: String, progress: (Long) -> Boolean, known: Long) {
+    private fun put(input: InputStream, path: String, progress: (Long) -> Boolean, known: Long, replace: Boolean) {
         val existed = try {
             lstat(path)
             true
@@ -273,6 +274,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             if (e.status != SftpException.NO_SUCH_FILE) throw e
             false
         }
+        if (existed && !replace) throw IOException(shownName(path.substringAfterLast('/')) + " exists already")
         var size: Long? = null
         if (existed) {
             val target = try {
@@ -290,9 +292,12 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
          * must not truncate one: seen right before the open.
          */
         if (!progress(offset)) throw SftpCancelledException()
+        val flags = FXF_WRITE or FXF_CREAT or (if (offset == 0L) FXF_TRUNC else 0) or (if (replace) 0 else FXF_EXCL)
+        /* An open that fails made no file, one there now is another's. */
+        val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(flags).u32(0)))
         var done = false
         try {
-            write(input, path, progress, offset)
+            write(input, handle, progress, offset)
             done = true
         } finally {
             if (!done && !existed) {
@@ -304,10 +309,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         }
     }
 
-    /* Copy input to the file path, created or truncated, or from start on, the bytes before it kept. */
-    private fun write(input: InputStream, path: String, progress: (Long) -> Boolean, start: Long) {
-        val flags = FXF_WRITE or FXF_CREAT or if (start == 0L) FXF_TRUNC else 0
-        val handle = handleOf(request(Writer(FXP_OPEN).string(path).u32(flags).u32(0)))
+    /* Copy input to the file open as handle from start on, the bytes before it kept, and close it. */
+    private fun write(input: InputStream, handle: ByteArray, progress: (Long) -> Boolean, start: Long) {
         val pending = ArrayDeque<Int>()
         var failed = true
         try {
@@ -596,6 +599,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private const val FXF_WRITE = 2
         private const val FXF_CREAT = 8
         private const val FXF_TRUNC = 0x10
+        private const val FXF_EXCL = 0x20
 
         private const val ATTR_SIZE = 1
         private const val ATTR_UIDGID = 2

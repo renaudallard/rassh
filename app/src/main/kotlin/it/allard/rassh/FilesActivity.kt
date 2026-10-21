@@ -869,7 +869,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                 .setMessage(getString(R.string.upload_names, shownName(dir), shown(names)) +
                     if (existing.isEmpty()) "" else "\n\n" + getString(R.string.replace_named, shown(existing)))
                 .setPositiveButton(if (existing.isEmpty()) R.string.upload else R.string.replace) { _, _ ->
-                    uploadAll(uris, names, dir)
+                    uploadAll(uris, names, dir, existing.toSet())
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .show()
@@ -890,7 +890,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             val other = cut != null && exists(c, cut) && sizeOf(c, cut)?.let { SftpClient.mayHold(it, known) } != true
             other || r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) }
         }) { clash ->
-            replacing(clash) { uploadAll(r.uris, r.names, r.dir, r) }
+            /* Only the file cut short is replaced, unless agreed to. */
+            val replace = if (clash) r.names.toSet() else setOfNotNull(r.names.getOrNull(r.index))
+            replacing(clash) { uploadAll(r.uris, r.names, r.dir, replace, r) }
         }
     }
 
@@ -922,8 +924,12 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             false
         }
 
-    /* Upload uris as names into dir, or go on with resumed, an upload cut short there. */
-    private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String, resumed: Resumable.Upload? = null) {
+    /*
+     * Upload uris as names into dir, replacing only those in replace, or go
+     * on with resumed, an upload cut short there.
+     */
+    private fun uploadAll(uris: List<Uri>, names: List<String>, dir: String, replace: Set<String>,
+        resumed: Resumable.Upload? = null) {
         val c = client() ?: return
         val host = host()
         if (!startResuming(host, resumed)) return
@@ -970,7 +976,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
                         if (resumed != null && file != null && same)
                             c.resumeUpload(input, file.first, resumed.sent, path, counted)
                         else
-                            c.upload(input, path, counted)
+                            c.upload(input, path, names[index] in replace, counted)
                     }
                     index++
                 }

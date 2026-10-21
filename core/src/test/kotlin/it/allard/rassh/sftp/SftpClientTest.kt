@@ -214,4 +214,16 @@ class SftpClientTest {
         assertEquals("new", File(dir, "target").readText())
         assertTrue(sftp.lstat("$dir/link").isLink)
     }
+
+    @Test
+    fun uploadNotReplacing() {
+        File(dir, "old").writeText("old")
+        java.nio.file.Files.createSymbolicLink(File(dir, "dangling").toPath(), File(dir, "none").toPath())
+        for (name in listOf("old", "dangling"))
+            assertFailsWith<IOException> { sftp.upload(ByteArrayInputStream("new".toByteArray()), "$dir/$name", false) }
+        assertEquals("old", File(dir, "old").readText())
+        assertFalse(File(dir, "none").exists())
+        sftp.upload(ByteArrayInputStream("new".toByteArray()), "$dir/fresh", false)
+        assertEquals("new", File(dir, "fresh").readText())
+    }
 }
