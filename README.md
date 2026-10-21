@@ -260,7 +260,7 @@ and install it. It needs Android 13 or newer on an `arm64-v8a` device.
 | --- | --- |
 | Internet | Connecting to servers |
 | Local network | Reaching hosts on the LAN, asked on Android 17 and later |
-| Notifications | The notification keeping sessions alive |
+| Notifications | Showing the notification of the open sessions, which stay open without it |
 | Foreground service | Keeping sessions open in the background |
 | Biometric | Unlocking the encrypted keys |
 | Hide overlays | Hiding the windows of apps allowed to display over other apps while rassh shows, where a faint prompt could lead taps onto Delete or a host key removal. Screen dimmers, chat heads or a recorder's controls drawn that way go as well, on the whole display, until rassh leaves the screen |
