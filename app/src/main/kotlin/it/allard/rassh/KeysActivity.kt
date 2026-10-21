@@ -121,6 +121,8 @@ class KeysActivity : Activity() {
 
     override fun onDestroy() {
         binding.unbind()
+        /* Not back to make their public keys, as for an import that ends once the screen is gone. */
+        deriveLater.forEach { applicationContext.toast(getString(R.string.import_no_public, it)) }
         super.onDestroy()
     }
 
