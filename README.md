@@ -99,7 +99,8 @@ keys are encrypted and unlocked with it.
   an included file may hold
 - **Quick connect** - plain `ssh` arguments, e.g.
   `-p 2222 me@example.org` or `-J jump host`, split into words and
-  quoted as sh does, a `#` starting a word commenting out the rest
+  quoted as sh does, a `#` starting a word commenting out the rest of
+  the line
 - **Local shell** - from the menu, Android's own `sh` and toybox as the
   app user, in its home directory, with `ssh`, `scp`, `sftp`, `ssh-add`,
   `ssh-agent` and `ssh-keygen` first in `PATH`. It is given no agent, so
