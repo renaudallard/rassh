@@ -1,4 +1,4 @@
-rassh est un client SSH construit autour du vrai OpenSSH 10.6p1 et de LibreSSL 4.3.3. Pas de réimplémentation de SSH : ssh, sftp, scp, ssh-agent, ssh-add et ssh-keygen sont les programmes d'OpenSSH, donc ce qui marche avec ssh sur un ordinateur marche ici, ~/.ssh/config compris.
+rassh est un client SSH construit autour du vrai OpenSSH 10.6p1 et de LibreSSL 4.4.0. Pas de réimplémentation de SSH : ssh, sftp, scp, ssh-agent, ssh-add et ssh-keygen sont les programmes d'OpenSSH, donc ce qui marche avec ssh sur un ordinateur marche ici, ~/.ssh/config compris.
 
 TRANSFERTS AVEC LE STOCKAGE DU TÉLÉPHONE
 • sftp et scp travaillent directement dans les dossiers du téléphone : Download, DCIM, Documents ou tout autre
