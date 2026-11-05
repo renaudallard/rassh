@@ -1,0 +1,4 @@
+- OpenSSH updated to 10.6p2
+- Host certificates signed by an ML-DSA CA are accepted without extra options
+- Ctrl-C now cancels the ~C command line
+- No more CPU spin with ChannelTimeout
