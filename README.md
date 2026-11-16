@@ -257,7 +257,10 @@ keys are encrypted and unlocked with it.
 
 Download `rassh-v<version>.apk` from the
 [latest release](https://github.com/renaudallard/rassh/releases/latest)
-and install it. It needs Android 13 or newer on an `arm64-v8a` device.
+and install it, or get it from
+[F-Droid](https://f-droid.org/packages/it.allard.rassh/), which ships the
+same APK with the same signature, so either one can update an install
+from the other. It needs Android 13 or newer on an `arm64-v8a` device.
 
 | Permission | Why |
 | --- | --- |
