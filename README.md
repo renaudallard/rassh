@@ -507,6 +507,11 @@ another machine than the build and what it ran, signs the APK with
 them as the `rassh-release` and `rassh-bundle` artifacts. Those of
 forks, other branches and pull requests stay unsigned.
 
+Every day `.github/workflows/upstream.yml` compares the OpenSSH and
+LibreSSL versions in `native/build.sh` with the latest releases on
+cdn.openbsd.org and opens an issue, such as "Update OpenSSH to 10.7p1",
+when one is newer. Each release gets one issue, also once it is closed.
+
 ## Releases
 
 Bumping `versionName` in `app/build.gradle.kts` and pushing to `main`

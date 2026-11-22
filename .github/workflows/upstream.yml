@@ -1,0 +1,65 @@
+name: upstream
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    if: github.repository == 'renaudallard/rassh'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Opens one issue per new release, never again once it is closed.
+      - name: Compare with the latest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eu
+
+          # latest url name pattern: newest release tarball, rc excluded
+          latest() {
+              curl -fsS --retry 3 "$1/" |
+                  grep -oE "$2-$3\.tar\.gz" |
+                  sed -e "s/^$2-//" -e 's/\.tar\.gz$//' |
+                  sort -uV | tail -n 1
+          }
+
+          # check name current latest url
+          check() {
+              if [ -z "$3" ]; then
+                  echo "$1: no release found at $4" >&2
+                  exit 1
+              fi
+              echo "$1: $2 in native/build.sh, latest $3"
+              newest=$(printf '%s\n%s\n' "$2" "$3" | sort -V | tail -n 1)
+              [ "$newest" = "$2" ] && return 0
+              title="Update $1 to $3"
+              found=$(gh issue list --state all --limit 100 \
+                  --search "\"$title\" in:title" --json title \
+                  --jq ".[] | select(.title == \"$title\") | .title")
+              if [ -n "$found" ]; then
+                  echo "$1: issue already opened"
+                  return 0
+              fi
+              gh issue create --title "$title" --body \
+                  "native/build.sh builds $1 $2, $3 is out at $4/."
+          }
+
+          ver() { sed -n "s/^$1=//p" native/build.sh; }
+
+          url=https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable
+          check OpenSSH "$(ver OPENSSH_VERSION)" \
+              "$(latest $url openssh '[0-9.]+p[0-9]+')" $url
+          url=https://cdn.openbsd.org/pub/OpenBSD/LibreSSL
+          check LibreSSL "$(ver LIBRESSL_VERSION)" \
+              "$(latest $url libressl '[0-9.]+')" $url
