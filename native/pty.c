@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <jni.h>
@@ -83,12 +84,37 @@ fail:
 static void
 close_fds(int from, int maxfd)
 {
-	int	fd;
+	struct dirent64	*d;
+	long		 buf[512];
+	const char	*p;
+	long		 n, off;
+	int		 dir, fd;
 
 #ifdef __NR_close_range
 	if (syscall(__NR_close_range, from, ~0U, 0) == 0)
 		return;
 #endif
+	/*
+	 * Before Linux 5.9, the open descriptors only, as closefrom() in
+	 * OpenSSH finds them, not one close() for each possible one. Closing
+	 * them while reading is safe, the directory lists them in order.
+	 */
+	if ((dir = open("/proc/self/fd", O_RDONLY | O_DIRECTORY | O_CLOEXEC)) != -1) {
+		while ((n = syscall(__NR_getdents64, dir, buf, sizeof(buf))) > 0) {
+			for (off = 0; off < n; off += d->d_reclen) {
+				d = (struct dirent64 *)((char *)buf + off);
+				fd = 0;
+				for (p = d->d_name; *p >= '0' && *p <= '9' && fd <= maxfd; p++)
+					fd = fd * 10 + (*p - '0');
+				/* Not . and .., nor the directory itself. */
+				if (p != d->d_name && *p == '\0' && fd >= from && fd != dir)
+					(void)close(fd);
+			}
+		}
+		(void)close(dir);
+		if (n == 0)
+			return;
+	}
 	for (fd = from; fd < maxfd; fd++)
 		(void)close(fd);
 }
