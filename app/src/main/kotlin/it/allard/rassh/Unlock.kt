@@ -15,6 +15,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.security.GeneralSecurityException
 import java.security.ProviderException
+import javax.crypto.Cipher
 
 /* The longest keys stay in the agent once loaded, in seconds. */
 private const val KEY_LIFETIME = 60
@@ -24,7 +25,8 @@ private const val KEY_LIFETIME = 60
  * afterwards. failed is called when the user cancels or it fails,
  * dismissed when the prompt is closed otherwise, with Back or by the
  * system when the app is left or the screen turns off, invalidated once
- * the dialog saying the vault can no longer be read is closed.
+ * the dialog saying the vault can no longer be read is closed. ready is
+ * a cipher from vault.cipher() just made, else one is made here.
  */
 fun Activity.withVaultKey(
     vault: Vault,
@@ -32,9 +34,10 @@ fun Activity.withVaultKey(
     failed: () -> Unit = {},
     dismissed: () -> Unit = failed,
     invalidated: () -> Unit = failed,
+    ready: Cipher? = null,
     use: (ByteArray) -> Unit,
 ) {
-    val cipher = try {
+    val cipher = ready ?: try {
         vault.cipher()
     } catch (_: KeyPermanentlyInvalidatedException) {
         /* Once read: a connection would otherwise open over the dialog without keys. */
@@ -105,20 +108,23 @@ fun Activity.withVaultKey(
 
 /*
  * Call then, unless the vault key was invalidated, which is told first,
- * failed called once that is closed. Other errors are left to
- * withVaultKey().
+ * failed called once that is closed. then gets the cipher made to find
+ * out, for withVaultKey(), null on other errors, which are left to it.
  */
-fun Activity.unlessInvalidated(vault: Vault, failed: () -> Unit, then: () -> Unit) {
-    try {
+fun Activity.unlessInvalidated(vault: Vault, failed: () -> Unit, then: (Cipher?) -> Unit) {
+    val cipher = try {
         vault.cipher()
     } catch (_: KeyPermanentlyInvalidatedException) {
         vaultInvalidated(vault, failed)
         return
     } catch (_: GeneralSecurityException) {
+        null
     } catch (_: IOException) {
+        null
     } catch (_: ProviderException) {
+        null
     }
-    then()
+    then(cipher)
 }
 
 /* closed is called once the dialog is gone. */

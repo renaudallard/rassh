@@ -36,6 +36,7 @@ import it.allard.rassh.config.SshConfig
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.time.LocalDate
+import javax.crypto.Cipher
 import kotlin.concurrent.thread
 import kotlin.math.abs
 
@@ -444,12 +445,18 @@ class MainActivity : Activity(), SessionService.Listener {
             start(service, l, l.path, l.argv, emptyList())
         else
             /* Keys lost, there are none to protect from strays. */
-            unlessInvalidated(vault, withoutKeys) { withoutStrays { unlockAndStart(service, names, l, withoutKeys) } }
+            unlessInvalidated(vault, withoutKeys) { cipher ->
+                /* Not kept over the strays dialog, the Keystore may drop an operation left waiting. */
+                var asked = false
+                withoutStrays { unlockAndStart(service, names, l, withoutKeys, cipher.takeUnless { asked }) }
+                asked = true
+            }
     }
 
-    private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch, withoutKeys: () -> Unit) {
+    private fun unlockAndStart(service: SessionService, names: List<String>, l: Launch, withoutKeys: () -> Unit,
+        cipher: Cipher?) {
         /* Cancel or an error connects without keys, a prompt closed with Back or by leaving the app starts nothing. */
-        withVaultKey(vault, getString(R.string.unlock_reason), withoutKeys, {}) { key ->
+        withVaultKey(vault, getString(R.string.unlock_reason), withoutKeys, {}, ready = cipher) { key ->
             /*
              * The prompt outlives a screen recreated meanwhile, as by a
              * theme change, whose service may have gone with it.
