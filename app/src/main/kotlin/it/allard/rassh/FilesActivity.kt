@@ -218,12 +218,14 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         }) { start ->
             home = start
             /* Uploads still go there when it cannot be listed, a drop folder for one. */
-            if (cwd == null) {
+            val first = cwd == null
+            if (first) {
                 cwd = start
                 pathView.text = shownName(start)
             }
             showTerminal(false)
-            load(cwd ?: start)
+            /* The server just said where it starts, not asked again. */
+            load(cwd ?: start, canonical = first)
             takePending()
             offerResume()
         }
@@ -296,14 +298,17 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val key = entry.name.lowercase()
     }
 
-    /* up for the parent folder, entered even when it cannot be listed, Back must not get stuck below it. */
-    private fun load(path: String, up: Boolean = false) {
+    /*
+     * up for the parent folder, entered even when it cannot be listed, Back
+     * must not get stuck below it. canonical when path is what REALPATH gave.
+     */
+    private fun load(path: String, up: Boolean = false, canonical: Boolean = false) {
         val c = client() ?: return
         val hidden = prefs.getBoolean(PREF_HIDDEN, false)
         val sort = prefs.getInt(PREF_SORT, SORT_NAME)
         /* The rows are made on the worker too, a large folder would hold the screen. */
         run({
-            val dir = c.realpath(path)
+            val dir = if (canonical) path else c.realpath(path)
             /* Made for each listing, a format keeps the time zone it was made in. */
             val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
             val found = c.list(dir).map { Listed(it, label(it), describe(it.attrs, date)) }
