@@ -1,0 +1,7 @@
+- Terminal output up to 3 times faster, and the history takes about half the memory
+- Large folders list much faster over slow links, and every folder opens a round trip sooner
+- Small file transfers take fewer round trips, large ones less CPU
+- Select all in a large folder is quicker
+- Sessions in the background no longer redraw, saving battery
+- The host list loads faster with a large config
+- Many smaller speedups
