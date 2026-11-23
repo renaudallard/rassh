@@ -88,7 +88,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private class Reply(val type: Int, val body: Reader)
 
     init {
-        output.write(Writer(FXP_INIT).u32(VERSION).packet())
+        Writer(FXP_INIT).u32(VERSION).writeTo(output)
         output.flush()
         val r = readPacket()
         if (r.type != FXP_VERSION) throw IOException("not an SFTP server")
@@ -324,7 +324,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             while (true) {
                 val n = input.readNBytes(buf, 0, CHUNK)
                 if (n <= 0) break
-                pending.addLast(send(Writer(FXP_WRITE).bytes(handle).u64(offset).bytes(buf, n)))
+                pending.addLast(send(Writer(FXP_WRITE).bytes(handle).u64(offset).data(buf, n)))
                 offset += n
                 if (pending.size >= MAX_REQUESTS) ok(reply(pending.removeFirst()))
                 if (!progress(offset)) throw SftpCancelledException()
@@ -366,7 +366,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         w.id(id)
         waiting.add(id)
         try {
-            output.write(w.packet())
+            w.writeTo(output)
             output.flush()
         } catch (e: IOException) {
             broken = e
@@ -452,6 +452,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         private val buf = ByteArrayOutputStream()
         private val out = DataOutputStream(buf)
         private var id: Int? = null
+        private var data: ByteArray? = null
+        private var dataLength = 0
 
         fun id(id: Int) {
             this.id = id
@@ -472,17 +474,24 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             out.write(b, 0, n)
         }
 
+        /* The last field, as bytes(), not copied: written from b by writeTo(), which must come first. */
+        fun data(b: ByteArray, n: Int) = apply {
+            data = b
+            dataLength = n
+        }
+
         /* INIT alone has no request id. */
-        fun packet(): ByteArray {
-            val body = buf.toByteArray()
+        fun writeTo(o: OutputStream) {
             val head = if (id == null) 1 else 5
-            val p = ByteArrayOutputStream(4 + head + body.size)
-            val d = DataOutputStream(p)
-            d.writeInt(head + body.size)
+            val d = DataOutputStream(o)
+            d.writeInt(head + buf.size() + (data?.let { 4 + dataLength } ?: 0))
             d.writeByte(type)
             id?.let { d.writeInt(it) }
-            d.write(body)
-            return p.toByteArray()
+            buf.writeTo(o)
+            data?.let {
+                d.writeInt(dataLength)
+                o.write(it, 0, dataLength)
+            }
         }
     }
 
