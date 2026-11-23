@@ -275,7 +275,10 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
                 val row = t.row(r - scrollOffset)
                 val n = minOf(row.columns, columns)
                 row.text.copyInto(shownText, r * columns, 0, n)
-                row.style.copyInto(shownStyle, r * columns, 0, n)
+                /* A history row may keep fewer styles than cells, the others are the default. */
+                val styled = minOf(n, row.style.size)
+                row.style.copyInto(shownStyle, r * columns, 0, styled)
+                shownStyle.fill(TextStyle.NORMAL, r * columns + styled, r * columns + n)
                 shownLength[r] = n
             }
             val cursor = scrollOffset == 0 && t.cursorVisible && s.isRunning

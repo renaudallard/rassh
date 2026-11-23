@@ -42,10 +42,19 @@ class TerminalRow private constructor(text: IntArray, style: LongArray) {
     /*
      * A copy of the first end cells, those of used(): a row going into the
      * history keeps memory for what it shows only. Readers take columns as
-     * the width of the row, not of the screen.
+     * the width of the row, not of the screen, and the cells past the end
+     * of style as in the default one: a row all in it shares an empty one.
      */
-    fun trimmed(end: Int): TerminalRow =
-        TerminalRow(text.copyOf(end), style.copyOf(end)).also { it.wrapped = wrapped }
+    fun trimmed(end: Int): TerminalRow {
+        var plain = true
+        for (x in 0 until end) {
+            if (style[x] != TextStyle.NORMAL) {
+                plain = false
+                break
+            }
+        }
+        return TerminalRow(text.copyOf(end), if (plain) NO_STYLE else style.copyOf(end)).also { it.wrapped = wrapped }
+    }
 
     /**
      * Text of the cells in [from, to). With trim, trailing blanks are
@@ -74,5 +83,6 @@ class TerminalRow private constructor(text: IntArray, style: LongArray) {
 
     companion object {
         const val WIDE_TAIL = -1
+        private val NO_STYLE = LongArray(0)
     }
 }
