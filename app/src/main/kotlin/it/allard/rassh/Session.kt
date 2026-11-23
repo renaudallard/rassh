@@ -3,6 +3,7 @@ package it.allard.rassh
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
+import android.view.Choreographer
 import it.allard.rassh.sftp.SftpClient
 import it.allard.rassh.terminal.Terminal
 import it.allard.rassh.terminal.TerminalClient
@@ -52,6 +53,8 @@ class Session(
     }
 
     val terminal = Terminal(columns, rows, this)
+    /* A screen showing the session draws it when it takes it. */
+    @Volatile
     var listener: Listener? = null
     var title = name
         private set
@@ -276,11 +279,15 @@ class Session(
             false
         }
 
+    /* Once a frame, however many reads come before it, and not for a session nobody shows. */
     private fun update() {
+        if (listener == null) return
         if (updatePending.compareAndSet(false, true)) {
             handler.post {
-                updatePending.set(false)
-                listener?.onUpdate()
+                Choreographer.getInstance().postFrameCallback {
+                    updatePending.set(false)
+                    listener?.onUpdate()
+                }
             }
         }
     }
