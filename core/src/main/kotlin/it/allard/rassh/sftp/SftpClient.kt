@@ -135,7 +135,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 if (count < 1) throw IOException("empty reply")
                 repeat(count) {
                     val name = r.body.name()
-                    r.body.bytes()
+                    /* The ls -l line, not used. */
+                    r.body.skip()
                     val attrs = r.body.attrs()
                     if (name != "." && name != "..") entries.add(SftpEntry(name, attrs))
                     chars += name.length
@@ -520,6 +521,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
             return n
         }
 
+        fun skip() {
+            val n = stringLength()
+            pos += n
+        }
+
         fun writeTo(out: OutputStream, n: Int) {
             out.write(b, pos, n)
             pos += n
@@ -641,6 +647,9 @@ internal fun decodeName(b: ByteArray): String {
         val n = sequence(b, i)
         if (n == 0) {
             sb.append((ESCAPE + (b[i].toInt() and 0xff)).toChar())
+            i++
+        } else if (n == 1) {
+            sb.append(b[i].toInt().toChar())
             i++
         } else {
             sb.append(String(b, i, n, Charsets.UTF_8))
