@@ -151,25 +151,18 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         val entries = mutableListOf<SftpEntry>()
         var chars = 0L
         val pending = ArrayDeque<Int>()
-        var eof = false
         try {
             while (true) {
-                /*
-                 * A few in flight: sftp-server answers a hundred names at most
-                 * each time. Sent again once all are answered, one sent after
-                 * each reply would make a small folder wait for it.
-                 */
-                if (!eof && pending.isEmpty()) repeat(LIST_REQUESTS) { pending.addLast(send(Writer(FXP_READDIR).bytes(handle))) }
-                val r = reply(pending.removeFirstOrNull() ?: break)
-                /* Past the end, the replies to the requests still due are dropped, as in copy(). */
-                if (eof) continue
+                /* A few in flight: sftp-server answers a hundred names at most each time. */
+                while (pending.size < LIST_REQUESTS) pending.addLast(send(Writer(FXP_READDIR).bytes(handle)))
+                val r = reply(pending.removeFirst())
                 if (r.type == FXP_STATUS) {
                     val e = statusOf(r)
-                    if (e.status == SftpException.EOF) {
-                        eof = true
-                        continue
-                    }
-                    throw e
+                    if (e.status != SftpException.EOF) throw e
+                    /* Past the end, the replies to the requests still due are not waited for. */
+                    dropped.addAll(pending)
+                    pending.clear()
+                    break
                 }
                 expect(r, FXP_NAME)
                 /* The end comes as a status, nothing more would ask the same again forever. */
