@@ -33,13 +33,17 @@ class ScreenBuffer(columns: Int, rows: Int, private val maxHistory: Int) {
             val gone = lines[top]
             System.arraycopy(lines, top + 1, lines, top, bottom - top - 1)
             /* A copy goes, the row itself comes back blank at the bottom. */
+            var end = columns
             if (keep && maxHistory > 0) {
-                history.addLast(gone.trimmed())
+                end = gone.used()
+                history.addLast(gone.trimmed(end))
                 historyAdded++
                 if (history.size > maxHistory)
                     history.removeFirst()
+                /* The cells after the used ones are blank in the default style already. */
+                if (style != TextStyle.NORMAL) end = columns
             }
-            gone.clear(0, columns, style)
+            gone.clear(0, end, style)
             gone.wrapped = false
             lines[bottom - 1] = gone
         }

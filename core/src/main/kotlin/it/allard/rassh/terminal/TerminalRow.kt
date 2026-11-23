@@ -32,16 +32,20 @@ class TerminalRow private constructor(text: IntArray, style: LongArray) {
         wrapped = false
     }
 
-    /*
-     * A copy without the cells blank in the default style at the end, a
-     * row going into the history keeps memory for what it shows only.
-     * Readers take columns as the width of the row, not of the screen.
-     */
-    fun trimmed(): TerminalRow {
+    /* The cells up to the last one not blank in the default style. */
+    fun used(): Int {
         var end = text.size
         while (end > 0 && text[end - 1] == 0 && style[end - 1] == TextStyle.NORMAL) end--
-        return TerminalRow(text.copyOf(end), style.copyOf(end)).also { it.wrapped = wrapped }
+        return end
     }
+
+    /*
+     * A copy of the first end cells, those of used(): a row going into the
+     * history keeps memory for what it shows only. Readers take columns as
+     * the width of the row, not of the screen.
+     */
+    fun trimmed(end: Int): TerminalRow =
+        TerminalRow(text.copyOf(end), style.copyOf(end)).also { it.wrapped = wrapped }
 
     /**
      * Text of the cells in [from, to). With trim, trailing blanks are
