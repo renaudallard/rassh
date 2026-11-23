@@ -38,8 +38,11 @@ class Vault(private val paths: Paths) {
     val exists: Boolean
         get() = file.isFile
 
+    /* Read at each return to the main screen, the keys themselves are not decoded. */
     @Throws(IOException::class)
-    fun names(): List<String> = load()?.second?.map { it.name } ?: emptyList()
+    fun names(): List<String> =
+        parse { o -> o.getJSONArray("entries").let { a -> List(a.length()) { a.getJSONObject(it).getString("name") } } }
+            ?: emptyList()
 
     /**
      * Create the Keystore key. With invalidate, enrolling a new
@@ -216,18 +219,24 @@ class Vault(private val paths: Paths) {
 
     /* The sealed vault key as iv and ciphertext, and the entries. */
     @Throws(IOException::class)
-    private fun load(): Pair<Pair<ByteArray, ByteArray>, List<Entry>>? {
+    private fun load(): Pair<Pair<ByteArray, ByteArray>, List<Entry>>? = parse { o ->
+        val entries = mutableListOf<Entry>()
+        val a = o.getJSONArray("entries")
+        for (i in 0 until a.length()) {
+            val e = a.getJSONObject(i)
+            entries.add(Entry(e.getString("name"), decode(e.getString("iv")), decode(e.getString("data"))))
+        }
+        Pair(Pair(decode(o.getString("iv")), decode(o.getString("key"))), entries)
+    }
+
+    /* What read takes from the vault file, null without one. */
+    @Throws(IOException::class)
+    private fun <T> parse(read: (JSONObject) -> T): T? {
         if (!file.isFile) return null
         try {
             val o = JSONObject(Paths.bytesOf(file, Paths.MAX_FILE).toString(Charsets.UTF_8))
             if (o.getInt("version") != VERSION) throw IOException("unknown vault version")
-            val entries = mutableListOf<Entry>()
-            val a = o.getJSONArray("entries")
-            for (i in 0 until a.length()) {
-                val e = a.getJSONObject(i)
-                entries.add(Entry(e.getString("name"), decode(e.getString("iv")), decode(e.getString("data"))))
-            }
-            return Pair(Pair(decode(o.getString("iv")), decode(o.getString("key"))), entries)
+            return read(o)
         } catch (e: JSONException) {
             throw IOException("corrupt vault", e)
         } catch (e: IllegalArgumentException) {
