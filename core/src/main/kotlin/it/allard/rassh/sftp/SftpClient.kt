@@ -73,6 +73,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     /* Replies read while waiting for another one, by request id. */
     private val early = HashMap<Int, Reply>()
 
+    /* Requests whose reply nobody waits for, dropped when it comes, see closeHandle(). */
+    private val dropped = HashSet<Int>()
+
     /* What broke the connection, given again to whatever tries it after. */
     @Volatile
     private var broken: IOException? = null
@@ -396,9 +399,13 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         for (id in ids) reply(id)
     }
 
-    /* Its status is not looked at: closing after reading, or after an error, a refusal changes nothing. */
+    /*
+     * Its status is not looked at: closing after reading, or after an
+     * error, a refusal changes nothing. So its reply is not waited for,
+     * the next request does not wait a round trip more.
+     */
     private fun closeHandle(handle: ByteArray) {
-        request(Writer(FXP_CLOSE).bytes(handle))
+        dropped.add(send(Writer(FXP_CLOSE).bytes(handle)))
     }
 
     private fun request(w: Writer): Reply = reply(send(w))
@@ -426,6 +433,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 val r = readPacket()
                 val got = r.body.u32()
                 if (!waiting.remove(got)) throw IOException("unexpected reply")
+                if (dropped.remove(got)) continue
                 if (got == id) return r
                 early[got] = r
             }
