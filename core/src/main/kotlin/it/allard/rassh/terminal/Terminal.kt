@@ -103,8 +103,18 @@ class Terminal(
     fun row(y: Int): TerminalRow = screen.row(y)
 
     fun feed(data: ByteArray, offset: Int = 0, length: Int = data.size) {
-        for (i in offset until offset + length) {
-            val b = data[i].toInt() and 0xff
+        val end = offset + length
+        var i = offset
+        while (i < end) {
+            /* Plain ASCII text, most of what programs write, a row at a time. */
+            if (utf8Remaining == 0 && state == GROUND && isPrintable(data[i]) && !insertMode && !graphics) {
+                var j = i + 1
+                while (j < end && isPrintable(data[j])) j++
+                printAscii(data, i, j)
+                i = j
+                continue
+            }
+            val b = data[i++].toInt() and 0xff
             if (utf8Remaining > 0) {
                 if (b and 0xc0 == 0x80) {
                     utf8Code = (utf8Code shl 6) or (b and 0x3f)
@@ -231,6 +241,29 @@ class Terminal(
         return sb.toString()
     }
 
+    private fun isPrintable(b: Byte): Boolean = b in 0x20..0x7e
+
+    /* As print() of each byte in [from, to), printable ASCII without line drawing or insert mode. */
+    private fun printAscii(data: ByteArray, from: Int, to: Int) {
+        var k = from
+        while (k < to) {
+            startCell(1)
+            val row = screen.row(cursorY)
+            val n = minOf(to - k, columns - cursorX)
+            splitAt(row, cursorX)
+            splitAt(row, cursorX + n)
+            val text = row.text
+            val styles = row.style
+            for (x in 0 until n) {
+                text[cursorX + x] = data[k + x].toInt()
+                styles[cursorX + x] = style
+            }
+            k += n
+            advance(n)
+        }
+        lastChar = data[to - 1].toInt()
+    }
+
     private fun startUtf8(bits: Int, remaining: Int, min: Int) {
         utf8Code = bits
         utf8Remaining = remaining
@@ -312,8 +345,11 @@ class Terminal(
         if (startCell(width)) put(c, width, 1)
     }
 
-    private fun charset(c: Int): Int =
-        if ((if (useG1) g1Graphics else g0Graphics) && c in 0x5f..0x7e) DEC_GRAPHICS[c - 0x5f].code else c
+    private fun charset(c: Int): Int = if (graphics && c in 0x5f..0x7e) DEC_GRAPHICS[c - 0x5f].code else c
+
+    /* The DEC line drawing set is the one in use. */
+    private val graphics: Boolean
+        get() = if (useG1) g1Graphics else g0Graphics
 
     /* Wrap first when needed, false when a character of width is dropped. */
     private fun startCell(width: Int): Boolean {
@@ -347,6 +383,11 @@ class Terminal(
             }
             x += width
         }
+        advance(n)
+    }
+
+    /* Past n cells just written, the last column waiting for a wrap. */
+    private fun advance(n: Int) {
         cursorX += n
         if (cursorX >= columns) {
             cursorX = columns - 1
