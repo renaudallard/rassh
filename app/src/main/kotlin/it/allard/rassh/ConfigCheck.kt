@@ -1,6 +1,8 @@
 package it.allard.rassh
 
 import android.content.Context
+import android.system.ErrnoException
+import android.system.Os
 import it.allard.rassh.config.SshConfig
 import it.allard.rassh.config.lowerAscii
 import java.io.File
@@ -27,7 +29,13 @@ fun Context.refusedMessage(refusal: Pair<String, String>): String {
 private fun <T> withConfigFile(paths: Paths, text: String, use: (File) -> T): T {
     val file = File.createTempFile("config", ".check", paths.tmp)
     try {
-        paths.writePrivate(file, text)
+        /* Read once by ssh and deleted, it need not reach the disk. */
+        try {
+            Os.chmod(file.path, "600".toInt(8))
+        } catch (e: ErrnoException) {
+            throw e.rethrowAsIOException()
+        }
+        file.writeBytes(text.toByteArray())
         return use(file)
     } finally {
         file.delete()
