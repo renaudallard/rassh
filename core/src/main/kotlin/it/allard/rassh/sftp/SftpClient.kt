@@ -121,12 +121,20 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         val handle = handleOf(request(Writer(FXP_OPENDIR).string(path)))
         val entries = mutableListOf<SftpEntry>()
         var chars = 0L
+        val pending = ArrayDeque<Int>()
+        var eof = false
         try {
             while (true) {
-                val r = request(Writer(FXP_READDIR).bytes(handle))
+                /* A few in flight: sftp-server answers a hundred names at most each time. */
+                while (!eof && pending.size < LIST_REQUESTS) pending.addLast(send(Writer(FXP_READDIR).bytes(handle)))
+                val r = reply(pending.removeFirstOrNull() ?: break)
                 if (r.type == FXP_STATUS) {
                     val e = statusOf(r)
-                    if (e.status == SftpException.EOF) break
+                    /* Past the end, the requests still due may be refused otherwise. */
+                    if (e.status == SftpException.EOF || eof) {
+                        eof = true
+                        continue
+                    }
                     throw e
                 }
                 expect(r, FXP_NAME)
@@ -145,7 +153,10 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 if (entries.size > MAX_ENTRIES || chars > MAX_CHARS) throw IOException("too many files")
             }
         } finally {
-            if (!isBroken) closeHandle(handle)
+            if (!isBroken) {
+                drain(pending)
+                closeHandle(handle)
+            }
         }
         return entries
     }
@@ -581,6 +592,8 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
          * of ssh, so that a link with a long round trip stays busy.
          */
         private const val MAX_REQUESTS = 64
+        /* READDIR requests in flight. */
+        private const val LIST_REQUESTS = 8
 
         /** The most bytes in flight, those a transfer cut short may have lost. */
         const val IN_FLIGHT = MAX_REQUESTS.toLong() * CHUNK
