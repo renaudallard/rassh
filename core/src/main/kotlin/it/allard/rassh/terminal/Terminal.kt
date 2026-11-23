@@ -336,13 +336,16 @@ class Terminal(
         if (insertMode) insertCells(row, n)
         splitAt(row, cursorX)
         splitAt(row, cursorX + n)
-        for (x in cursorX until cursorX + n step width) {
+        /* Not a range with step, which allocates for each character. */
+        var x = cursorX
+        while (x < cursorX + n) {
             row.text[x] = c
             row.style[x] = style
             if (width == 2) {
                 row.text[x + 1] = WIDE_TAIL
                 row.style[x + 1] = style
             }
+            x += width
         }
         cursorX += n
         if (cursorX >= columns) {
