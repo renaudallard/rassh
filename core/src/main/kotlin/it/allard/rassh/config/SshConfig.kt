@@ -1,10 +1,22 @@
 package it.allard.rassh.config
 
 /** s in lower case as ssh lowercases keywords and host names, A to Z only, see lowercase() in misc.c. */
-fun lowerAscii(s: String): String = s.map { if (it in 'A'..'Z') it.lowercaseChar() else it }.joinToString("")
+fun lowerAscii(s: String): String {
+    if (s.none { it in 'A'..'Z' }) return s
+    val c = s.toCharArray()
+    for (i in c.indices) c[i] = lowerAscii(c[i])
+    return String(c)
+}
+
+private fun lowerAscii(c: Char): Char = if (c in 'A'..'Z') c + ('a' - 'A') else c
 
 /** Whether ssh takes a for b, comparing as strcasecmp() does in the C locale: A to Z only. */
-fun equalsAscii(a: String?, b: String): Boolean = a != null && lowerAscii(a) == lowerAscii(b)
+fun equalsAscii(a: String?, b: String): Boolean {
+    if (a == null || a.length != b.length) return false
+    for (i in 0 until a.length)
+        if (lowerAscii(a[i]) != lowerAscii(b[i])) return false
+    return true
+}
 
 /* IdentityFile2 is an obsolete name ssh still reads as IdentityFile. */
 private fun isIdentityFile(key: String?): Boolean = equalsAscii(key, "IdentityFile") || equalsAscii(key, "IdentityFile2")
