@@ -359,6 +359,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     private fun write(input: InputStream, handle: ByteArray, progress: (Long) -> Boolean, start: Long) {
         val pending = ArrayDeque<Int>()
         var failed = true
+        var closing = false
         try {
             val buf = ByteArray(CHUNK)
             var offset = 0L
@@ -375,13 +376,20 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 if (pending.size >= MAX_REQUESTS) ok(reply(pending.removeFirst()))
                 if (!progress(offset)) throw SftpCancelledException()
             }
+            /*
+             * Closing reports errors of the last writes, they matter then.
+             * Sent right behind them, it is answered after them: requests on
+             * one handle act as if made one at a time, the write errors still
+             * come first.
+             */
+            pending.addLast(send(Writer(FXP_CLOSE).bytes(handle)))
+            closing = true
             while (pending.isNotEmpty()) ok(reply(pending.removeFirst()))
             failed = false
         } finally {
             if (!isBroken) {
                 drain(pending)
-                /* Closing reports errors of the last writes, they matter then. */
-                if (failed) closeHandle(handle) else ok(request(Writer(FXP_CLOSE).bytes(handle)))
+                if (failed && !closing) closeHandle(handle)
             }
         }
     }
