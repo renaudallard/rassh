@@ -291,7 +291,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     /* An entry listed, with the lines of its row. */
-    private class Listed(val entry: SftpEntry, val label: String, val about: String)
+    private class Listed(val entry: SftpEntry, val label: String, val about: String) {
+        /* Made once, sorting a large folder would otherwise lowercase each name many times. */
+        val key = entry.name.lowercase()
+    }
 
     /* up for the parent folder, entered even when it cannot be listed, Back must not get stuck below it. */
     private fun load(path: String, up: Boolean = false) {
@@ -334,7 +337,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
      * by time, newest first. What the server does not tell comes last.
      */
     private fun arrange(found: List<Listed>, hidden: Boolean, sort: Int): List<Listed> {
-        val byName = compareBy<Listed> { it.entry.name.lowercase() }
+        val byName = compareBy<Listed> { it.key }
         val order = when (sort) {
             SORT_SIZE -> compareByDescending<Listed> { if (it.entry.attrs.isDirectory) -1L else it.entry.attrs.size ?: -1L }
                 .then(byName)
