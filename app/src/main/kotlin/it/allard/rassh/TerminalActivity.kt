@@ -23,6 +23,8 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
     private var wantedOpened = -1L
     /* When another session took the place of one gone, see closeSession(). */
     private var replacedAt = 0L
+    /* Out of sight, the session is not listened to: what it prints would still be drawn. */
+    private var started = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +56,12 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
         binding.service?.let { attach(it) }
     }
 
-    /* Another terminal screen may have taken the listener of this session. */
+    override fun onStart() {
+        super.onStart()
+        started = true
+    }
+
+    /* Another terminal screen may have taken the listener of this session, or it ended unseen. */
     override fun onResume() {
         super.onResume()
         session?.let {
@@ -62,7 +69,14 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
             actionBar?.title = label(it)
             terminal.refit()
             terminal.invalidate()
+            if (!it.isRunning) offerNewHostKey(Paths(this), it)
         }
+    }
+
+    override fun onStop() {
+        started = false
+        releaseSession()
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -86,7 +100,7 @@ class TerminalActivity : Activity(), Session.Listener, SessionService.Listener {
             finish()
             return
         }
-        s.listener = this
+        if (started) s.listener = this
         wanted = s.id
         wantedOpened = s.opened
         actionBar?.title = label(s)

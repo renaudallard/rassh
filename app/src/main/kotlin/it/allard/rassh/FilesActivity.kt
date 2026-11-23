@@ -54,6 +54,8 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     private val adapter by lazy { TwoLineAdapter(this) }
     private val worker = Executors.newSingleThreadExecutor()
     private var session: Session? = null
+    /* Between onStart() and onStop(), see onStop(). */
+    private var started = false
     /* The screen is going away, read by transfers, see transfer(). */
     @Volatile
     private var leaving = false
@@ -137,6 +139,11 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         outState.putString(STATE_UPLOAD, uploading)
     }
 
+    override fun onStart() {
+        super.onStart()
+        started = true
+    }
+
     /* The terminal screen may have taken the session on the way. */
     override fun onResume() {
         super.onResume()
@@ -145,6 +152,13 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             terminal.refit()
             terminal.invalidate()
         }
+    }
+
+    /* Out of sight, the session is not listened to: what it prints would still be drawn. */
+    override fun onStop() {
+        started = false
+        session?.let { if (it.listener === this) it.listener = null }
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -171,7 +185,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             return
         }
         session = s
-        s.listener = this
+        if (started) s.listener = this
         terminal.session = s
         actionBar?.title = s.name
         /* ssh may have given up before this screen listened, sessionsChanged() then never came. */
