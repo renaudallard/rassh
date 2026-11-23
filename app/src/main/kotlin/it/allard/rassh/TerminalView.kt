@@ -330,9 +330,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val y = top + baseline
         var start = from
         var count = 0
-        for (i in from until to) {
+        /* Blanks at the ends of a run are not laid out, they show nothing but a line through or under them. */
+        val lined = flags and (TextStyle.UNDERLINE or TextStyle.STRIKETHROUGH) != 0
+        var end = to
+        if (!lined) while (end > from && isBlank(shownText[base + end - 1])) end--
+        for (i in from until end) {
             val c = shownText[base + i]
             if (c == 0 || c in 0x20..0x7e) {
+                if (count == 0 && !lined && isBlank(c)) continue
                 if (count == runChars.size) {
                     canvas.drawText(runChars, 0, count, start * cellWidth, y, paint)
                     count = 0
@@ -351,6 +356,8 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         }
         if (count > 0) canvas.drawText(runChars, 0, count, start * cellWidth, y, paint)
     }
+
+    private fun isBlank(c: Int): Boolean = c == 0 || c == 0x20
 
     /* On the row of n cells from base. */
     private fun drawCursor(canvas: Canvas, base: Int, n: Int, cursorX: Int, y: Int) {
