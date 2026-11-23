@@ -154,10 +154,11 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 /* A few in flight: sftp-server answers a hundred names at most each time. */
                 while (!eof && pending.size < LIST_REQUESTS) pending.addLast(send(Writer(FXP_READDIR).bytes(handle)))
                 val r = reply(pending.removeFirstOrNull() ?: break)
+                /* Past the end, the replies to the requests still due are dropped, as in copy(). */
+                if (eof) continue
                 if (r.type == FXP_STATUS) {
                     val e = statusOf(r)
-                    /* Past the end, the requests still due may be refused otherwise. */
-                    if (e.status == SftpException.EOF || eof) {
+                    if (e.status == SftpException.EOF) {
                         eof = true
                         continue
                     }
