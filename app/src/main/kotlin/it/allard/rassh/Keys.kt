@@ -84,16 +84,19 @@ object Keys {
      * the most the key screen takes, after the EC parameters openssl
      * writes first for one or certificates: a public key or a certificate
      * alone is not one. Only that much is read, any big file may sit in
-     * ~/.ssh.
+     * ~/.ssh, and only the start of one not in PEM form.
      */
     private fun isPrivateKey(file: File): Boolean {
         val head = try {
-            file.inputStream().use { it.readNBytes(MAX_SIZE) }
+            file.inputStream().use { input ->
+                if (!isPem(input.readNBytes(PEM.size))) return false
+                val rest = input.readNBytes(MAX_SIZE - PEM.size)
+                (PEM + rest).also { rest.fill(0) }
+            }
         } catch (_: IOException) {
             return false
         }
         try {
-            if (!isPem(head)) return false
             var start = 0
             while (start < head.size) {
                 var end = start
