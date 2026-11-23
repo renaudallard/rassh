@@ -863,7 +863,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         run({
             val names = uris.map { remoteName(it) }
             /* They would replace each other without a word. */
-            if (names.toSet().size != names.size) null else Pair(names, names.filter { exists(c, path(dir, it)) })
+            if (names.toSet().size != names.size) null else Pair(names, c.exist(names.map { path(dir, it) }).let { there -> names.filterIndexed { i, _ -> there[i] } })
         }) { found ->
             val (names, existing) = found ?: return@run toast(getString(R.string.upload_same_name))
             val shown = { list: List<String> -> list.joinToString("\n") { shownName(it) } }
@@ -891,7 +891,7 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             /* Without the length, cut before the first write or not from a regular file, only what was sent. */
             val known = if (r.length < 0) r.sent else minOf(r.length, r.sent)
             val other = cut != null && exists(c, cut) && sizeOf(c, cut)?.let { SftpClient.mayHold(it, known) } != true
-            other || r.names.drop(r.index + 1).any { exists(c, path(r.dir, it)) }
+            other || c.exist(r.names.drop(r.index + 1).map { path(r.dir, it) }).any { it }
         }) { clash ->
             /* Only the file cut short is replaced, unless agreed to. */
             val replace = if (clash) r.names.toSet() else setOfNotNull(r.names.getOrNull(r.index))

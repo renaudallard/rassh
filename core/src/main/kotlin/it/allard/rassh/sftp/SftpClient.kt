@@ -114,6 +114,32 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Throws(IOException::class)
     fun lstat(path: String): SftpAttrs = attrsOf(request(Writer(FXP_LSTAT).string(path)))
 
+    /** Whether each of paths exists, links not followed, asked about all at once. */
+    @Synchronized
+    @Throws(IOException::class)
+    fun exist(paths: List<String>): List<Boolean> {
+        val found = ArrayList<Boolean>(paths.size)
+        val pending = ArrayDeque<Int>()
+        try {
+            while (found.size < paths.size) {
+                while (found.size + pending.size < paths.size && pending.size < MAX_REQUESTS)
+                    pending.addLast(send(Writer(FXP_LSTAT).string(paths[found.size + pending.size])))
+                val r = reply(pending.removeFirst())
+                if (r.type == FXP_STATUS) {
+                    val e = statusOf(r)
+                    if (e.status != SftpException.NO_SUCH_FILE) throw e
+                    found.add(false)
+                } else {
+                    attrsOf(r)
+                    found.add(true)
+                }
+            }
+        } finally {
+            if (!isBroken) drain(pending)
+        }
+        return found
+    }
+
     /** The entries of the directory path, without "." and "..". */
     @Synchronized
     @Throws(IOException::class)

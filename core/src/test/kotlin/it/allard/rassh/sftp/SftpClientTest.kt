@@ -110,6 +110,18 @@ class SftpClientTest {
     }
 
     @Test
+    fun exist() {
+        /* More than the requests kept in flight. */
+        val paths = (0 until 150).map { "$dir/f$it" }
+        paths.filterIndexed { i, _ -> i % 3 == 0 }.forEach { File(it).writeText("") }
+        assertEquals(paths.indices.map { it % 3 == 0 }, sftp.exist(paths))
+        assertEquals(emptyList(), sftp.exist(emptyList()))
+        /* Refused here, the connection is still in step after it. */
+        assertFailsWith<IOException> { sftp.exist(listOf("$dir/f0", "$dir/a\u0000b")) }
+        assertEquals(listOf(true), sftp.exist(listOf("$dir/f0")))
+    }
+
+    @Test
     fun errors() {
         val e = assertFailsWith<SftpException> { sftp.list("$dir/missing") }
         assertEquals(SftpException.NO_SUCH_FILE, e.status)
