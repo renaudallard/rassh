@@ -67,6 +67,8 @@ class Terminal(
     private var g1Graphics = false
     private var useG1 = false
     private var lastChar = 0
+    /* The last parameter of a color, see extendedColor(). */
+    private var colorEnd = 0
 
     /* Parser state. */
     private var state = GROUND
@@ -698,20 +700,23 @@ class Terminal(
                 29 -> flags = flags and TextStyle.STRIKETHROUGH.inv()
                 in 30..37 -> fg = p - 30
                 38 -> {
-                    val (color, last) = extendedColor(i)
+                    val color = extendedColor(i)
                     if (color >= 0) fg = color
-                    i = last
+                    i = colorEnd
                 }
                 39 -> fg = TextStyle.COLOR_DEFAULT
                 in 40..47 -> bg = p - 40
                 48 -> {
-                    val (color, last) = extendedColor(i)
+                    val color = extendedColor(i)
                     if (color >= 0) bg = color
-                    i = last
+                    i = colorEnd
                 }
                 49 -> bg = TextStyle.COLOR_DEFAULT
                 /* Underline color, parsed for its arguments but not drawn. */
-                58 -> i = extendedColor(i).second
+                58 -> {
+                    extendedColor(i)
+                    i = colorEnd
+                }
                 in 90..97 -> fg = p - 90 + 8
                 in 100..107 -> bg = p - 100 + 8
             }
@@ -725,10 +730,11 @@ class Terminal(
     /**
      * Parse the color following parameter i (38 or 48), in either the
      * 5;n and 2;r;g;b forms or their colon separated variants.
-     * Returns the color, or -1, and the index of the last parameter used.
+     * Returns the color, or -1, and leaves the index of the last parameter
+     * used in colorEnd: a pair would be made for each color.
      */
-    private fun extendedColor(i: Int): Pair<Int, Int> {
-        if (i + 1 >= nparams) return Pair(-1, i)
+    private fun extendedColor(i: Int): Int {
+        if (i + 1 >= nparams) return colorUpTo(-1, i)
         if (subParam[i + 1]) {
             var j = i + 1
             while (j < nparams && subParam[j]) j++
@@ -742,16 +748,21 @@ class Terminal(
                 }
                 else -> -1
             }
-            return Pair(color, j - 1)
+            return colorUpTo(color, j - 1)
         }
         return when (params[i + 1]) {
-            5 -> if (i + 2 < nparams) Pair(indexedColor(params[i + 2]), i + 2)
-                else Pair(-1, nparams - 1)
+            5 -> if (i + 2 < nparams) colorUpTo(indexedColor(params[i + 2]), i + 2)
+                else colorUpTo(-1, nparams - 1)
             2 -> if (i + 4 < nparams)
-                Pair(TextStyle.rgb(params[i + 2], params[i + 3], params[i + 4]), i + 4)
-                else Pair(-1, nparams - 1)
-            else -> Pair(-1, i + 1)
+                colorUpTo(TextStyle.rgb(params[i + 2], params[i + 3], params[i + 4]), i + 4)
+                else colorUpTo(-1, nparams - 1)
+            else -> colorUpTo(-1, i + 1)
         }
+    }
+
+    private fun colorUpTo(color: Int, last: Int): Int {
+        colorEnd = last
+        return color
     }
 
     private fun indexedColor(n: Int): Int = if (n in 0..255) n else -1
