@@ -270,11 +270,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             scrollOffset = scrollOffset.coerceIn(0, t.historySize)
             columns = t.columns
             rows = t.rows
-            if (shownText.size < rows * columns) {
-                shownText = IntArray(rows * columns)
-                shownStyle = LongArray(rows * columns)
-            }
-            if (shownLength.size < rows) shownLength = IntArray(rows)
+            fitShown(columns, rows)
             for (r in 0 until rows) {
                 val row = t.row(r - scrollOffset)
                 val n = minOf(row.columns, columns)
@@ -293,6 +289,15 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (cursorX >= 0) drawCursor(canvas, cursorY * columns, shownLength[cursorY], cursorX, cursorY)
         if (hasSelection && !lost) drawSelection(canvas, columns, rows)
         if (lost) post { clearSelection() }
+    }
+
+    /* Room for the rows shown, made again only when the terminal grows. */
+    private fun fitShown(columns: Int, rows: Int) {
+        if (shownText.size < rows * columns) {
+            shownText = IntArray(rows * columns)
+            shownStyle = LongArray(rows * columns)
+        }
+        if (shownLength.size < rows) shownLength = IntArray(rows)
     }
 
     /* The program switched screens, the text selected is no longer shown. Called with t locked. */
