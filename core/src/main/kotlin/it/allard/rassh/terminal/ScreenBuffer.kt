@@ -32,18 +32,16 @@ class ScreenBuffer(columns: Int, rows: Int, private val maxHistory: Int) {
         for (i in 0 until minOf(n, bottom - top)) {
             val gone = lines[top]
             System.arraycopy(lines, top + 1, lines, top, bottom - top - 1)
+            /* A copy goes, the row itself comes back blank at the bottom. */
             if (keep && maxHistory > 0) {
-                gone.trimEnd()
-                history.addLast(gone)
+                history.addLast(gone.trimmed())
                 historyAdded++
                 if (history.size > maxHistory)
                     history.removeFirst()
-                lines[bottom - 1] = TerminalRow(columns, style)
-            } else {
-                gone.clear(0, columns, style)
-                gone.wrapped = false
-                lines[bottom - 1] = gone
             }
+            gone.clear(0, columns, style)
+            gone.wrapped = false
+            lines[bottom - 1] = gone
         }
     }
 

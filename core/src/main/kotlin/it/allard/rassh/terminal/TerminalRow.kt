@@ -1,10 +1,12 @@
 package it.allard.rassh.terminal
 
 /** A line of cells. A cell holds a code point, 0 when blank, or WIDE_TAIL. */
-class TerminalRow(columns: Int, style: Long) {
-    var text = IntArray(columns)
+class TerminalRow private constructor(text: IntArray, style: LongArray) {
+    constructor(columns: Int, style: Long) : this(IntArray(columns), LongArray(columns).also { it.fill(style) })
+
+    var text = text
         private set
-    var style = LongArray(columns) { style }
+    var style = style
         private set
 
     /** The line continues on the next row because of autowrap. */
@@ -31,16 +33,14 @@ class TerminalRow(columns: Int, style: Long) {
     }
 
     /*
-     * Drop the cells blank in the default style at the end, a row going
-     * into the history keeps its memory for what it shows. Readers take
-     * columns as the width of the row, not of the screen.
+     * A copy without the cells blank in the default style at the end, a
+     * row going into the history keeps memory for what it shows only.
+     * Readers take columns as the width of the row, not of the screen.
      */
-    fun trimEnd() {
+    fun trimmed(): TerminalRow {
         var end = text.size
         while (end > 0 && text[end - 1] == 0 && style[end - 1] == TextStyle.NORMAL) end--
-        if (end == text.size) return
-        text = text.copyOf(end)
-        style = style.copyOf(end)
+        return TerminalRow(text.copyOf(end), style.copyOf(end)).also { it.wrapped = wrapped }
     }
 
     /**
