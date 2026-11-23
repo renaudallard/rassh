@@ -156,6 +156,15 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     @Synchronized
     @Throws(IOException::class)
     fun listCanonical(path: String): Pair<String, List<SftpEntry>> {
+        /*
+         * sftp-server's REALPATH drops "." and ".." as text, the kernel
+         * checks each name before them for OPENDIR: the same folder only
+         * without them, see sftp_realpath(). "" is the start folder to it.
+         */
+        if (path.isEmpty() || path.split('/').any { it == "." || it == ".." }) {
+            val dir = realpath(path)
+            return Pair(dir, list(dir))
+        }
         val real = send(Writer(FXP_REALPATH).string(path))
         val open = send(Writer(FXP_OPENDIR).string(path))
         val dir = try {

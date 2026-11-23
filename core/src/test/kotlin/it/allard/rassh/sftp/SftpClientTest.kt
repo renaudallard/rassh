@@ -109,6 +109,9 @@ class SftpClientTest {
         val (path, entries) = sftp.listCanonical("$dir/sub/../sub/.")
         assertEquals(File(dir, "sub").canonicalPath, path)
         assertEquals(listOf("a"), entries.map { it.name })
+        /* REALPATH takes .. away as text, a file before it does not stop it. */
+        assertEquals(File(dir, "sub").canonicalPath, sftp.listCanonical("$dir/sub/a/../../sub").first)
+        assertEquals(listOf("a"), sftp.listCanonical("$dir/sub/a/..").second.map { it.name })
         /* Refused by REALPATH, by OPENDIR alone, or here: the connection is still in step after each. */
         val missing = assertFailsWith<SftpException> { sftp.listCanonical("$dir/missing") }
         assertEquals(SftpException.NO_SUCH_FILE, missing.status)
