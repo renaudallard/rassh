@@ -79,6 +79,14 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private var baseline = 0
     private val runChars = CharArray(256)
     private val oneChar = CharArray(2)
+    /*
+     * The rows shown, copied with the terminal locked and drawn after:
+     * laying the text out would hold the reader thread for the frame.
+     * Row r starts at r * columns, its first shownLength[r] cells only.
+     */
+    private var shownText = IntArray(0)
+    private var shownStyle = LongArray(0)
+    private var shownLength = IntArray(0)
 
     /* The default colors follow the phone theme, the palette does not. */
     private val foreground = context.themeColor(android.R.attr.textColorPrimary)
@@ -249,40 +257,60 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
             return
         }
         val t = s.terminal
-        val lost = synchronized(t) {
+        val columns: Int
+        val rows: Int
+        val cursorX: Int
+        val cursorY: Int
+        val lost: Boolean
+        synchronized(t) {
             /* Reverse video swaps the colours of the screen and of cells without their own. */
             defaultFg = if (t.reverseVideo) background else foreground
             defaultBg = if (t.reverseVideo) foreground else background
-            canvas.drawColor(defaultBg)
             followHistory(t)
             scrollOffset = scrollOffset.coerceIn(0, t.historySize)
-            for (r in 0 until t.rows)
-                drawRow(canvas, t.row(r - scrollOffset), t.columns, (r * cellHeight).toFloat())
-            if (scrollOffset == 0 && t.cursorVisible && s.isRunning)
-                drawCursor(canvas, t.row(t.cursorY), t.cursorX, t.cursorY)
-            val lost = selectionLost(t)
-            if (hasSelection && !lost) drawSelection(canvas, t.columns, t.rows)
-            lost
+            columns = t.columns
+            rows = t.rows
+            if (shownText.size < rows * columns) {
+                shownText = IntArray(rows * columns)
+                shownStyle = LongArray(rows * columns)
+            }
+            if (shownLength.size < rows) shownLength = IntArray(rows)
+            for (r in 0 until rows) {
+                val row = t.row(r - scrollOffset)
+                val n = minOf(row.columns, columns)
+                row.text.copyInto(shownText, r * columns, 0, n)
+                row.style.copyInto(shownStyle, r * columns, 0, n)
+                shownLength[r] = n
+            }
+            val cursor = scrollOffset == 0 && t.cursorVisible && s.isRunning
+            cursorX = if (cursor) t.cursorX else -1
+            cursorY = t.cursorY
+            lost = selectionLost(t)
         }
+        canvas.drawColor(defaultBg)
+        for (r in 0 until rows)
+            drawRow(canvas, r * columns, shownLength[r], (r * cellHeight).toFloat())
+        if (cursorX >= 0) drawCursor(canvas, cursorY * columns, shownLength[cursorY], cursorX, cursorY)
+        if (hasSelection && !lost) drawSelection(canvas, columns, rows)
         if (lost) post { clearSelection() }
     }
 
     /* The program switched screens, the text selected is no longer shown. Called with t locked. */
     private fun selectionLost(t: Terminal): Boolean = hasSelection && t.isAltScreen != selectionOnAlt
 
-    private fun drawRow(canvas: Canvas, row: TerminalRow, columns: Int, top: Float) {
-        val n = minOf(row.columns, columns)
+    /* The n cells of a shown row from base. */
+    private fun drawRow(canvas: Canvas, base: Int, n: Int, top: Float) {
         var x = 0
         while (x < n) {
-            val style = row.style[x]
+            val style = shownStyle[base + x]
             var end = x + 1
-            while (end < n && row.style[end] == style) end++
-            drawRun(canvas, row, x, end, style, top)
+            while (end < n && shownStyle[base + end] == style) end++
+            drawRun(canvas, base, x, end, style, top)
             x = end
         }
     }
 
-    private fun drawRun(canvas: Canvas, row: TerminalRow, from: Int, to: Int, style: Long, top: Float) {
+    private fun drawRun(canvas: Canvas, base: Int, from: Int, to: Int, style: Long, top: Float) {
         val flags = TextStyle.flags(style)
         val plain = flags and TextStyle.INVERSE == 0 && TextStyle.bg(style) == TextStyle.COLOR_DEFAULT &&
             defaultBg == background
@@ -303,7 +331,7 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         var start = from
         var count = 0
         for (i in from until to) {
-            val c = row.text[i]
+            val c = shownText[base + i]
             if (c == 0 || c in 0x20..0x7e) {
                 if (count == runChars.size) {
                     canvas.drawText(runChars, 0, count, start * cellWidth, y, paint)
@@ -324,16 +352,17 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         if (count > 0) canvas.drawText(runChars, 0, count, start * cellWidth, y, paint)
     }
 
-    private fun drawCursor(canvas: Canvas, row: TerminalRow, cursorX: Int, y: Int) {
-        if (cursorX >= row.columns) return
+    /* On the row of n cells from base. */
+    private fun drawCursor(canvas: Canvas, base: Int, n: Int, cursorX: Int, y: Int) {
+        if (cursorX >= n) return
         /* On a wide character, the cursor covers both its cells, as in xterm. */
-        val x = if (cursorX > 0 && row.text[cursorX] == TerminalRow.WIDE_TAIL) cursorX - 1 else cursorX
-        val cells = if (x + 1 < row.columns && row.text[x + 1] == TerminalRow.WIDE_TAIL) 2 else 1
+        val x = if (cursorX > 0 && shownText[base + cursorX] == TerminalRow.WIDE_TAIL) cursorX - 1 else cursorX
+        val cells = if (x + 1 < n && shownText[base + x + 1] == TerminalRow.WIDE_TAIL) 2 else 1
         val left = x * cellWidth
         val top = (y * cellHeight).toFloat()
         setPaint(defaultFg, 0)
         canvas.drawRect(left, top, left + cells * cellWidth, top + cellHeight, paint)
-        val c = row.text[x]
+        val c = shownText[base + x]
         if (c > 0x20) {
             setPaint(defaultBg, 0)
             val len = Character.toChars(c, oneChar, 0)
