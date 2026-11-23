@@ -151,8 +151,12 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         var eof = false
         try {
             while (true) {
-                /* A few in flight: sftp-server answers a hundred names at most each time. */
-                while (!eof && pending.size < LIST_REQUESTS) pending.addLast(send(Writer(FXP_READDIR).bytes(handle)))
+                /*
+                 * A few in flight: sftp-server answers a hundred names at most
+                 * each time. Sent again once all are answered, one sent after
+                 * each reply would make a small folder wait for it.
+                 */
+                if (!eof && pending.isEmpty()) repeat(LIST_REQUESTS) { pending.addLast(send(Writer(FXP_READDIR).bytes(handle))) }
                 val r = reply(pending.removeFirstOrNull() ?: break)
                 /* Past the end, the replies to the requests still due are dropped, as in copy(). */
                 if (eof) continue
