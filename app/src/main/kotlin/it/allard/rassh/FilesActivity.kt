@@ -380,6 +380,9 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
     }
 
     private val selecting = object : AbsListView.MultiChoiceModeListener {
+        /* Select all checks each entry, the title and menu change once after. */
+        private var checkingAll = false
+
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
             selection = mode
             /* The latest callback of a priority comes first. */
@@ -396,16 +399,26 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
             return true
         }
 
-        /* Its menu only changes around one, Select all in a large folder calls this for each entry. */
         override fun onItemCheckedStateChanged(mode: ActionMode, position: Int, id: Long, checked: Boolean) {
+            if (!checkingAll) showChecked(mode, false)
+        }
+
+        /* Its menu only changes around one, unless many changed at once. */
+        private fun showChecked(mode: ActionMode, many: Boolean) {
             val n = list.checkedItemCount
             mode.title = resources.getQuantityString(R.plurals.selected, n, n)
-            if (n <= 2) mode.invalidate()
+            if (many || n <= 2) mode.invalidate()
         }
 
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
             if (item.itemId == SELECT_ALL) {
-                for (i in 0 until adapter.count) list.setItemChecked(i, true)
+                checkingAll = true
+                try {
+                    for (i in 0 until adapter.count) list.setItemChecked(i, true)
+                } finally {
+                    checkingAll = false
+                }
+                showChecked(mode, true)
                 return true
             }
             val checked = list.checkedItemPositions
