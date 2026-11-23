@@ -747,6 +747,8 @@ private fun sequence(b: ByteArray, i: Int): Int {
  * Replaced here, Android's decoder may itself return lone surrogates.
  */
 fun shownName(name: String): String {
+    /* Most are, kept as they are rather than copied: a listing holds one for each entry. */
+    if (name.none { it.isSurrogate() }) return name
     val sb = StringBuilder(name.length)
     var i = 0
     while (i < name.length) {
