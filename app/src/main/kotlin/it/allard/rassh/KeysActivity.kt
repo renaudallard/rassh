@@ -42,8 +42,6 @@ class KeysActivity : Activity() {
     private lateinit var adapter: TwoLineAdapter
     private var keys: List<String> = emptyList()
     private var resumed = false
-    /* The list was read by onResume(), see onWindowFocusChanged(). */
-    private var loadedOnResume = false
     /* Keys imported while the screen was away, their public keys are made on return. */
     private val deriveLater = mutableListOf<String>()
     private val binding = ServiceBinding(this) {}
@@ -72,7 +70,6 @@ class KeysActivity : Activity() {
         resumed = true
         protectClosed = false
         load()
-        loadedOnResume = true
         val names = deriveLater.toList()
         deriveLater.clear()
         names.forEach { derivePublicKey(it) }
@@ -89,11 +86,8 @@ class KeysActivity : Activity() {
      */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        /* The focus that follows onResume() finds the list just read. */
-        val fresh = loadedOnResume
-        loadedOnResume = false
         if (!hasFocus) return
-        if (!fresh) load()
+        load()
         protect()
     }
 
