@@ -103,6 +103,22 @@ class SftpClientTest {
     }
 
     @Test
+    fun listCanonical() {
+        sftp.mkdir("$dir/sub")
+        File(dir, "sub/a").writeText("x")
+        val (path, entries) = sftp.listCanonical("$dir/sub/../sub/.")
+        assertEquals(File(dir, "sub").canonicalPath, path)
+        assertEquals(listOf("a"), entries.map { it.name })
+        /* Refused by REALPATH, by OPENDIR alone, or here: the connection is still in step after each. */
+        val missing = assertFailsWith<SftpException> { sftp.listCanonical("$dir/missing") }
+        assertEquals(SftpException.NO_SUCH_FILE, missing.status)
+        assertFailsWith<SftpException> { sftp.listCanonical("$dir/sub/a") }
+        assertFailsWith<IOException> { sftp.listCanonical("$dir/a\u0000b") }
+        assertEquals(listOf("a"), sftp.list("$dir/sub").map { it.name })
+        assertFalse(sftp.isBroken)
+    }
+
+    @Test
     fun manyEntries() {
         /* sftp-server sends a directory in batches of 100. */
         repeat(250) { File(dir, "f$it").writeText("") }

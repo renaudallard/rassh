@@ -102,8 +102,9 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     /** The absolute, canonical form of path. */
     @Synchronized
     @Throws(IOException::class)
-    fun realpath(path: String): String {
-        val r = request(Writer(FXP_REALPATH).string(path))
+    fun realpath(path: String): String = nameOf(request(Writer(FXP_REALPATH).string(path)))
+
+    private fun nameOf(r: Reply): String {
         expect(r, FXP_NAME)
         if (r.body.u32() < 1) throw IOException("empty reply")
         return r.body.name()
@@ -146,8 +147,36 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
     /** The entries of the directory path, without "." and "..". */
     @Synchronized
     @Throws(IOException::class)
-    fun list(path: String): List<SftpEntry> {
-        val handle = handleOf(request(Writer(FXP_OPENDIR).string(path)))
+    fun list(path: String): List<SftpEntry> = entries(handleOf(request(Writer(FXP_OPENDIR).string(path))))
+
+    /**
+     * The canonical form of path and its entries, as realpath() and then
+     * list() of what it gave, asked for together: a round trip less.
+     */
+    @Synchronized
+    @Throws(IOException::class)
+    fun listCanonical(path: String): Pair<String, List<SftpEntry>> {
+        val real = send(Writer(FXP_REALPATH).string(path))
+        val open = send(Writer(FXP_OPENDIR).string(path))
+        val dir = try {
+            nameOf(reply(real))
+        } catch (e: IOException) {
+            /* The folder may have opened all the same. The first error is the one told. */
+            if (!isBroken) {
+                try {
+                    val r = reply(open)
+                    if (r.type == FXP_HANDLE) closeHandle(r.body.bytes())
+                } catch (other: IOException) {
+                    e.addSuppressed(other)
+                }
+            }
+            throw e
+        }
+        return Pair(dir, entries(handleOf(reply(open))))
+    }
+
+    /* The entries of the directory open as handle, which is closed. */
+    private fun entries(handle: ByteArray): List<SftpEntry> {
         val entries = mutableListOf<SftpEntry>()
         var chars = 0L
         val pending = ArrayDeque<Int>()

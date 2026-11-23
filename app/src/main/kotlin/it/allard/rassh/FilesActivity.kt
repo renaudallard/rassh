@@ -322,10 +322,10 @@ class FilesActivity : Activity(), Session.Listener, SessionService.Listener {
         val sort = prefs.getInt(PREF_SORT, SORT_NAME)
         /* The rows are made on the worker too, a large folder would hold the screen. */
         run({
-            val dir = if (canonical) path else c.realpath(path)
+            val (dir, inDir) = if (canonical) Pair(path, c.list(path)) else c.listCanonical(path)
             /* Made for each listing, a format keeps the time zone it was made in. */
             val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-            val found = c.list(dir).map { Listed(it, label(it), describe(it.attrs, date)) }
+            val found = inDir.map { Listed(it, label(it), describe(it.attrs, date)) }
             Triple(dir, found, arrange(found, hidden, sort))
         }, { e ->
             failed(e)
