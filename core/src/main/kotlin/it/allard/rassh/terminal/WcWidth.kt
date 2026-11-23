@@ -50,6 +50,14 @@ object WcWidth {
         if (c == 0x3164 || c == 0xffa0) return 0
         if (c in 0x600..0x605 || c == 0x6dd || c == 0x70f || c in 0x890..0x891 || c == 0x8e2 ||
             c in 0xfff9..0xfffb || c == 0x110bd || c == 0x110cd || c in 0x13430..0x1343f) return 1
+        /*
+         * Common blocks holding no marks or format characters, answered
+         * without getType(), a call into ICU on Android: CJK ideographs and
+         * Hangul syllables, wide in the table below, box drawing, block
+         * elements and shapes before the wide U+25FD, Braille, private use.
+         */
+        if (c in 0x4e00..0x9fff || c in 0xac00..0xd7a3) return 2
+        if (c in 0x2500..0x25fc || c in 0x2800..0x28ff || c in 0xe000..0xf8ff) return 1
         when (Character.getType(c)) {
             Character.NON_SPACING_MARK.toInt(),
             Character.ENCLOSING_MARK.toInt(),
