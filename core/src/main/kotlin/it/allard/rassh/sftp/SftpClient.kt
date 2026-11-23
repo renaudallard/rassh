@@ -219,17 +219,17 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                 continue
             }
             expect(r, FXP_DATA)
-            val data = r.body.bytes()
+            val n = r.body.stringLength()
             /* The end comes as a status, empty data would ask the same again forever. */
-            if (asked.offset != done || data.size > asked.length || data.isEmpty()) throw IOException("unexpected data")
-            out.write(data)
-            done += data.size
+            if (asked.offset != done || n > asked.length || n == 0) throw IOException("unexpected data")
+            r.body.writeTo(out, n)
+            done += n
             /*
              * A short read, the rest of that range is asked first, the
              * requests after it still hold, as OpenSSH's sftp does: a
              * server answering less each time keeps its pipeline full.
              */
-            if (data.size < asked.length) pending.addFirst(read(handle, done, asked.length - data.size))
+            if (n < asked.length) pending.addFirst(read(handle, done, asked.length - n))
             if (!progress(done)) throw SftpCancelledException()
         }
     }
@@ -508,10 +508,21 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         fun u64(): Long = (u32().toLong() and 0xffffffffL shl 32) or (u32().toLong() and 0xffffffffL)
 
         fun bytes(): ByteArray {
+            val n = stringLength()
+            return b.copyOfRange(pos, pos + n).also { pos += n }
+        }
+
+        /* The length of a string, its n bytes then taken by writeTo() without a copy. */
+        fun stringLength(): Int {
             val n = u32()
             if (n < 0) throw IOException("bad string length")
             need(n)
-            return b.copyOfRange(pos, pos + n).also { pos += n }
+            return n
+        }
+
+        fun writeTo(out: OutputStream, n: Int) {
+            out.write(b, pos, n)
+            pos += n
         }
 
         /*
