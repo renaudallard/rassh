@@ -11,13 +11,13 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-/** Attributes of a remote file, null for those the server left out. */
+/**
+ * Attributes of a remote file, null for those the server left out. Owner,
+ * group and access time are not kept: a large listing holds many.
+ */
 class SftpAttrs(
     val size: Long? = null,
-    val uid: Int? = null,
-    val gid: Int? = null,
     val permissions: Int? = null,
-    val atime: Long? = null,
     val mtime: Long? = null,
 ) {
     val isDirectory: Boolean
@@ -602,17 +602,14 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
         fun attrs(): SftpAttrs {
             val flags = u32()
             val size = if (flags and ATTR_SIZE != 0) u64() else null
-            var uid: Int? = null
-            var gid: Int? = null
             if (flags and ATTR_UIDGID != 0) {
-                uid = u32()
-                gid = u32()
+                u32()
+                u32()
             }
             val permissions = if (flags and ATTR_PERMISSIONS != 0) u32() else null
-            var atime: Long? = null
             var mtime: Long? = null
             if (flags and ATTR_ACMODTIME != 0) {
-                atime = u32().toLong() and 0xffffffffL
+                u32()
                 mtime = u32().toLong() and 0xffffffffL
             }
             if (flags and ATTR_EXTENDED != 0) {
@@ -621,7 +618,7 @@ class SftpClient(input: InputStream, output: OutputStream) : Closeable {
                     bytes()
                 }
             }
-            return SftpAttrs(size, uid, gid, permissions, atime, mtime)
+            return SftpAttrs(size, permissions, mtime)
         }
 
         private fun need(n: Int) {
