@@ -1,0 +1,1 @@
+- The cursor takes the colors of the text under it, so it stays visible on backgrounds set by programs such as vi (#1)
