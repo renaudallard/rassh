@@ -101,6 +101,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
     private val onLight = Color.luminance(background) > 0.5f
     private val readable = if (onLight) IntArray(256) { darkened(PALETTE[it], background) } else PALETTE
     private val selectionColor = context.themeColor(android.R.attr.colorAccent) and 0xffffff or SELECTION_ALPHA
+    /* The colors of a cell, set by cellColors. */
+    private var cellFg = 0
+    private var cellBg = 0
 
     /* Lines scrolled back into the history. */
     private var scrollOffset = 0
@@ -320,15 +323,9 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun drawRun(canvas: Canvas, base: Int, from: Int, to: Int, style: Long, top: Float) {
         val flags = TextStyle.flags(style)
-        val plain = flags and TextStyle.INVERSE == 0 && TextStyle.bg(style) == TextStyle.COLOR_DEFAULT &&
-            defaultBg == background
-        var fg = color(TextStyle.fg(style), defaultFg, if (plain) readable else PALETTE)
-        var bg = color(TextStyle.bg(style), defaultBg)
-        if (flags and TextStyle.INVERSE != 0) {
-            val tmp = fg
-            fg = bg
-            bg = tmp
-        }
+        cellColors(style)
+        val fg = cellFg
+        val bg = cellBg
         if (bg != defaultBg) {
             setPaint(bg, 0)
             canvas.drawRect(from * cellWidth, top, to * cellWidth, top + cellHeight, paint)
@@ -367,6 +364,18 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
 
     private fun isBlank(c: Int): Boolean = c == 0 || c == 0x20
 
+    /* Sets cellFg and cellBg to the colors a cell of this style is drawn in. */
+    private fun cellColors(style: Long) {
+        val flags = TextStyle.flags(style)
+        val plain = flags and TextStyle.INVERSE == 0 && TextStyle.bg(style) == TextStyle.COLOR_DEFAULT &&
+            defaultBg == background
+        val fg = color(TextStyle.fg(style), defaultFg, if (plain) readable else PALETTE)
+        val bg = color(TextStyle.bg(style), defaultBg)
+        val inverse = flags and TextStyle.INVERSE != 0
+        cellFg = if (inverse) bg else fg
+        cellBg = if (inverse) fg else bg
+    }
+
     /* On the row of n cells from base. */
     private fun drawCursor(canvas: Canvas, base: Int, n: Int, cursorX: Int, y: Int) {
         if (cursorX >= n) return
@@ -375,11 +384,20 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         val cells = if (x + 1 < n && shownText[base + x + 1] == TerminalRow.WIDE_TAIL) 2 else 1
         val left = x * cellWidth
         val top = (y * cellHeight).toFloat()
-        setPaint(defaultFg, 0)
+        /*
+         * The cell in reverse video. A blank cell erased by a program keeps
+         * its background but not its foreground, which may not stand out
+         * of it: black or white then.
+         */
+        cellColors(shownStyle[base + x])
+        var block = cellFg
+        if (contrast(block, cellBg) < CURSOR_CONTRAST)
+            block = if (contrast(Color.BLACK, cellBg) > contrast(Color.WHITE, cellBg)) Color.BLACK else Color.WHITE
+        setPaint(block, 0)
         canvas.drawRect(left, top, left + cells * cellWidth, top + cellHeight, paint)
         val c = shownText[base + x]
         if (c > 0x20) {
-            setPaint(defaultBg, 0)
+            setPaint(cellBg, 0)
             val len = Character.toChars(c, oneChar, 0)
             canvas.drawText(oneChar, 0, len, left, top + baseline, paint)
         }
@@ -860,13 +878,21 @@ class TerminalView(context: Context, attrs: AttributeSet?) : View(context, attrs
         private const val MENU_PASTE = 2
         /* The contrast WCAG asks of text, 4.5:1. */
         private const val MIN_CONTRAST = 4.5f
+        /* The contrast WCAG asks of graphics such as the cursor, 3:1. */
+        private const val CURSOR_CONTRAST = 3f
         private const val DARKEN = 0.9f
+
+        /* The WCAG contrast ratio of two colors, from 1 to 21. */
+        private fun contrast(a: Int, b: Int): Float {
+            val la = Color.luminance(a) + 0.05f
+            val lb = Color.luminance(b) + 0.05f
+            return if (la > lb) la / lb else lb / la
+        }
 
         /* c, darkened until it reads on background. */
         private fun darkened(c: Int, background: Int): Int {
-            val bg = Color.luminance(background) + 0.05f
             var color = c
-            while ((bg / (Color.luminance(color) + 0.05f)) < MIN_CONTRAST && color != Color.BLACK)
+            while (contrast(color, background) < MIN_CONTRAST && color != Color.BLACK)
                 color = Color.rgb((Color.red(color) * DARKEN).toInt(), (Color.green(color) * DARKEN).toInt(),
                     (Color.blue(color) * DARKEN).toInt())
             return color
